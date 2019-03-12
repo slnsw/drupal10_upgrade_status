@@ -1,0 +1,5 @@
+type: module
+name: 'Upgrade Status'
+description: 'Tool to review deprecation status'
+package: Administration
+core: 8.x
