@@ -1,0 +1,4 @@
+services:
+  upgrade_status.deprecation_analyser:
+    class: Drupal\upgrade_status\DeprecationAnalyser
+    arguments: ['@cache.default', '@logger.factory']

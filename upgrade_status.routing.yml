@@ -1,0 +1,7 @@
+upgrade_status.analyse:
+  path: '/admin/reports/updates/deprecations'
+  defaults:
+    _title: 'Drupal 9 Readiness'
+    _form: 'Drupal\upgrade_status\Form\ReadinessForm'
+  requirements:
+    _permission: 'administer site configuration'
