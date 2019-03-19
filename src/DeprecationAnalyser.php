@@ -21,12 +21,22 @@ class DeprecationAnalyser {
   /**
    * @var \Drupal\Core\Cache\CacheBackendInterface
    */
-  private $cache;
+  protected $cache;
 
   /**
    * @var \Drupal\Core\Logger\LoggerChannelInterface
    */
-  private $logger;
+  protected $logger;
+
+  /**
+   * @var \Symfony\Component\Console\Input\StringInput
+   */
+  protected $inputInterface;
+
+  /**
+   * @var \Symfony\Component\Console\Output\BufferedOutput
+   */
+  protected $outputInterface;
 
   /**
    * DeprecationAnalyser constructor.
@@ -36,10 +46,14 @@ class DeprecationAnalyser {
    */
   public function __construct(
     CacheBackendInterface $cache,
-    LoggerChannelFactoryInterface $loggerFactory
+    LoggerChannelFactoryInterface $loggerFactory,
+    StringInput $inputInterface,
+    BufferedOutput $outputInterface
   ) {
     $this->cache = $cache;
     $this->logger = $loggerFactory->get('readiness');
+    $this->inputInterface = $inputInterface;
+    $this->outputInterface = $outputInterface;
   }
 
   protected function loadTestNamespaces() {
@@ -56,7 +70,6 @@ class DeprecationAnalyser {
       $GLOBALS['autoloaderInWorkingDirectory'] = implode(DIRECTORY_SEPARATOR, [DRUPAL_ROOT, 'autoload.php']);
     }
 
-    $errorOutput = new BufferedOutput();
     $configuration = implode(DIRECTORY_SEPARATOR, [DRUPAL_ROOT, $modulePath, 'deprecation_testing.neon']);
 
     $files = [];
@@ -64,8 +77,8 @@ class DeprecationAnalyser {
 
     try {
       $inspectionResult = CommandHelper::begin(
-        new StringInput('analyse'),
-        $errorOutput,
+        $this->inputInterface,
+        $this->outputInterface,
         $files,
         null,
         null,
@@ -99,7 +112,7 @@ class DeprecationAnalyser {
       )
     );
 
-    return $errorOutput->fetch();
+    return $this->outputInterface->fetch();
   }
 
 }

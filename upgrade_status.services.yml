@@ -1,4 +1,9 @@
 services:
+  upgrade_status.string_input:
+    class: Symfony\Component\Console\Input\StringInput
+    arguments: ['analyse']
+  upgrade_status.buffered_output:
+    class: Symfony\Component\Console\Output\BufferedOutput
   upgrade_status.deprecation_analyser:
     class: Drupal\upgrade_status\DeprecationAnalyser
-    arguments: ['@cache.default', '@logger.factory']
+    arguments: ['@cache.default', '@logger.factory', '@upgrade_status.string_input', '@upgrade_status.buffered_output']
