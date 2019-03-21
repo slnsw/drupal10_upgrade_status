@@ -6,4 +6,13 @@ services:
     class: Symfony\Component\Console\Output\BufferedOutput
   upgrade_status.deprecation_analyser:
     class: Drupal\upgrade_status\DeprecationAnalyser
-    arguments: ['@cache.default', '@logger.factory', '@upgrade_status.string_input', '@upgrade_status.buffered_output']
+    arguments: ['@cache.upgrade_status', '@logger.factory', '@upgrade_status.string_input', '@upgrade_status.buffered_output', '@upgrade_status.project_collector']
+  upgrade_status.project_collector:
+    class: Drupal\upgrade_status\ProjectCollector
+    arguments: ['@extension.list.module', '@theme_handler']
+  cache.upgrade_status:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory: cache_factory:get
+    arguments: [upgrade_status]

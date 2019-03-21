@@ -32,15 +32,8 @@ class ReadinessForm extends FormBase {
     $this->deprecationAnalyser = $deprecationAnalyser;
   }
 
-    /**
-   * Returns a unique string identifying the form.
-   *
-   * The returned ID should be a unique string that can be a valid PHP function
-   * name, since it's used in hook implementation names such as
-   * hook_form_FORM_ID_alter().
-   *
-   * @return string
-   *   The unique string identifying the form.
+  /**
+   * {@inheritdoc}
    */
   public function getFormId() {
     return 'drupal_readiness_form';
@@ -58,24 +51,10 @@ class ReadinessForm extends FormBase {
    *   The form structure.
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $data = $form_state->get('deprecation_data');
-
-    $form['drupal_readiness_form'] = [
-      'response' => [
-        '#type' => 'details',
-        '#title' => $this->t('Response'),
-        '#tree' => TRUE,
-        '#open' => TRUE,
-        'data' => [
-          '#type' => '#markup',
-          '#markup' => $data,
-        ],
-      ],
-    ];
-
     $form['drupal_readiness_form']['action']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Analyse'),
+      '#value' => $this->t('Start full scan'),
+      '#weight' => 0,
     ];
 
     return $form;
@@ -90,9 +69,7 @@ class ReadinessForm extends FormBase {
    *   The current state of the form.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $form_state->setRebuild(TRUE);
-
-    $form_state->set('deprecation_data', $this->deprecationAnalyser->analyse());
+    $this->deprecationAnalyser->analyse();
   }
 
 }

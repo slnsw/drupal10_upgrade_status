@@ -3,3 +3,5 @@ name: 'Upgrade Status'
 description: 'Review current status of known Drupal 9 incompatibilities on the site'
 package: Administration
 core: 8.x
+dependencies:
+  - drupal:update
