@@ -66,6 +66,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $this->inputInterface = $inputInterface;
     $this->outputInterface = $outputInterface;
     $this->projectCollector = $projectCollector;
+    $this->loadTestNamespaces();
 
     $modulePath = drupal_get_path('module', 'upgrade_status');
 
@@ -84,20 +85,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     drupal_phpunit_populate_class_loader();
   }
 
-  public function analyse() {
-    $this->loadTestNamespaces();
-    $projects = $this->projectCollector->collectProjects();
-
-    foreach ($projects['custom'] as $projectData) {
-      $this->setDeprecationData($projectData);
-    }
-
-    foreach ($projects['contrib'] as $projectData) {
-      $this->setDeprecationData($projectData);
-    }
-  }
-
-  public function setDeprecationData(Extension $projectData) {
+  public function analyse(Extension $projectData) {
     if (!isset($GLOBALS['autoloaderInWorkingDirectory'])) {
       $GLOBALS['autoloaderInWorkingDirectory'] = implode(DIRECTORY_SEPARATOR, [DRUPAL_ROOT, 'autoload.php']);
     }
@@ -122,30 +110,29 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $errorFormatterServiceName = sprintf('errorFormatter.%s', self::ERROR_FORMAT);
     if (!$container->hasService($errorFormatterServiceName)) {
       $this->logger->error($this->t('Error formatter @formatter not found'), ['@formatter' => self::ERROR_FORMAT]);
-      return '';
     }
+    else {
+      $errorFormatter = $container->getService($errorFormatterServiceName);
+      $application = $container->getByType(AnalyseApplication::class);
 
-    $errorFormatter = $container->getService($errorFormatterServiceName);
-    $application = $container->getByType(AnalyseApplication::class);
-
-    $inspectionResult->handleReturn(
-      $application->analyse(
-        $inspectionResult->getFiles(),
-        $inspectionResult->isOnlyFiles(),
-        $inspectionResult->getConsoleStyle(),
-        $errorFormatter,
-        $inspectionResult->isDefaultLevelUsed(),
-        FALSE
-      )
-    );
-
-    $this
-      ->cache
-      ->set(
-        $projectData->getName(),
-        $this->outputInterface->fetch()
+      $inspectionResult->handleReturn(
+        $application->analyse(
+          $inspectionResult->getFiles(),
+          $inspectionResult->isOnlyFiles(),
+          $inspectionResult->getConsoleStyle(),
+          $errorFormatter,
+          $inspectionResult->isDefaultLevelUsed(),
+          FALSE
+        )
       );
 
+      $this
+        ->cache
+        ->set(
+          $projectData->getName(),
+          $this->outputInterface->fetch()
+        );
+    }
   }
 
 }

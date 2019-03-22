@@ -4,32 +4,44 @@ namespace Drupal\upgrade_status\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\upgrade_status\DeprecationAnalyser;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class ReadinessForm extends FormBase {
 
   /**
-   * @var \Drupal\upgrade_status\DeprecationAnalyser
+   * @var \Drupal\upgrade_status\ProjectCollector
    */
-  protected $deprecationAnalyser;
+  protected $projectCollector;
+
+  /**
+   * @var \Drupal\Core\Queue\QueueFactory
+   */
+  protected $queue;
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('upgrade_status.deprecation_analyser')
+      $container->get('upgrade_status.project_collector'),
+      $container->get('queue')
     );
   }
 
   /**
    * ReadinessForm constructor.
    *
-   * @param \Drupal\upgrade_status\DeprecationAnalyser $deprecationAnalyser
+   * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
+   * @param \Drupal\Core\Queue\QueueFactory $queue
    */
-  public function __construct(DeprecationAnalyser $deprecationAnalyser) {
-    $this->deprecationAnalyser = $deprecationAnalyser;
+  public function __construct(
+    ProjectCollector $projectCollector,
+    QueueFactory $queue
+  ) {
+    $this->projectCollector = $projectCollector;
+    $this->queue = $queue->get('upgrade_status_deprecation_worker');
   }
 
   /**
@@ -69,7 +81,15 @@ class ReadinessForm extends FormBase {
    *   The current state of the form.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $this->deprecationAnalyser->analyse();
+    $projects = $this->projectCollector->collectProjects();
+
+    foreach ($projects['custom'] as $projectData) {
+      $this->queue->createItem($projectData);
+    }
+
+    foreach ($projects['contrib'] as $projectData) {
+      $this->queue->createItem($projectData);
+    }
   }
 
 }

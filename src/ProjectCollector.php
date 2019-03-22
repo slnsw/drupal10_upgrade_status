@@ -17,6 +17,12 @@ class ProjectCollector implements ProjectCollectorInterface {
    */
   protected $themeHandler;
 
+  /**
+   * ProjectCollector constructor.
+   *
+   * @param \Drupal\Core\Extension\ModuleExtensionList $moduleExtensionList
+   * @param \Drupal\Core\Extension\ThemeHandler $themeHandler
+   */
   public function __construct(
     ModuleExtensionList $moduleExtensionList,
     ThemeHandler $themeHandler
