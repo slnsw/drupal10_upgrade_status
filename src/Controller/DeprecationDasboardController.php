@@ -49,8 +49,9 @@ class DeprecationDasboardController extends ControllerBase {
     $custom = [];
     foreach ($projects['custom'] as $projectName => $projectData) {
       $cache = $this->cache->get($projectName);
+      $info = $projectData->info;
       $custom[$projectName] = [
-        'project' => $projectName,
+        'project' => $info['name'],
         'status' => $cache->data ?? [],
       ];
     }
@@ -58,8 +59,9 @@ class DeprecationDasboardController extends ControllerBase {
     $contrib = [];
     foreach ($projects['contrib'] as $projectName => $projectData) {
       $cache = $this->cache->get($projectName);
+      $info = $projectData->info;
       $contrib[$projectName] = [
-        'project' => $projectName,
+        'project' => $info['name'],
         'status' => $cache->data ?? [],
       ];
     }
