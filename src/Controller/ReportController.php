@@ -53,27 +53,41 @@ class ReportController extends ControllerBase {
     );
   }
 
+    /**
+     * Provides content for the upgrade status report page.
+     *
+     * @return array
+     *   Render array.
+     */
   public function content() {
-    $formState = new FormState();
-    $content = $this->formBuilder()->getForm(UpgradeStatusForm::class);
-    $content['form'] = $this->formBuilder()->doBuildForm('drupal_upgrade_status_form', $content, $formState);
+    $content = [];
 
+    // Add form to populate and run the scanning queue.
+    $content['form'] = $this->formBuilder()->getForm(UpgradeStatusForm::class);
+
+    // Gather project list grouped by custom and contrib projects.
     $projects = $this->projectCollector->collectProjects();
-    $custom = $this->buildProjectRows($projects['custom']);
-    $contrib = $this->buildProjectRows($projects['contrib']);
 
-    $content['drupal_upgrade_status_form']['custom'] = [
+    // List custom project status first.
+    $custom = ['#type' => 'markup', '#markup' => $this->t('No custom projects found.')];
+    if (count($projects['custom'])) {
+      $custom = $this->buildProjectGroups($projects['custom']);
+    }
+    $content['custom'] = [
       '#type' => 'details',
       '#title' => $this->t('Custom modules and themes'),
-      '#tree' => TRUE,
       '#open' => TRUE,
       'data' => $custom,
     ];
 
-    $content['drupal_upgrade_status_form']['contrib'] = [
+    // List contrib project status second.
+    $contrib = ['#type' => 'markup', '#markup' => $this->t('No contributed projects found.')];
+    if (count($projects['contrib'])) {
+      $contrib = $this->buildProjectGroups($projects['contrib']);
+    }
+    $content['contrib'] = [
       '#type' => 'details',
       '#title' => $this->t('Contributed modules and themes'),
-      '#tree' => TRUE,
       '#open' => TRUE,
       'data' => $contrib,
     ];
@@ -81,110 +95,98 @@ class ReportController extends ControllerBase {
     return $content;
   }
 
-  protected function buildProjectRows(array $projects) {
-    $notDeprecated = 0;
-    $deprecated = 0;
-    $notScanned = 0;
-    $totalErrors = 0;
+  /**
+   * Builds a grouped list of projects by known issues, no known issues and still to be scanned.
+   *
+   * @param \Drupal\Core\Extension\Extension[] $projects
+   *   Array of extensions representing projects.
+   *
+   * @return array
+   *   Build array.
+   */
+  protected function buildProjectGroups(array $projects) {
+    $build = [];
+    $total_error_count = 0;
 
-    $projectsDisplay['not_scanned']['data'] = [];
-    $projectsDisplay['deprecated']['data'] = [];
-    $projectsDisplay['not_deprecated']['data'] = [];
-
-    $projectsDisplay['deprecated'] = [
+    // Set up containers for each group of project in case we need them.
+    $build['known_errors'] = [
       '#type' => 'details',
-      '#tree' => TRUE,
-      '#open' => !empty($deprecated) ? TRUE : FALSE,
-      'data' => [
-        '#type' => 'table',
-        '#header' => [
-          'project' => $this->t('Project'),
-          'status' => $this->t('Status'),
-          'operations' => $this->t('Operations'),
-        ],
-      ],
+      '#weight' => -10,
+      // Open the known errors list if there was any. Otherwise the list will be removed later.
+      '#open' => TRUE,
+      'data' => [],
     ];
-
-    $projectsDisplay['not_deprecated'] = [
+    $build['no_known_errors'] = [
       '#type' => 'details',
-      '#tree' => TRUE,
-      '#open' => !empty($notDeprecated) ? TRUE : FALSE,
-      'data' => [
-        '#type' => 'table',
-        '#header' => [
-          'project' => $this->t('Project'),
-        ],
-      ],
-    ];
-
-    $projectsDisplay['not_scanned'] = [
-      '#type' => 'details',
-      '#tree' => TRUE,
+      '#weight' => 0,
       '#open' => FALSE,
-      'data' => [
-        '#type' => 'table',
-        '#header' => [
-          'project' => $this->t('Project'),
-          'operations' => $this->t('Operations'),
-        ],
-      ],
+      'data' => [],
+    ];
+    $build['not_scanned'] = [
+      '#type' => 'details',
+      '#weight' => 10,
+      '#open' => FALSE,
+      'data' => [],
     ];
 
-    foreach ($projects as $projectMachineName => $projectData) {
-      $cache = $this->cache->get($projectMachineName);
-      $info = $projectData->info;
+    foreach ($projects as $name => $extension) {
+      $cache = $this->cache->get($name);
+      $info = $extension->info;
+      $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
 
+      // If this project was not found in cache, it is not yet scanned, report that.
       if (empty($cache)) {
-        $notScanned++;
-        $projectsDisplay['not_scanned']['data'][$projectMachineName] = [
+        $build['not_scanned']['data'][$name] = [
           'project' => [
             '#type' => 'markup',
-            '#markup' => $info['name'],
+            '#markup' => $label,
           ],
           'operations' => [
             '#type' => 'operations',
+            // @todo add release info for contrib
             '#links' => [],
           ],
         ];
         continue;
       }
 
-      $deprecationReportRaw = $cache->data;
-      $deprecationReport = json_decode($deprecationReportRaw);
-      $errors = $deprecationReport->totals->file_errors;
+      // Unpack JSON of deprecations to display results.
+      $deprecation_report = json_decode($cache->data);
+      $project_error_count = $deprecation_report->totals->file_errors;
 
-      if ($errors === 0) {
-        $notDeprecated++;
-        $projectsDisplay['not_deprecated']['data'][$projectMachineName] = [
+      // If this project had no known issues found, report that.
+      if ($project_error_count === 0) {
+        $build['no_known_errors']['data'][$name] = [
           'project' => [
             '#type' => 'markup',
-            '#markup' => $info['name'],
+            '#markup' => $label,
+          ],
+          'operations' => [
+            '#type' => 'operations',
+            // @todo add rescan operation and release info for contrib
+            '#links' => [],
           ],
         ];
         continue;
       }
-      $totalErrors += $errors;
+      $total_error_count += $project_error_count;
 
-      if (isset($info['version'])) {
-        $projectHumanReadableName = implode(' ', [$info['name'], $info['version']]);
-      }
-
-      $deprecated++;
-      $projectsDisplay['deprecated']['data'][$projectMachineName] = [
+      // Finally this project had errors found, display them.
+      $build['known_errors']['data'][$name] = [
         'project' => [
           '#type' => 'markup',
-          '#markup' => $projectHumanReadableName,
+          '#markup' => $label,
         ],
         'status' => [
           '#type' => 'markup',
-          '#markup' => $this->t('@errors errors', ['@errors' => $errors]),
+          '#markup' => $this->formatPlural($project_error_count, '@count error', '@count errors'),
         ],
         'operations' => [
           '#type' => 'operations',
           '#links' => [
             'errors' => [
               'title' => $this->t('View errors'),
-              'url' => Url::fromRoute('upgrade_status.project', ['project_name' => $projectMachineName]),
+              'url' => Url::fromRoute('upgrade_status.project', ['project_name' => $name]),
               'attributes' => [
                 'class' => ['use-ajax'],
                 'data-dialog-type' => 'modal',
@@ -199,11 +201,60 @@ class ReportController extends ControllerBase {
       ];
     }
 
-    $projectsDisplay['deprecated']['#title'] = $this->t('Found @project project with @errorCount known drupal 9 compatibility errors', ['@project' => $deprecated, '@errorCount' => $totalErrors]);
-    $projectsDisplay['not_deprecated']['#title'] = $this->t('Found @project project with no known drupal 9 compatibility errors', ['@project' => $notDeprecated]);
-    $projectsDisplay['not_scanned']['#title'] = $this->t('@project project not yet scanned', ['@project' => $notScanned]);
+    // Set up the known errors list if there were any known errors found, otherwise remove it.
+    if (count($build['known_errors']['data'])) {
+      $build['known_errors']['#title'] = $this->formatPlural(
+       count($build['known_errors']['data']),
+      'Found @count project with @errorCount known Drupal 9 compatibility errors',
+      'Found @count projects with @errorCount known Drupal 9 compatibility errors',
+       ['@errorCount' => $total_error_count]
+      );
+      $build['known_errors']['data']['#type'] = 'table';
+      $build['known_errors']['data']['#header'] = [
+        'project' => $this->t('Project'),
+        'status' => $this->t('Status'),
+        'operations' => $this->t('Operations'),
+      ];
+    }
+    else {
+      unset($build['known_errors']);
+    }
 
-    return $projectsDisplay;
+    // Set up the no known errors list if there were any projects with no known errors.
+    if (count($build['no_known_errors']['data'])) {
+      $build['no_known_errors']['#title'] = $this->formatPlural(
+        count($build['no_known_errors']['data']),
+        'Found @count project with no known Drupal 9 compatibility errors',
+        'Found @count projects with no known Drupal 9 compatibility errors'
+      );
+      $build['no_known_errors']['data']['#type'] = 'table';
+      $build['no_known_errors']['data']['#header'] = [
+        'project' => $this->t('Project'),
+        'operations' => $this->t('Operations'),
+      ];
+    }
+    else {
+      unset($build['no_known_errors']);
+    }
+
+    // Set up the not scanned list if there were any projects left to scan.
+    if (count($build['not_scanned']['data'])) {
+      $build['not_scanned']['#title'] = $this->formatPlural(
+        count($build['not_scanned']['data']),
+        '@count project not yet scanned',
+        '@count projects not yet scanned'
+      );
+      $build['not_scanned']['data']['#type'] = 'table';
+      $build['not_scanned']['data']['#header'] = [
+        'project' => $this->t('Project'),
+        'operations' => $this->t('Operations'),
+      ];
+    }
+    else {
+      unset($build['not_scanned']);
+    }
+
+    return $build;
   }
 
 }
