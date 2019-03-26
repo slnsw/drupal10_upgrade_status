@@ -76,18 +76,20 @@ class ReportController extends ControllerBase {
     $content['custom'] = [
       '#type' => 'details',
       '#title' => $this->t('Custom modules and themes'),
+      '#description' => $this->t('Custom code is specific to your site, and must be upgraded manually. <a href=":upgrade">Read more about how developers can upgrade their code to Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/documentation/9#deprecated']),
       '#open' => TRUE,
       'data' => $custom,
     ];
 
     // List contrib project status second.
-    $contrib = ['#type' => 'markup', '#markup' => $this->t('No contributed projects found.')];
+    $contrib = ['#type' => 'markup', '#markup' => '<br /><strong>' . $this->t('No contributed projects found.') . '</strong>'];
     if (count($projects['contrib'])) {
       $contrib = $this->buildProjectGroups($projects['contrib']);
     }
     $content['contrib'] = [
       '#type' => 'details',
       '#title' => $this->t('Contributed modules and themes'),
+      '#description' => $this->t('Contributed code is available from drupal.org. Problems here may be partially resolved by updating to the latest version. <a href=":update">Read more about how to update contributed projects</a>.', [':update' => 'https://www.drupal.org/docs/8/update/update-modules']),
       '#open' => TRUE,
       'data' => $contrib,
     ];

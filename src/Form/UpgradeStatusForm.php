@@ -73,6 +73,7 @@ class UpgradeStatusForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Start full scan'),
       '#weight' => 0,
+      '#button_type' => 'primary',
     ];
 
     return $form;
