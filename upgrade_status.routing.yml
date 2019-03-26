@@ -13,3 +13,11 @@ upgrade_status.deprecation_dashboard:
     _title: 'Drupal 9 readiness'
   requirements:
     _permission: 'administer software updates'
+
+upgrade_status.deprecation_data:
+  path: '/admin/reports/updates/data/{project_name}'
+  defaults:
+    _controller: '\Drupal\upgrade_status\Controller\DeprecationController::getDeprecationReportForProject'
+    _title: 'Deprecation report'
+  requirements:
+    _permission: 'administer software updates'

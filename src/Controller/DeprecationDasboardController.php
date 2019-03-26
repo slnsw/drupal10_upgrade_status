@@ -2,9 +2,11 @@
 
 namespace Drupal\upgrade_status\Controller;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Form\FormState;
+use Drupal\Core\Url;
 use Drupal\upgrade_status\Form\ReadinessForm;
 use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -68,19 +70,69 @@ class DeprecationDasboardController extends ControllerBase {
   }
 
   protected function buildProjectRows(array $projects) {
-    $notDeprecated = [];
-    $deprecated = [];
-    $notScanned = [];
-    $projectsDisplay = [];
+    $notDeprecated = 0;
+    $deprecated = 0;
+    $notScanned = 0;
     $totalErrors = 0;
 
-    foreach ($projects as $projectName => $projectData) {
-      $cache = $this->cache->get($projectName);
+    $projectsDisplay['not_scanned']['data'] = [];
+    $projectsDisplay['deprecated']['data'] = [];
+    $projectsDisplay['not_deprecated']['data'] = [];
+
+    $projectsDisplay['deprecated'] = [
+      '#type' => 'details',
+      '#tree' => TRUE,
+      '#open' => !empty($deprecated) ? TRUE : FALSE,
+      'data' => [
+        '#type' => 'table',
+        '#header' => [
+          'project' => $this->t('Project'),
+          'status' => $this->t('Status'),
+          'operations' => $this->t('Operations'),
+        ],
+      ],
+    ];
+
+    $projectsDisplay['not_deprecated'] = [
+      '#type' => 'details',
+      '#tree' => TRUE,
+      '#open' => !empty($notDeprecated) ? TRUE : FALSE,
+      'data' => [
+        '#type' => 'table',
+        '#header' => [
+          'project' => $this->t('Project'),
+        ],
+      ],
+    ];
+
+    $projectsDisplay['not_scanned'] = [
+      '#type' => 'details',
+      '#tree' => TRUE,
+      '#open' => FALSE,
+      'data' => [
+        '#type' => 'table',
+        '#header' => [
+          'project' => $this->t('Project'),
+          'operations' => $this->t('Operations'),
+        ],
+      ],
+    ];
+
+    foreach ($projects as $projectMachineName => $projectData) {
+      $cache = $this->cache->get($projectMachineName);
       $info = $projectData->info;
 
       if (empty($cache)) {
-        $notScanned[] = [
-          'project' => $info['name'],
+        $notScanned++;
+        $projectsDisplay['not_scanned']['data'][$projectMachineName] = [
+          'project' => [
+            '#type' => 'markup',
+            '#markup' => $info['name'],
+          ],
+          'operations' => [
+            '#type' => 'operations',
+            '#links' => [],
+          ],
         ];
         continue;
       }
@@ -90,67 +142,54 @@ class DeprecationDasboardController extends ControllerBase {
       $errors = $deprecationReport->totals->file_errors;
 
       if ($errors === 0) {
-        $notDeprecated[] = [
-          'project' => $info['name'],
+        $notDeprecated++;
+        $projectsDisplay['not_deprecated']['data'][$projectMachineName] = [
+          'project' => [
+            '#type' => 'markup',
+            '#markup' => $info['name'],
+          ],
         ];
         continue;
       }
       $totalErrors += $errors;
 
       if (isset($info['version'])) {
-        $deprecated[] = [
-          'project' => $info['name'] . $info['version'],
-          'status' => $this->t('@errors errors', ['@errors' => $errors]),
-        ];
-        continue;
+        $projectHumanReadableName = implode(' ', [$info['name'], $info['version']]);
       }
 
-      $deprecated[] = [
-        'project' => $info['name'],
-        'status' => $this->t('@errors errors', ['@errors' => $errors]),
+      $deprecated++;
+      $projectsDisplay['deprecated']['data'][$projectMachineName] = [
+        'project' => [
+          '#type' => 'markup',
+          '#markup' => $projectHumanReadableName,
+        ],
+        'status' => [
+          '#type' => 'markup',
+          '#markup' => $this->t('@errors errors', ['@errors' => $errors]),
+        ],
+        'operations' => [
+          '#type' => 'operations',
+          '#links' => [
+            'errors' => [
+              'title' => $this->t('View errors'),
+              'url' => Url::fromRoute('upgrade_status.deprecation_data', ['project_name' => $projectMachineName]),
+              'attributes' => [
+                'class' => ['use-ajax'],
+                'data-dialog-type' => 'modal',
+                'data-dialog-options' => Json::encode([
+                  'width' => 1024,
+                  'height' => 568,
+                ]),
+              ],
+            ],
+          ],
+        ],
       ];
     }
 
-    $projectsDisplay['deprecated'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Found @project project with @errorCount known drupal 9 compatibility errors', ['@project' => count($deprecated), '@errorCount' => $totalErrors]),
-      '#tree' => TRUE,
-      '#open' => !empty($deprecated) ? TRUE : FALSE,
-      'data' => [
-        '#type' => 'table',
-        '#header' => [
-          $this->t('Project'),
-          $this->t('Status'),
-        ],
-        '#rows' => $deprecated,
-      ],
-    ];;
-    $projectsDisplay['not_deprecated'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Found @project project with no known drupal 9 compatibility errors', ['@project' => count($notDeprecated)]),
-      '#tree' => TRUE,
-      '#open' => !empty($notDeprecated) ? TRUE : FALSE,
-      'data' => [
-        '#type' => 'table',
-        '#header' => [
-          $this->t('Project'),
-        ],
-        '#rows' => $notDeprecated,
-      ],
-    ];
-    $projectsDisplay['not_scanned'] = [
-      '#type' => 'details',
-      '#title' => $this->t('@project project not yet scanned', ['@project' => count($notScanned)]),
-      '#tree' => TRUE,
-      '#open' => FALSE,
-      'data' => [
-        '#type' => 'table',
-        '#header' => [
-          $this->t('Project'),
-        ],
-        '#rows' => $notScanned,
-      ],
-    ];
+    $projectsDisplay['deprecated']['#title'] = $this->t('Found @project project with @errorCount known drupal 9 compatibility errors', ['@project' => $deprecated, '@errorCount' => $totalErrors]);
+    $projectsDisplay['not_deprecated']['#title'] = $this->t('Found @project project with no known drupal 9 compatibility errors', ['@project' => $notDeprecated]);
+    $projectsDisplay['not_scanned']['#title'] = $this->t('@project project not yet scanned', ['@project' => $notScanned]);
 
     return $projectsDisplay;
   }

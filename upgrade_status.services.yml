@@ -15,4 +15,4 @@ services:
     tags:
       - { name: cache.bin }
     factory: cache_factory:get
-    arguments: [upgrade_status]
+    arguments: ['upgrade_status']
