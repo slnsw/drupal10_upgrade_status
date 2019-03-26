@@ -69,7 +69,7 @@ class ReportController extends ControllerBase {
     $projects = $this->projectCollector->collectProjects();
 
     // List custom project status first.
-    $custom = ['#type' => 'markup', '#markup' => $this->t('No custom projects found.')];
+    $custom = ['#type' => 'markup', '#markup' => '<br /><strong>' . $this->t('No custom projects found.') . '</strong>'];
     if (count($projects['custom'])) {
       $custom = $this->buildProjectGroups($projects['custom']);
     }
