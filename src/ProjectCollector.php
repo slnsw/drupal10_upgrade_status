@@ -87,7 +87,7 @@ class ProjectCollector implements ProjectCollectorInterface {
   }
 
   /**
-   * Finds topmost custom project for each project and keeps only that.
+   * Finds topmost custom extension for each extension and keeps only that.
    *
    * @param \Drupal\Core\Extension\Extension[] $projects
    *   List of all enabled custom extensions.
