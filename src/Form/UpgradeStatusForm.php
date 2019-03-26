@@ -8,14 +8,18 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class ReadinessForm extends FormBase {
+class UpgradeStatusForm extends FormBase {
 
   /**
+   * The project collector service.
+   *
    * @var \Drupal\upgrade_status\ProjectCollector
    */
   protected $projectCollector;
 
   /**
+   * The queue service.
+   *
    * @var \Drupal\Core\Queue\QueueFactory
    */
   protected $queue;
@@ -31,10 +35,12 @@ class ReadinessForm extends FormBase {
   }
 
   /**
-   * ReadinessForm constructor.
+   * UpgradeStatusForm constructor.
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
+   *   The project collector service.
    * @param \Drupal\Core\Queue\QueueFactory $queue
+   *   The queue service.
    */
   public function __construct(
     ProjectCollector $projectCollector,
@@ -48,7 +54,7 @@ class ReadinessForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'drupal_readiness_form';
+    return 'drupal_upgrade_status_form';
   }
 
   /**
@@ -63,7 +69,7 @@ class ReadinessForm extends FormBase {
    *   The form structure.
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['drupal_readiness_form']['action']['submit'] = [
+    $form['drupal_upgrade_status_form']['action']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Start full scan'),
       '#weight' => 0,
@@ -81,12 +87,11 @@ class ReadinessForm extends FormBase {
    *   The current state of the form.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
+    // Queue each project for deprecation scanning.
     $projects = $this->projectCollector->collectProjects();
-
     foreach ($projects['custom'] as $projectData) {
       $this->queue->createItem($projectData);
     }
-
     foreach ($projects['contrib'] as $projectData) {
       $this->queue->createItem($projectData);
     }

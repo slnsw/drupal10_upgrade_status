@@ -1,19 +1,23 @@
-upgrade_status.analyse:
-  path: '/admin/reports/updates/analyser'
+# @todo add a local task/tab for this
+# or make this its own config menu item (one path up)
+upgrade_status.report:
+  path: '/admin/reports/updates/upgrade'
   defaults:
-    _title: 'Drupal 9 Readiness'
-    _form: 'Drupal\upgrade_status\Form\ReadinessForm'
+    _title: 'Upgrade status report'
+    _form: 'Drupal\upgrade_status\Form\UpgradeStatusForm'
   requirements:
     _permission: 'administer software updates'
 
+# @todo move path under /upgrade
 upgrade_status.deprecation_dashboard:
   path: '/admin/reports/updates/deprecations'
   defaults:
     _controller: '\Drupal\upgrade_status\Controller\DeprecationDasboardController::content'
-    _title: 'Drupal 9 readiness'
+    _title: 'Upgrade status'
   requirements:
     _permission: 'administer software updates'
 
+# @todo move path under /upgrade
 upgrade_status.deprecation_data:
   path: '/admin/reports/updates/data/{project_name}'
   defaults:

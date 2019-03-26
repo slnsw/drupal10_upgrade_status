@@ -7,7 +7,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
-use Drupal\upgrade_status\Form\ReadinessForm;
+use Drupal\upgrade_status\Form\UpgradeStatusForm;
 use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -43,14 +43,14 @@ class DeprecationDasboardController extends ControllerBase {
 
   public function content() {
     $formState = new FormState();
-    $content = $this->formBuilder()->getForm(ReadinessForm::class);
-    $content['form'] = $this->formBuilder()->doBuildForm('drupal_readiness_form', $content, $formState);
+    $content = $this->formBuilder()->getForm(UpgradeStatusForm::class);
+    $content['form'] = $this->formBuilder()->doBuildForm('drupal_upgrade_status_form', $content, $formState);
 
     $projects = $this->projectCollector->collectProjects();
     $custom = $this->buildProjectRows($projects['custom']);
     $contrib = $this->buildProjectRows($projects['contrib']);
 
-    $content['drupal_readiness_form']['custom'] = [
+    $content['drupal_upgrade_status_form']['custom'] = [
       '#type' => 'details',
       '#title' => $this->t('Custom modules and themes'),
       '#tree' => TRUE,
@@ -58,7 +58,7 @@ class DeprecationDasboardController extends ControllerBase {
       'data' => $custom,
     ];
 
-    $content['drupal_readiness_form']['contrib'] = [
+    $content['drupal_upgrade_status_form']['contrib'] = [
       '#type' => 'details',
       '#title' => $this->t('Contributed modules and themes'),
       '#tree' => TRUE,
