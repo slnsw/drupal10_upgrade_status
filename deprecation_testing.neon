@@ -1,3 +1,5 @@
+# @todo document the sources (and the versions of sources) of parts of this
+# file and why each thing is done
 parameters:
 	excludes_analyse:
 		- *.api.php
