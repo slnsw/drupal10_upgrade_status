@@ -6,7 +6,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class DeprecationController extends ControllerBase {
+class DeprecationListController extends ControllerBase {
 
   /**
    * @var \Drupal\Core\Cache\CacheBackendInterface

@@ -11,18 +11,30 @@ use Drupal\upgrade_status\Form\UpgradeStatusForm;
 use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class DeprecationDasboardController extends ControllerBase {
+class ReportController extends ControllerBase {
 
   /**
+   * The project collector service.
+   *
    * @var \Drupal\upgrade_status\ProjectCollector
    */
   protected $projectCollector;
 
   /**
+   * The cache service.
+   *
    * @var \Drupal\Core\Cache\CacheBackendInterface
    */
   protected $cache;
 
+    /**
+     * UpdateStatusReportController constructor.
+     *
+     * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
+     *   The project collector service.
+     * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+     *   The cache service.
+     */
   public function __construct(
     ProjectCollector $projectCollector,
     CacheBackendInterface $cache
@@ -172,7 +184,7 @@ class DeprecationDasboardController extends ControllerBase {
           '#links' => [
             'errors' => [
               'title' => $this->t('View errors'),
-              'url' => Url::fromRoute('upgrade_status.deprecation_data', ['project_name' => $projectMachineName]),
+              'url' => Url::fromRoute('upgrade_status.project', ['project_name' => $projectMachineName]),
               'attributes' => [
                 'class' => ['use-ajax'],
                 'data-dialog-type' => 'modal',
