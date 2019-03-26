@@ -81,7 +81,7 @@ class ProjectCollector implements ProjectCollectorInterface {
     }
 
     // Collate custom extensions to projects, removing sub-extensions.
-    $projects['custom'] = $this->collateCustumExtensionsIntoProjects($projects['custom']);
+    $projects['custom'] = $this->collateCustomExtensionsIntoProjects($projects['custom']);
 
     return $projects;
   }
@@ -96,10 +96,10 @@ class ProjectCollector implements ProjectCollectorInterface {
    *   List of custom extensions, with only the topmost custom extension left
    *   for each extension that has a parent extension.
    */
-  protected function collateCustumExtensionsIntoProjects(array $projects) {
+  protected function collateCustomExtensionsIntoProjects(array $projects) {
     foreach ($projects as $name_a => $data_a) {
       $subpath_a = $data_a->subpath;
-      $subpath_a_length = strlen($subpath);
+      $subpath_a_length = strlen($subpath_a);
 
       foreach ($projects as $name_b => $data_b) {
         $subpath_b = $data_b->subpath;
