@@ -26,6 +26,10 @@
   color: #734c00 !important;
 }
 
+.upgrade-status-summary details {
+  border-width: 0 0 1px 0;
+}
+
 /* @todo icon is outside the open arrow, should be inside */
 .upgrade-status-summary details summary {
   padding-left: 35px; /* LTR */
