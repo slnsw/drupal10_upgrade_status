@@ -16,7 +16,7 @@ class DeprecationListController extends ControllerBase {
   protected $cache;
 
   /**
-   * DeprecationListController constructor.
+   * Constructs a \Drupal\upgrade_status\Controller\DeprecationListController.
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.

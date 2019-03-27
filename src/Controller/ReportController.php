@@ -28,7 +28,7 @@ class ReportController extends ControllerBase {
   protected $cache;
 
     /**
-     * UpdateStatusReportController constructor.
+     * Constructs a \Drupal\upgrade_status\Controller\UpdateStatusReportController.
      *
      * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
      *   The project collector service.

@@ -35,7 +35,7 @@ class UpgradeStatusForm extends FormBase {
   }
 
   /**
-   * UpgradeStatusForm constructor.
+   * Constructs a \Drupal\upgrade_status\Form\UpgradeStatusForm.
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
    *   The project collector service.

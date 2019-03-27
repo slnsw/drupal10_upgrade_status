@@ -25,7 +25,7 @@ class ProjectCollector implements ProjectCollectorInterface {
   protected $themeHandler;
 
   /**
-   * ProjectCollector constructor.
+   * Constructs a \Drupal\upgrade_status\ProjectCollector.
    *
    * @param \Drupal\Core\Extension\ModuleExtensionList $moduleExtensionList
    *   The module extension list service.

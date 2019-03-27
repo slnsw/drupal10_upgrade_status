@@ -46,7 +46,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $phpstanConfiguration;
 
   /**
-   * DeprecationAnalyser constructor.
+   * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
