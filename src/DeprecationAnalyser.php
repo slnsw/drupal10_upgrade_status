@@ -16,89 +16,109 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
 
   use StringTranslationTrait;
 
+  /**
+   * The error format to use to retrieve the report from PHPStan.
+   *
+   * @var string
+   */
   const ERROR_FORMAT = 'json';
 
   /**
+   * The cache service.
+   *
    * @var \Drupal\Core\Cache\CacheBackendInterface
    */
   protected $cache;
 
   /**
+   * The logger service.
+   *
    * @var \Drupal\Core\Logger\LoggerChannelInterface
    */
   protected $logger;
 
   /**
+   * Symfony Console input interface.
+   *
    * @var \Symfony\Component\Console\Input\StringInput
    */
   protected $inputInterface;
 
   /**
+   * Symfony Console output interface.
+   *
    * @var \Symfony\Component\Console\Output\BufferedOutput
    */
   protected $outputInterface;
 
   /**
-   * @var \Drupal\upgrade_status\ProjectCollector
+   * Path to the PHPStan neon configuration.
+   *
+   * @var string
    */
-  protected $projectCollector;
-
-  protected $phpstanConfiguration;
+  protected $phpstanNeonPath;
 
   /**
    * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache service.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
+   *   The logger factory service.
    * @param \Symfony\Component\Console\Input\StringInput $inputInterface
+   *   The Symfony Console input interface.
    * @param \Symfony\Component\Console\Output\BufferedOutput $outputInterface
-   * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
+   *   The Symfony Console output interface.
    */
   public function __construct(
     CacheBackendInterface $cache,
     LoggerChannelFactoryInterface $loggerFactory,
     StringInput $inputInterface,
-    BufferedOutput $outputInterface,
-    ProjectCollector $projectCollector
+    BufferedOutput $outputInterface
   ) {
     $this->cache = $cache;
-    $this->logger = $loggerFactory->get('readiness');
+    // Log errors to an upgrade status logger channel.
+    $this->logger = $loggerFactory->get('upgrade_status');
     $this->inputInterface = $inputInterface;
     $this->outputInterface = $outputInterface;
-    $this->projectCollector = $projectCollector;
-    $this->loadTestNamespaces();
 
-    $modulePath = drupal_get_path('module', 'upgrade_status');
+    $this->populateAutoLoader();
 
-    $this->phpstanConfiguration = implode(
-      DIRECTORY_SEPARATOR,
-      [DRUPAL_ROOT, $modulePath, 'deprecation_testing.neon']
-    );
+    // Set the PHPStan configuration neon file path.
+    $module_path = drupal_get_path('module', 'upgrade_status');
+    $this->phpstanNeonPath = DRUPAL_ROOT . "/$module_path/deprecation_testing.neon";
   }
 
-  protected function loadTestNamespaces() {
-    require_once implode(
-      DIRECTORY_SEPARATOR,
-      [DRUPAL_ROOT, 'core', 'tests', 'bootstrap.php']
-    );
-
+  /**
+   * Populate the class loader for PHPStan.
+   */
+  protected function populateAutoLoader() {
+    require_once DRUPAL_ROOT . '/core/tests/bootstrap.php';
     drupal_phpunit_populate_class_loader();
   }
 
-  public function analyse(Extension $projectData) {
+  /**
+   * {@inheritdoc}
+   */
+  public function analyse(Extension $extension) {
+    // Set the autoloader for PHPStan.
     if (!isset($GLOBALS['autoloaderInWorkingDirectory'])) {
-      $GLOBALS['autoloaderInWorkingDirectory'] = implode(DIRECTORY_SEPARATOR, [DRUPAL_ROOT, 'autoload.php']);
+      $GLOBALS['autoloaderInWorkingDirectory'] = DRUPAL_ROOT . '/autoload.php';
     }
 
+    // Analyse code in the given directory with PHPStan. The most sensible way
+    // we could find was to pretend we have Symfony console inputs and outputs
+    // and take the result from there. PHPStan as-is is highly tied to the
+    // console and we could not identify an independent PHP API to use.
     try {
-      $inspectionResult = CommandHelper::begin(
+      $result = CommandHelper::begin(
         $this->inputInterface,
         $this->outputInterface,
-        [$projectData->subpath],
+        [$extension->subpath],
         NULL,
         NULL,
         NULL,
-        $this->phpstanConfiguration,
+        $this->phpstanNeonPath,
         NULL
       );
     }
@@ -106,32 +126,28 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       $this->logger->error($e);
     }
 
-    $container = $inspectionResult->getContainer();
-    $errorFormatterServiceName = sprintf('errorFormatter.%s', self::ERROR_FORMAT);
-    if (!$container->hasService($errorFormatterServiceName)) {
-      $this->logger->error($this->t('Error formatter @formatter not found'), ['@formatter' => self::ERROR_FORMAT]);
+    $container = $result->getContainer();
+    $error_formatter_service = sprintf('errorFormatter.%s', self::ERROR_FORMAT);
+    if (!$container->hasService($error_formatter_service)) {
+      $this->logger->error('Error formatter @formatter not found', ['@formatter' => self::ERROR_FORMAT]);
     }
     else {
-      $errorFormatter = $container->getService($errorFormatterServiceName);
+      $errorFormatter = $container->getService($error_formatter_service);
       $application = $container->getByType(AnalyseApplication::class);
 
-      $inspectionResult->handleReturn(
+      $result->handleReturn(
         $application->analyse(
-          $inspectionResult->getFiles(),
-          $inspectionResult->isOnlyFiles(),
-          $inspectionResult->getConsoleStyle(),
+          $result->getFiles(),
+          $result->isOnlyFiles(),
+          $result->getConsoleStyle(),
           $errorFormatter,
-          $inspectionResult->isDefaultLevelUsed(),
+          $result->isDefaultLevelUsed(),
           FALSE
         )
       );
 
-      $this
-        ->cache
-        ->set(
-          $projectData->getName(),
-          $this->outputInterface->fetch()
-        );
+      // Store the analysis results in our cache bin.
+      $this->cache->set($extension->getName(), $this->outputInterface->fetch());
     }
   }
 
