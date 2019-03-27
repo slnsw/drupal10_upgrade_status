@@ -60,7 +60,7 @@ class ReportController extends ControllerBase {
      *   Render array.
      */
   public function content() {
-    $content = [];
+    $content = ['#attached' => ['library' => ['upgrade_status/upgrade_status.admin']]];
 
     // Add form to populate and run the scanning queue.
     $content['form'] = $this->formBuilder()->getForm(UpgradeStatusForm::class);
@@ -78,6 +78,7 @@ class ReportController extends ControllerBase {
       '#title' => $this->t('Custom modules and themes'),
       '#description' => $this->t('Custom code is specific to your site, and must be upgraded manually. <a href=":upgrade">Read more about how developers can upgrade their code to Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/documentation/9#deprecated']),
       '#open' => TRUE,
+      '#attributes' => ['class' => ['upgrade-status-summary']],
       'data' => $custom,
     ];
 
@@ -91,6 +92,7 @@ class ReportController extends ControllerBase {
       '#title' => $this->t('Contributed modules and themes'),
       '#description' => $this->t('Contributed code is available from drupal.org. Problems here may be partially resolved by updating to the latest version. <a href=":update">Read more about how to update contributed projects</a>.', [':update' => 'https://www.drupal.org/docs/8/update/update-modules']),
       '#open' => TRUE,
+      '#attributes' => ['class' => ['upgrade-status-summary']],
       'data' => $contrib,
     ];
 
@@ -116,18 +118,21 @@ class ReportController extends ControllerBase {
       '#weight' => -10,
       // Open the known errors list if there was any. Otherwise the list will be removed later.
       '#open' => TRUE,
+      '#attributes' => ['class' => ['upgrade-status-known-errors']],
       'data' => [],
     ];
     $build['no_known_errors'] = [
       '#type' => 'details',
       '#weight' => 0,
       '#open' => FALSE,
+      '#attributes' => ['class' => ['upgrade-status-no-known-errors']],
       'data' => [],
     ];
     $build['not_scanned'] = [
       '#type' => 'details',
       '#weight' => 10,
       '#open' => FALSE,
+      '#attributes' => ['class' => ['upgrade-status-not-scanned']],
       'data' => [],
     ];
 
