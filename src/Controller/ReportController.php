@@ -158,8 +158,8 @@ class ReportController extends ControllerBase {
       }
 
       // Unpack JSON of deprecations to display results.
-      $deprecation_report = json_decode($cache->data);
-      $project_error_count = $deprecation_report->totals->file_errors;
+      $report = json_decode($cache->data);
+      $project_error_count = $report->totals->file_errors;
 
       // If this project had no known issues found, report that.
       if ($project_error_count === 0) {
