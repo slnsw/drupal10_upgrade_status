@@ -19,6 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class UpgradeStatusDeprecationWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
 
   /**
+   * The deprecation analyser service.
+   *
    * @var \Drupal\upgrade_status\DeprecationAnalyser
    */
   protected $deprecationAnalyser;
@@ -36,7 +38,16 @@ class UpgradeStatusDeprecationWorker extends QueueWorkerBase implements Containe
   }
 
   /**
-   * {@inheritdoc}
+   * Constructs a \Drupal\upgrade_status\Plugin\QueueWorker\UpgradeStatusDeprecationWorker object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\upgrade_status\DeprecationAnalyser $deprecationAnalyser
+   *   The deprecation analyser service.
    */
   public function __construct(
     array $configuration,
