@@ -59,7 +59,12 @@ class DeprecationListController extends ControllerBase {
     }
 
     $report = json_decode($cache->data, TRUE);
-    $project_error_count = $report->totals->file_errors;
+    if (isset($report['totals'])) {
+      $project_error_count = $report['totals']['file_errors'];
+    }
+    else {
+      $project_error_count = 0;
+    }
 
     // If this project had no known issues found, report that.
     if ($project_error_count === 0) {

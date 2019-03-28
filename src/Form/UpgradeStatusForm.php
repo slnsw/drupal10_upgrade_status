@@ -87,13 +87,14 @@ class UpgradeStatusForm extends FormBase {
       $completed_jobs = $job_count - $this->queue->numberOfItems();
 
       $process_job_url = $this->processNextJobUrl();
+      $percent = ($completed_jobs / $job_count) * 100;
 
       // @todo finish callback
       // @todo dynamically update progress bar
       // @todo content refreshes on page to show scanned results
       $form['drupal_upgrade_status_form']['progress_bar'] = [
         '#theme' => 'progress_bar',
-        '#percent' => ($job_count / 100) * $completed_jobs,
+        '#percent' => $percent,
         '#message' => [
           '#markup' => $this->t('Completed @completed of @job_count.', ['@completed' => $completed_jobs, '@job_count' => $job_count]),
         ],
