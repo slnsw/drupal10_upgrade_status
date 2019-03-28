@@ -80,6 +80,7 @@ class UpgradeStatusForm extends FormBase {
    *   The form structure.
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
+    // If project scanning started, display the progress bar.
     if ($this->state->get('upgrade_status.run_scan_started')) {
 
       $job_count = $this->state->get('upgrade_status.number_of_jobs');
@@ -97,22 +98,8 @@ class UpgradeStatusForm extends FormBase {
           '#markup' => $this->t('Completed @completed of @job_count.', ['@completed' => $completed_jobs, '@job_count' => $job_count]),
         ],
         '#weight' => 0,
+        // @todo This progress bar requires JavaScript, document it.
         '#attached' => [
-          'html_head' => [
-            [
-              [
-                // Redirect through a 'Refresh' meta tag if JavaScript is disabled.
-                '#tag' => 'meta',
-                '#noscript' => TRUE,
-                '#attributes' => [
-                  'http-equiv' => 'Refresh',
-                  'content' => '0; URL=' . $process_job_url,
-                ],
-              ],
-              'batch_progress_meta_refresh',
-            ],
-          ],
-          // Adds JavaScript code and settings for clients where JavaScript is enabled.
           'drupalSettings' => [
             'batch' => [
               'uri' => $process_job_url,
@@ -125,6 +112,7 @@ class UpgradeStatusForm extends FormBase {
       ];
 
       $form['drupal_upgrade_status_form']['action']['submit'] = [
+        // @todo this was a separate Cancel button on the design and a Start full scan disabled.
         '#type' => 'submit',
         '#value' => $this->t('Restart full scan'),
         '#weight' => 2,

@@ -1,3 +1,10 @@
+/**
+ * Batch display highly based on core's batch.js. Differences:
+ *
+ * 1. Completion does not redirect to a different URI.
+ * 2. Batch op arguments are not passed.
+ */
+
 (function ($, Drupal) {
   Drupal.behaviors.batch = {
     attach: function attach(context, settings) {
@@ -8,7 +15,7 @@
       function updateCallback(progress, status, pb) {
         if (progress === '100') {
           pb.stopMonitoring();
-          window.location = batch.uri;
+          //window.location = batch.uri;
         }
       }
 

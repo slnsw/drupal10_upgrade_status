@@ -54,6 +54,7 @@ class JobRunController extends ControllerBase {
     $queue_worker->processItem($job->data);
     $this->queue->deleteItem($job);
 
+    // return new JsonResponse(['status' => TRUE, 'percentage' => $percentage, 'message' => $message, 'label' => $label]);
     return new JsonResponse('Scanning module');
   }
 
