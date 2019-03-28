@@ -13,3 +13,14 @@ upgrade_status.project:
     _title: 'Deprecation report'
   requirements:
     _permission: 'administer software updates'
+
+upgrade_status.run_job:
+  path: '/admin/reports/upgrade/run-job'
+  defaults:
+    _controller: '\Drupal\upgrade_status\Controller\JobRunController::runNextJob'
+    _title: 'Run Job'
+  requirements:
+    _permission: 'administer software updates'
+    _format: 'json'
+  options:
+    _admin_route: TRUE

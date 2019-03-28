@@ -10,3 +10,12 @@ function upgrade_status_help($route_name, RouteMatchInterface $route_match) {
     return '<p>' . t('Analyze your site\'s Drupal 9 readiness. Run the report to find out if there are detectable compatibility errors with the modules and themes installed on your site. <a href=":prepare">Read more about preparing your site for Drupal 9</a>.', [':prepare' => 'https://www.drupal.org/documentation/9#preparefor9']) . '</p>';
   }
 }
+
+/**
+ * Implements rebuild().
+ */
+function upgrade_status_rebuild() {
+  \Drupal::state()->set('upgrade_status.run_scan_started', FALSE);
+  \Drupal::state()->set('upgrade_status.number_of_jobs', 0);
+
+}

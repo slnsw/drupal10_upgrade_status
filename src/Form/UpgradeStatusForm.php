@@ -5,6 +5,8 @@ namespace Drupal\upgrade_status\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\State\StateInterface;
+use Drupal\Core\Url;
 use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -25,29 +27,38 @@ class UpgradeStatusForm extends FormBase {
   protected $queue;
 
   /**
+   * The state service.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('upgrade_status.project_collector'),
-      $container->get('queue')
+      $container->get('queue'),
+      $container->get('state')
     );
   }
 
   /**
-   * Constructs a \Drupal\upgrade_status\Form\UpgradeStatusForm.
+   * Constructs a Drupal\upgrade_status\Form\UpgradeStatusForm.
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
-   *   The project collector service.
    * @param \Drupal\Core\Queue\QueueFactory $queue
-   *   The queue service.
+   * @param \Drupal\Core\State\StateInterface $state
    */
   public function __construct(
     ProjectCollector $projectCollector,
-    QueueFactory $queue
+    QueueFactory $queue,
+    StateInterface $state
   ) {
     $this->projectCollector = $projectCollector;
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
+    $this->state = $state;
   }
 
   /**
@@ -69,6 +80,60 @@ class UpgradeStatusForm extends FormBase {
    *   The form structure.
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
+    if ($this->state->get('upgrade_status.run_scan_started')) {
+
+      $job_count = $this->state->get('upgrade_status.number_of_jobs');
+      $completed_jobs = $job_count - $this->queue->numberOfItems();
+
+      $process_job_url = $this->processNextJobUrl();
+
+      // @todo finish callback
+      // @todo dynamically update progress bar
+      // @todo content refreshes on page to show scanned results
+      $form['drupal_upgrade_status_form']['progress_bar'] = [
+        '#theme' => 'progress_bar',
+        '#percent' => ($job_count / 100) * $completed_jobs,
+        '#message' => [
+          '#markup' => $this->t('Completed @completed of @job_count.', ['@completed' => $completed_jobs, '@job_count' => $job_count]),
+        ],
+        '#weight' => 0,
+        '#attached' => [
+          'html_head' => [
+            [
+              [
+                // Redirect through a 'Refresh' meta tag if JavaScript is disabled.
+                '#tag' => 'meta',
+                '#noscript' => TRUE,
+                '#attributes' => [
+                  'http-equiv' => 'Refresh',
+                  'content' => '0; URL=' . $process_job_url,
+                ],
+              ],
+              'batch_progress_meta_refresh',
+            ],
+          ],
+          // Adds JavaScript code and settings for clients where JavaScript is enabled.
+          'drupalSettings' => [
+            'batch' => [
+              'uri' => $process_job_url,
+            ],
+          ],
+          'library' => [
+            'upgrade_status/upgrade_status.queue',
+          ],
+        ],
+      ];
+
+      $form['drupal_upgrade_status_form']['action']['submit'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Restart full scan'),
+        '#weight' => 2,
+        '#button_type' => 'primary',
+      ];
+
+      return $form;
+    }
+
     $form['drupal_upgrade_status_form']['action']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Start full scan'),
@@ -77,6 +142,10 @@ class UpgradeStatusForm extends FormBase {
     ];
 
     return $form;
+  }
+
+  protected function processNextJobUrl() {
+    return Url::fromRoute('upgrade_status.run_job')->toString(TRUE)->getGeneratedUrl();
   }
 
   /**
@@ -96,6 +165,11 @@ class UpgradeStatusForm extends FormBase {
     foreach ($projects['contrib'] as $projectData) {
       $this->queue->createItem($projectData);
     }
+
+    $job_count = $this->queue->numberOfItems();
+
+    $this->state->set('upgrade_status.run_scan_started', TRUE);
+    $this->state->set('upgrade_status.number_of_jobs', $job_count);
   }
 
 }

@@ -5,7 +5,6 @@ namespace Drupal\upgrade_status\Controller;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Form\FormState;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\Form\UpgradeStatusForm;
 use Drupal\upgrade_status\ProjectCollector;
@@ -27,14 +26,14 @@ class ReportController extends ControllerBase {
    */
   protected $cache;
 
-    /**
-     * Constructs a \Drupal\upgrade_status\Controller\UpdateStatusReportController.
-     *
-     * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
-     *   The project collector service.
-     * @param \Drupal\Core\Cache\CacheBackendInterface $cache
-     *   The cache service.
-     */
+  /**
+   * Constructs a \Drupal\upgrade_status\Controller\UpdateStatusReportController.
+   *
+   * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
+   *   The project collector service.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache service.
+   */
   public function __construct(
     ProjectCollector $projectCollector,
     CacheBackendInterface $cache
@@ -53,12 +52,12 @@ class ReportController extends ControllerBase {
     );
   }
 
-    /**
-     * Provides content for the upgrade status report page.
-     *
-     * @return array
-     *   Render array.
-     */
+  /**
+   * Provides content for the upgrade status report page.
+   *
+   * @return array
+   *   Render array.
+   */
   public function content() {
     $content = ['#attached' => ['library' => ['upgrade_status/upgrade_status.admin']]];
 

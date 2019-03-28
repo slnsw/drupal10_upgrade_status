@@ -3,3 +3,15 @@ upgrade_status.admin:
   css:
     theme:
       css/upgrade_status.admin.theme.css: {}
+
+upgrade_status.queue:
+  version: VERSION
+  js:
+    js/upgrade_status_queue.js: { cache: false }
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+    - core/drupal.ajax
+    - core/drupal.progress
+    - core/jquery.once
