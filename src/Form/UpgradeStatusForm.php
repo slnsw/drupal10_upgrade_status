@@ -59,6 +59,7 @@ class UpgradeStatusForm extends FormBase {
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
    * @param \Drupal\Core\Queue\QueueFactory $queue
    * @param \Drupal\Core\State\StateInterface $state
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    */
   public function __construct(
     ProjectCollector $projectCollector,

@@ -175,7 +175,20 @@ class ReportController extends ControllerBase {
           'operations' => [
             '#type' => 'operations',
             // @todo add rescan operation and release info for contrib
-            '#links' => [],
+            '#links' => [
+              're-scan' => [
+                'title' => $this->t('Re-scan'),
+                'url' => Url::fromRoute('upgrade_status.add_project', ['type' => $extension->getType(), 'project_machine_name' => $extension->getName()]),
+                'attributes' => [
+                  'class' => ['use-ajax'],
+                  'data-dialog-type' => 'modal',
+                  'data-dialog-options' => Json::encode([
+                    'width' => 1024,
+                    'height' => 568,
+                  ]),
+                ],
+              ],
+            ],
           ],
         ];
         continue;
@@ -198,6 +211,18 @@ class ReportController extends ControllerBase {
             'errors' => [
               'title' => $this->t('View errors'),
               'url' => Url::fromRoute('upgrade_status.project', ['project_name' => $name]),
+              'attributes' => [
+                'class' => ['use-ajax'],
+                'data-dialog-type' => 'modal',
+                'data-dialog-options' => Json::encode([
+                  'width' => 1024,
+                  'height' => 568,
+                ]),
+              ],
+            ],
+            're-scan' => [
+              'title' => $this->t('Re-scan'),
+              'url' => Url::fromRoute('upgrade_status.add_project', ['type' => $extension->getType(), 'project_machine_name' => $extension->getName()]),
               'attributes' => [
                 'class' => ['use-ajax'],
                 'data-dialog-type' => 'modal',

@@ -24,3 +24,11 @@ upgrade_status.run_job:
     _format: 'json'
   options:
     _admin_route: TRUE
+
+upgrade_status.add_project:
+  path: '/admin/reports/upgrade/add-project/{type}/{project_machine_name}'
+  defaults:
+    _controller: '\Drupal\upgrade_status\Controller\JobRunController::addProjectToQueue'
+    _title: 'Add project to queue'
+  requirements:
+    _permission: 'administer software updates'

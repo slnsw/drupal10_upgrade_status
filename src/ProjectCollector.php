@@ -4,11 +4,15 @@ namespace Drupal\upgrade_status;
 
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ThemeHandler;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use http\Exception\InvalidArgumentException;
 
 /**
  * Collects projects collated for the purposes of upgrade status.
  */
 class ProjectCollector implements ProjectCollectorInterface {
+
+  use StringTranslationTrait;
 
   /**
    * The list of available modules.
@@ -23,6 +27,11 @@ class ProjectCollector implements ProjectCollectorInterface {
    * @var \Drupal\Core\Extension\ThemeHandler
    */
   protected $themeHandler;
+
+  protected $allowedTypes = [
+    'module',
+    'theme',
+  ];
 
   /**
    * Constructs a \Drupal\upgrade_status\ProjectCollector.
@@ -111,6 +120,24 @@ class ProjectCollector implements ProjectCollectorInterface {
       }
     }
     return $projects;
+  }
+
+  /**
+   * Returns a single Project.
+   *
+   * @param \Drupal\upgrade_status\string $type
+   * @param \Drupal\upgrade_status\string $project_machine_name
+   */
+  public function loadProject(string $type, string $project_machine_name) {
+    if (!in_array($type, $this->allowedTypes)) {
+      throw new InvalidArgumentException($this->t('Type must be either module or theme.'));
+    }
+
+    if ($type === 'module') {
+      return $this->moduleExtensionList->get($project_machine_name);
+    }
+
+    return $this->themeHandler->getTheme($project_machine_name);
   }
 
 }
