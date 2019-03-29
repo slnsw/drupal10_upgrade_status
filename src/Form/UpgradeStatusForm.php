@@ -2,6 +2,7 @@
 
 namespace Drupal\upgrade_status\Form;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Queue\QueueFactory;
@@ -34,13 +35,21 @@ class UpgradeStatusForm extends FormBase {
   protected $state;
 
   /**
+   * The cache service.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface
+   */
+  protected $cache;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('upgrade_status.project_collector'),
       $container->get('queue'),
-      $container->get('state')
+      $container->get('state'),
+      $container->get('cache.upgrade_status')
     );
   }
 
@@ -54,11 +63,13 @@ class UpgradeStatusForm extends FormBase {
   public function __construct(
     ProjectCollector $projectCollector,
     QueueFactory $queue,
-    StateInterface $state
+    StateInterface $state,
+    CacheBackendInterface $cache
   ) {
     $this->projectCollector = $projectCollector;
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
     $this->state = $state;
+    $this->cache = $cache;
   }
 
   /**
@@ -95,9 +106,8 @@ class UpgradeStatusForm extends FormBase {
       $form['drupal_upgrade_status_form']['progress_bar'] = [
         '#theme' => 'progress_bar',
         '#percent' => $percent,
-        '#message' => [
-          '#markup' => $this->t('Completed @completed of @job_count.', ['@completed' => $completed_jobs, '@job_count' => $job_count]),
-        ],
+        '#status' => TRUE,
+        '#message' => $this->t('Completed @completed of @job_count.', ['@completed' => $completed_jobs, '@job_count' => $job_count]),
         '#weight' => 0,
         // @todo This progress bar requires JavaScript, document it.
         '#attached' => [
@@ -118,6 +128,7 @@ class UpgradeStatusForm extends FormBase {
         '#value' => $this->t('Restart full scan'),
         '#weight' => 2,
         '#button_type' => 'primary',
+        '#disabled' => $percent !== 100 ? TRUE : FALSE,
       ];
 
       return $form;
@@ -146,6 +157,8 @@ class UpgradeStatusForm extends FormBase {
    *   The current state of the form.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
+    $this->clearData();
+
     // Queue each project for deprecation scanning.
     $projects = $this->projectCollector->collectProjects();
     foreach ($projects['custom'] as $projectData) {
@@ -159,6 +172,14 @@ class UpgradeStatusForm extends FormBase {
 
     $this->state->set('upgrade_status.run_scan_started', TRUE);
     $this->state->set('upgrade_status.number_of_jobs', $job_count);
+  }
+
+  /**
+   * Removes all items from queue and clears cache.
+   */
+  protected function clearData() {
+    $this->queue->deleteQueue();
+    $this->cache->deleteAll();
   }
 
 }
