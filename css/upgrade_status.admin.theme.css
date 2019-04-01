@@ -9,63 +9,38 @@
   border-bottom: 1px solid #ccc;
 }
 
-/* @todo used important to get around open state specificity overrides, not nice */
-.upgrade-status-known-errors > summary,
-.upgrade-status-known-errors > summary:hover,
-.upgrade-status-known-errors > summary:focus {
-  color: #a51b00 !important;
-}
-.upgrade-status-no-known-errors > summary,
-.upgrade-status-no-known-errors > summary:hover,
-.upgrade-status-no-known-errors > summary:focus {
-  color: #325e1c !important;
-}
-.upgrade-status-not-scanned > summary,
-.upgrade-status-not-scanned > summary:hover,
-.upgrade-status-not-scanned > summary:focus {
-  color: #734c00 !important;
+/* @todo this needs to be hugely improved */
+.upgrade-status-summary .report-counters {
+  margin: 1em 0;
+  font-style: italic;
 }
 
-.upgrade-status-summary details {
-  border-width: 0 0 1px 0;
+.upgrade-status-summary table {
+  margin-top: 1.2em;
 }
-
-/* @todo icon is outside the open arrow, should be inside */
-.upgrade-status-summary details summary {
+.upgrade-status-summary tr > td:first-child {
+  font-weight: bold;
   padding-left: 35px; /* LTR */
-  position: relative;
+  background-repeat: no-repeat;
+  background-position-x: 10px; /* LTR */
+  background-position-y: center;
 }
-[dir="rtl"] .upgrade-status-summary details summary {
+[dir="rtl"] .upgrade-status-summary tr > td:first-child {
   padding-left: 0;
   padding-right: 35px; /* LTR */
-}
-.upgrade-status-summary details summary:before {
-  content: "";
-  background-repeat: no-repeat;
-  background-size: contain;
-  background-position: top center;
-  height: 16px;
-  width: 16px;
-  position: absolute;
-  left: 10px; /* LTR */
-  top: 1em;
-  display: inline-block;
-  vertical-align: top;
-  margin-right: 10px; /* LTR */
-}
-[dir="rtl"] .upgrade-status-summary details summary:before {
-  left: auto;
-  right: 10px;
-  margin-right: 0;
+  /* @todo x background position for RTL */
 }
 
-/* @todo these icon paths only work for sites in domain roots */
-.upgrade-status-summary details.upgrade-status-known-errors summary:before {
+/* @todo the icon paths only work for sites in domain roots */
+.upgrade-status-summary tr.known-errors > td:first-child {
+  color: #734c00;
   background-image: url(/core/misc/icons/e32700/error.svg);
 }
-.upgrade-status-summary details.upgrade-status-no-known-errors summary:before {
+.upgrade-status-summary tr.no-known-error > td:first-child {
+  color: #325e1c;
   background-image: url(/core/misc/icons/73b355/check.svg);
 }
-.upgrade-status-summary details.upgrade-status-not-scanned summary:before {
-    background-image: url(/core/misc/icons/e29700/warning.svg);
+.upgrade-status-summary tr.not-scanned > td:first-child {
+  color: #734c00;
+  background-image: url(/core/misc/icons/e29700/warning.svg);
 }

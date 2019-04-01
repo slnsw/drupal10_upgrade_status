@@ -70,7 +70,7 @@ class ReportController extends ControllerBase {
     // List custom project status first.
     $custom = ['#type' => 'markup', '#markup' => '<br /><strong>' . $this->t('No custom projects found.') . '</strong>'];
     if (count($projects['custom'])) {
-      $custom = $this->buildProjectGroups($projects['custom']);
+      $custom = $this->buildProjectList($projects['custom']);
     }
     $content['custom'] = [
       '#type' => 'details',
@@ -84,7 +84,7 @@ class ReportController extends ControllerBase {
     // List contrib project status second.
     $contrib = ['#type' => 'markup', '#markup' => '<br /><strong>' . $this->t('No contributed projects found.') . '</strong>'];
     if (count($projects['contrib'])) {
-      $contrib = $this->buildProjectGroups($projects['contrib']);
+      $contrib = $this->buildProjectList($projects['contrib']);
     }
     $content['contrib'] = [
       '#type' => 'details',
@@ -99,7 +99,7 @@ class ReportController extends ControllerBase {
   }
 
   /**
-   * Builds a grouped list of projects by known issues, no known issues and still to be scanned.
+   * Builds a list and status summary of projects.
    *
    * @param \Drupal\Core\Extension\Extension[] $projects
    *   Array of extensions representing projects.
@@ -107,32 +107,21 @@ class ReportController extends ControllerBase {
    * @return array
    *   Build array.
    */
-  protected function buildProjectGroups(array $projects) {
-    $build = [];
-    $total_error_count = 0;
+  protected function buildProjectList(array $projects) {
+    $counters = [
+      'not-scanned' => 0,
+      'no-known-error' => 0,
+      'known-errors' => 0,
+    ];
 
-    // Set up containers for each group of project in case we need them.
-    $build['known_errors'] = [
-      '#type' => 'details',
-      '#weight' => -10,
-      // Open the known errors list if there was any. Otherwise the list will be removed later.
-      '#open' => TRUE,
-      '#attributes' => ['class' => ['upgrade-status-known-errors']],
-      'data' => [],
-    ];
-    $build['no_known_errors'] = [
-      '#type' => 'details',
-      '#weight' => 0,
-      '#open' => FALSE,
-      '#attributes' => ['class' => ['upgrade-status-no-known-errors']],
-      'data' => [],
-    ];
-    $build['not_scanned'] = [
-      '#type' => 'details',
-      '#weight' => 10,
-      '#open' => FALSE,
-      '#attributes' => ['class' => ['upgrade-status-not-scanned']],
-      'data' => [],
+    $build['data'] = [
+      '#type' => 'table',
+      '#header' => [
+        'project' => $this->t('Project'),
+        'status' => $this->t('Status'),
+        'operations' => $this->t('Operations'),
+      ],
+      'weight' => 20,
     ];
 
     foreach ($projects as $name => $extension) {
@@ -142,17 +131,20 @@ class ReportController extends ControllerBase {
 
       // If this project was not found in cache, it is not yet scanned, report that.
       if (empty($cache)) {
-        $build['not_scanned']['data'][$name] = [
+        $build['data'][$name] = [
+          '#attributes' => ['class' => ['not-scanned']],
           'project' => [
             '#type' => 'markup',
             '#markup' => $label,
           ],
+          'status' => [],
           'operations' => [
             '#type' => 'operations',
             // @todo add release info for contrib
             '#links' => [],
           ],
         ];
+        $counters['not-scanned']++;
         continue;
       }
 
@@ -167,11 +159,13 @@ class ReportController extends ControllerBase {
 
       // If this project had no known issues found, report that.
       if ($project_error_count === 0) {
-        $build['no_known_errors']['data'][$name] = [
+        $build['data'][$name] = [
+          '#attributes' => ['class' => 'no-known-error'],
           'project' => [
             '#type' => 'markup',
             '#markup' => $label,
           ],
+          'status' => [],
           'operations' => [
             '#type' => 'operations',
             // @todo add rescan operation and release info for contrib
@@ -191,12 +185,15 @@ class ReportController extends ControllerBase {
             ],
           ],
         ];
+        $counters['no-known-error']++;
         continue;
       }
-      $total_error_count += $project_error_count;
+      // Unlike the other two counters, this counts the number of errors, not projects.
+      $counters['no-known-error'] += $project_error_count;
 
       // Finally this project had errors found, display them.
-      $build['known_errors']['data'][$name] = [
+      $build['data'][$name] = [
+        '#attributes' => ['class' => 'known-errors'],
         'project' => [
           '#type' => 'markup',
           '#markup' => $label,
@@ -237,58 +234,21 @@ class ReportController extends ControllerBase {
       ];
     }
 
-    // Set up the known errors list if there were any known errors found, otherwise remove it.
-    if (count($build['known_errors']['data'])) {
-      $build['known_errors']['#title'] = $this->formatPlural(
-       count($build['known_errors']['data']),
-      'Found @count project with @errorCount known Drupal 9 compatibility errors',
-      'Found @count projects with @errorCount known Drupal 9 compatibility errors',
-       ['@errorCount' => $total_error_count]
-      );
-      $build['known_errors']['data']['#type'] = 'table';
-      $build['known_errors']['data']['#header'] = [
-        'project' => $this->t('Project'),
-        'status' => $this->t('Status'),
-        'operations' => $this->t('Operations'),
-      ];
+    $summary = [];
+    if ($counters['known-errors'] > 0) {
+      $summary[] = $this->formatPlural($counters['known-errors'], '@count total error found', '@count total errors found');
     }
-    else {
-      unset($build['known_errors']);
+    if ($counters['no-known-error'] > 0) {
+      $summary[] = $this->formatPlural($counters['no-known-error'], '@count project has no known errors', '@count projects have no known errors');
     }
-
-    // Set up the no known errors list if there were any projects with no known errors.
-    if (count($build['no_known_errors']['data'])) {
-      $build['no_known_errors']['#title'] = $this->formatPlural(
-        count($build['no_known_errors']['data']),
-        'Found @count project with no known Drupal 9 compatibility errors',
-        'Found @count projects with no known Drupal 9 compatibility errors'
-      );
-      $build['no_known_errors']['data']['#type'] = 'table';
-      $build['no_known_errors']['data']['#header'] = [
-        'project' => $this->t('Project'),
-        'operations' => $this->t('Operations'),
-      ];
+    if ($counters['not-scanned'] > 0) {
+      $summary[] = $this->formatPlural($counters['not-scanned'], '@count project remaining to scan', '@count projects remaining to scan');
     }
-    else {
-      unset($build['no_known_errors']);
-    }
-
-    // Set up the not scanned list if there were any projects left to scan.
-    if (count($build['not_scanned']['data'])) {
-      $build['not_scanned']['#title'] = $this->formatPlural(
-        count($build['not_scanned']['data']),
-        '@count project not yet scanned',
-        '@count projects not yet scanned'
-      );
-      $build['not_scanned']['data']['#type'] = 'table';
-      $build['not_scanned']['data']['#header'] = [
-        'project' => $this->t('Project'),
-        'operations' => $this->t('Operations'),
-      ];
-    }
-    else {
-      unset($build['not_scanned']);
-    }
+    $build['summary'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="report-counters">' . join(', ', $summary) . '</div>',
+      '#weight' => -10,
+    ];
 
     return $build;
   }
