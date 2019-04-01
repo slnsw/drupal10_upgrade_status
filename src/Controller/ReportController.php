@@ -121,7 +121,7 @@ class ReportController extends ControllerBase {
         'status' => $this->t('Status'),
         'operations' => $this->t('Operations'),
       ],
-      'weight' => 20,
+      '#weight' => 20,
     ];
 
     foreach ($projects as $name => $extension) {
