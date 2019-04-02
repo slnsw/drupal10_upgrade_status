@@ -102,7 +102,6 @@ class UpgradeStatusForm extends FormBase {
       $percent = ($completed_jobs / $job_count) * 100;
 
       // @todo finish callback
-      // @todo dynamically update progress bar
       // @todo content refreshes on page to show scanned results
       $form['drupal_upgrade_status_form']['progress_bar'] = [
         '#theme' => 'progress_bar',
@@ -137,6 +136,7 @@ class UpgradeStatusForm extends FormBase {
 
     $form['drupal_upgrade_status_form']['action']['submit'] = [
       '#type' => 'submit',
+      // @todo label this restart if there is data in the cache
       '#value' => $this->t('Start full scan'),
       '#weight' => 0,
       '#button_type' => 'primary',

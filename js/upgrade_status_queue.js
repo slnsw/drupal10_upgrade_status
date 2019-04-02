@@ -13,9 +13,12 @@
       var progressBar = void 0;
 
       function updateCallback(progress, status, pb) {
-        if (progress === '100') {
+        if (progress == 100) {
           pb.stopMonitoring();
-          //window.location = batch.uri;
+          // @todo actually display something useful
+          $progress.empty();
+          // Enable the submit button again.
+          $('.form-submit').removeClass('is-disabled').removeAttr('disabled');
         }
       }
 
