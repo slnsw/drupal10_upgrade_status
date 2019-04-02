@@ -55,5 +55,3 @@ services:
 	-
 		class: PHPStan\Type\ServiceDynamicReturnTypeExtension
 		tags: [phpstan.broker.dynamicMethodReturnTypeExtension]
-	errorFormatter.junit:
-		class: PHPStan\Command\ErrorFormatter\JUnitErrorFormatter
