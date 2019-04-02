@@ -100,6 +100,15 @@
       var progressBar = void 0;
 
       function updateCallback(progress, pb) {
+        // Update table data as it comes in. @todo update operations.
+        if (progress.result) {
+          $('table tr' + progress.result[0])
+            .removeClass('no-known-error known-errors not-scanned')
+            .addClass(progress.result[1]);
+          $('table tr' + progress.result[0] + ' td:nth-child(2)')
+            .replaceWith('<td>' + progress.result[2].toString() + '</td>');
+        }
+
         if (progress.percentage == 100) {
           pb.stopMonitoring();
           // @todo actually display something useful

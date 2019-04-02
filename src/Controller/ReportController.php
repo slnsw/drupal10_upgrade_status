@@ -132,7 +132,7 @@ class ReportController extends ControllerBase {
       // If this project was not found in cache, it is not yet scanned, report that.
       if (empty($cache)) {
         $build['data'][$name] = [
-          '#attributes' => ['class' => ['not-scanned']],
+          '#attributes' => ['class' => ['not-scanned', 'project-' . $name]],
           'project' => [
             '#type' => 'markup',
             '#markup' => $label,
@@ -163,7 +163,7 @@ class ReportController extends ControllerBase {
       // If this project had no known issues found, report that.
       if ($project_error_count === 0) {
         $build['data'][$name] = [
-          '#attributes' => ['class' => 'no-known-error'],
+          '#attributes' => ['class' => ['no-known-error', 'project-' . $name]],
           'project' => [
             '#type' => 'markup',
             '#markup' => $label,
@@ -199,7 +199,7 @@ class ReportController extends ControllerBase {
 
       // Finally this project had errors found, display them.
       $build['data'][$name] = [
-        '#attributes' => ['class' => 'known-errors'],
+        '#attributes' => ['class' => ['known-errors', 'project-' . $name]],
         'project' => [
           '#type' => 'markup',
           '#markup' => $label,

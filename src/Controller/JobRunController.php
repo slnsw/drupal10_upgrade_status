@@ -2,6 +2,7 @@
 
 namespace Drupal\upgrade_status\Controller;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Queue\QueueFactory;
@@ -49,6 +50,13 @@ class JobRunController extends ControllerBase {
   protected $dateFormatter;
 
   /**
+   * The cache service.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface
+   */
+  protected $cache;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -57,7 +65,8 @@ class JobRunController extends ControllerBase {
       $container->get('plugin.manager.queue_worker'),
       $container->get('state'),
       $container->get('upgrade_status.project_collector'),
-      $container->get('date.formatter')
+      $container->get('date.formatter'),
+      $container->get('cache.upgrade_status')
     );
   }
 
@@ -69,19 +78,23 @@ class JobRunController extends ControllerBase {
    * @param \Drupal\Core\State\StateInterface $state
    * @param \Drupal\upgrade_status\ProjectCollectorInterface $projectCollector
    * @param \Drupal\Core\Datetime\DateFormatterInterface
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache service.
    */
   public function __construct(
     QueueFactory $queue,
     QueueWorkerManagerInterface $queue_manager,
     StateInterface $state,
     ProjectCollectorInterface $projectCollector,
-    DateFormatterInterface $dateFormatter
+    DateFormatterInterface $dateFormatter,
+    CacheBackendInterface $cache
   ) {
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
     $this->queueManager = $queue_manager;
     $this->state = $state;
     $this->projectCollector = $projectCollector;
     $this->dateFormatter = $dateFormatter;
+    $this->cache = $cache;
   }
 
   /**
@@ -125,11 +138,28 @@ class JobRunController extends ControllerBase {
     $percent = ($completed_jobs / $job_count) * 100;
     $label = $this->t('Scanning projects...');
 
+    $project = $job->data->getName();
+    $selector = '.project-' . $project;
+    $result = $this->cache->get($project);
+    if (empty($result)) {
+      $result = [$selector, 'not-scanned', $this->t('To be scanned')];
+    }
+    else {
+      $report = json_decode($result->data, TRUE);
+      if (!empty($report['totals']['file_errors'])) {
+        $result = [$selector, 'known-errors', $this->formatPlural($report['totals']['file_errors'], '@count error', '@count errors')];
+      }
+      else {
+        $result = [$selector, 'no-known-error', $this->t('No known errors')];
+      }
+    }
+
     return new JsonResponse([
       'status' => TRUE,
       'percentage' => $percent,
       'message' => $message,
       'label' => $label,
+      'result' => $result,
     ]);
   }
 
