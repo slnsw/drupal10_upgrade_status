@@ -17,6 +17,8 @@
           pb.stopMonitoring();
           // @todo actually display something useful
           $progress.empty();
+          // Enable the submit button again.
+          $('.form-submit').removeClass('is-disabled').removeAttr('disabled');
         }
       }
 

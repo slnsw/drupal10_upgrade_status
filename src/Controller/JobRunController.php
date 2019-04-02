@@ -80,12 +80,16 @@ class JobRunController extends ControllerBase {
    * @throws \Drupal\Component\Plugin\Exception\PluginException
    */
   public function runNextJob() {
-    $queue_worker = $this->queueManager->createInstance('upgrade_status_deprecation_worker');
-    $job = $this->queue->claimItem();
-
     $job_count = $this->state->get('upgrade_status.number_of_jobs');
 
+    // @todo not being able to claim a job may mean the last one is or
+    //   last ones are still running.
+    $job = $this->queue->claimItem();
     if (!$job) {
+      // Jobs finished, delete the state data we use to keep track of them.
+      $this->state->delete('upgrade_status.number_of_jobs');
+      $this->state->delete('upgrade_status.run_scan_started');
+
       return new JsonResponse([
         'status' => TRUE,
         'percentage' => 100,
@@ -98,7 +102,9 @@ class JobRunController extends ControllerBase {
       ]);
     }
 
+    $queue_worker = $this->queueManager->createInstance('upgrade_status_deprecation_worker');
     $queue_worker->processItem($job->data);
+
     $this->queue->deleteItem($job);
 
     $completed_jobs = $job_count - $this->queue->numberOfItems();

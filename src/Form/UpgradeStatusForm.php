@@ -136,6 +136,7 @@ class UpgradeStatusForm extends FormBase {
 
     $form['drupal_upgrade_status_form']['action']['submit'] = [
       '#type' => 'submit',
+      // @todo label this restart if there is data in the cache
       '#value' => $this->t('Start full scan'),
       '#weight' => 0,
       '#button_type' => 'primary',
