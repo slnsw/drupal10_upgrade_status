@@ -3,6 +3,7 @@
 namespace Drupal\upgrade_status\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\Core\State\StateInterface;
@@ -41,6 +42,13 @@ class JobRunController extends ControllerBase {
   protected $projectCollector;
 
   /**
+   * The date formatter service.
+   *
+   * @var Drupal\Core\Datetime\DateFormatterInterface
+   */
+  protected $dateFormatter;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -48,7 +56,8 @@ class JobRunController extends ControllerBase {
       $container->get('queue'),
       $container->get('plugin.manager.queue_worker'),
       $container->get('state'),
-      $container->get('upgrade_status.project_collector')
+      $container->get('upgrade_status.project_collector'),
+      $container->get('date.formatter')
     );
   }
 
@@ -59,17 +68,20 @@ class JobRunController extends ControllerBase {
    * @param \Drupal\Core\Queue\QueueWorkerManagerInterface $queue_manager
    * @param \Drupal\Core\State\StateInterface $state
    * @param \Drupal\upgrade_status\ProjectCollectorInterface $projectCollector
+   * @param \Drupal\Core\Datetime\DateFormatterInterface
    */
   public function __construct(
     QueueFactory $queue,
     QueueWorkerManagerInterface $queue_manager,
     StateInterface $state,
-    ProjectCollectorInterface $projectCollector
+    ProjectCollectorInterface $projectCollector,
+    DateFormatterInterface $dateFormatter
   ) {
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
     $this->queueManager = $queue_manager;
     $this->state = $state;
     $this->projectCollector = $projectCollector;
+    $this->dateFormatter = $dateFormatter;
   }
 
   /**
@@ -88,17 +100,18 @@ class JobRunController extends ControllerBase {
     if (!$job) {
       // Jobs finished, delete the state data we use to keep track of them.
       $this->state->delete('upgrade_status.number_of_jobs');
-      $this->state->delete('upgrade_status.run_scan_started');
+      $this->state->set('upgrade_status.last_scan', REQUEST_TIME);
 
       return new JsonResponse([
         'status' => TRUE,
         'percentage' => 100,
-        'message' => $this->t('Completed @completed_jobs of @maximum_jobs',
+        'message' => $this->t('Completed @completed_jobs of @job_count',
           [
             '@completed_jobs' => $job_count,
-            '@maximum_jobs' => $job_count,
+            '@job_count' => $job_count,
           ]),
-        'label' => 'Scan Complete.',
+        'label' => $this->t('Scan complete.'),
+        'last_scan' => $this->t('Report last ran on @date', ['@date' => $this->dateFormatter->format(REQUEST_TIME)]),
       ]);
     }
 
@@ -108,9 +121,9 @@ class JobRunController extends ControllerBase {
     $this->queue->deleteItem($job);
 
     $completed_jobs = $job_count - $this->queue->numberOfItems();
-    $message = $this->t('Completed @completed of @job_count.', ['@completed' => $completed_jobs, '@job_count' => $job_count]);
+    $message = $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $job_count]);
     $percent = ($completed_jobs / $job_count) * 100;
-    $label = 'Scanning module ... ';
+    $label = $this->t('Scanning projects...');
 
     return new JsonResponse([
       'status' => TRUE,

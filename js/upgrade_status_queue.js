@@ -19,6 +19,7 @@
           $progress.empty();
           // Enable the submit button again.
           $('.form-submit').removeClass('is-disabled').removeAttr('disabled');
+          $('#edit-cancel').remove();
         }
       }
 

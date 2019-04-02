@@ -12,10 +12,9 @@ function upgrade_status_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
- * Implements rebuild().
+ * Implements hook_rebuild().
  */
 function upgrade_status_rebuild() {
-  \Drupal::state()->set('upgrade_status.run_scan_started', FALSE);
-  \Drupal::state()->set('upgrade_status.number_of_jobs', 0);
-
+  \Drupal::state()->delete('upgrade_status.number_of_jobs');
+  \Drupal::state()->delete('upgrade_status.last_scan');
 }
