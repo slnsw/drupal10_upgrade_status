@@ -2,8 +2,11 @@
 
 namespace Drupal\upgrade_status\Form;
 
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormBuilder;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
@@ -42,6 +45,13 @@ class UpgradeStatusForm extends FormBase {
   protected $cache;
 
   /**
+   * The form builder service.
+   *
+   * @var \Drupal\Core\Form\FormBuilder
+   */
+  protected $formBuilder;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -49,7 +59,8 @@ class UpgradeStatusForm extends FormBase {
       $container->get('upgrade_status.project_collector'),
       $container->get('queue'),
       $container->get('state'),
-      $container->get('cache.upgrade_status')
+      $container->get('cache.upgrade_status'),
+      $container->get('form_builder')
     );
   }
 
@@ -65,12 +76,14 @@ class UpgradeStatusForm extends FormBase {
     ProjectCollector $projectCollector,
     QueueFactory $queue,
     StateInterface $state,
-    CacheBackendInterface $cache
+    CacheBackendInterface $cache,
+    FormBuilder $formBuilder
   ) {
     $this->projectCollector = $projectCollector;
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
     $this->state = $state;
     $this->cache = $cache;
+    $this->formBuilder = $formBuilder;
   }
 
   /**
@@ -135,10 +148,13 @@ class UpgradeStatusForm extends FormBase {
         '#name' => 'export',
       ];
       $form['drupal_upgrade_status_form']['action']['cancel'] = [
-        '#type' => 'submit',
+        '#type' => 'button',
         '#value' => $this->t('Cancel'),
         '#weight' => 10,
         '#name' => 'cancel',
+        '#ajax' => [
+          'callback' => '::loadCancelForm',
+        ],
       ];
       return $form;
     }
@@ -156,7 +172,7 @@ class UpgradeStatusForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Export full report'),
       '#weight' => 5,
-      '#name' => 'cancel',
+      '#name' => 'export',
     ];
 
     return $form;
@@ -164,6 +180,32 @@ class UpgradeStatusForm extends FormBase {
 
   protected function processNextJobUrl() {
     return Url::fromRoute('upgrade_status.run_job')->toString(TRUE)->getGeneratedUrl();
+  }
+
+  public function loadCancelForm() {
+    $response = new AjaxResponse();
+
+    $modal_form = $this
+      ->formBuilder
+      ->getForm(CancelScanForm::class);
+
+    $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
+    $response->setAttachments($form['#attached']);
+
+    $options = [
+      'width' => 1024,
+      'height' => 568,
+    ];
+
+    $title = t('Cancel Scan?');
+
+    $response->addCommand(new OpenModalDialogCommand($title, $modal_form, $options));
+    return $response;
+  }
+
+  public function cancelScan() {
+    $this->queue->deleteQueue();
+    $this->state->delete('upgrade_status.number_of_jobs');
   }
 
   /**
