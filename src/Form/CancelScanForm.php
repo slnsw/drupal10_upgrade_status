@@ -77,9 +77,12 @@ class CancelScanForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['upgrade_status_cancel_form']['description'] = [
-      '#type' => 'markup',
-      '#markup' => t('This action will cancel the scan and clear the current data. Are you sure you want to cancel this scan?'),
-    ];
+      '#type' => 'fieldgroup',
+      'description_text' => [
+        '#type' => 'markup',
+        '#markup' => t('This action will cancel the scan and clear the current data. Are you sure you want to cancel this scan?'),
+      ],
+   ];
 
     $form['upgrade_status_cancel_form']['action']['submit'] = [
       '#type' => 'submit',
