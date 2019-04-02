@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the Upgrade Status module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function upgrade_status_uninstall() {
+  \Drupal::state()->delete('upgrade_status.number_of_jobs');
+
+  $queue = \Drupal::queue('upgrade_status_deprecation_worker');
+  $queue->deleteQueue();
+}
