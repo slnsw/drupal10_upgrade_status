@@ -23,6 +23,9 @@
 .upgrade-status-summary table {
   margin-top: 1.2em;
 }
+.upgrade-status-summary thead th {
+  width: 33%;
+}
 .upgrade-status-summary tr > td:first-child {
   font-weight: bold;
   padding-left: 35px; /* LTR */

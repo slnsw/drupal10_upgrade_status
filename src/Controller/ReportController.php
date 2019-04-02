@@ -137,7 +137,10 @@ class ReportController extends ControllerBase {
             '#type' => 'markup',
             '#markup' => $label,
           ],
-          'status' => [],
+          'status' => [
+            '#type' => 'markup',
+            '#markup' => $this->t('To be scanned'),
+          ],
           'operations' => [
             '#type' => 'operations',
             // @todo add release info for contrib
@@ -165,7 +168,10 @@ class ReportController extends ControllerBase {
             '#type' => 'markup',
             '#markup' => $label,
           ],
-          'status' => [],
+          'status' => [
+            '#type' => 'markup',
+            '#markup' => $this->t('No known errors'),
+          ],
           'operations' => [
             '#type' => 'operations',
             // @todo add rescan operation and release info for contrib
@@ -189,7 +195,7 @@ class ReportController extends ControllerBase {
         continue;
       }
       // Unlike the other two counters, this counts the number of errors, not projects.
-      $counters['no-known-error'] += $project_error_count;
+      $counters['known-errors'] += $project_error_count;
 
       // Finally this project had errors found, display them.
       $build['data'][$name] = [
@@ -246,7 +252,7 @@ class ReportController extends ControllerBase {
     }
     $build['summary'] = [
       '#type' => 'markup',
-      '#markup' => '<div class="report-counters">' . join(', ', $summary) . '</div>',
+      '#markup' => '<div class="report-counters">' . join(', ', $summary) . '.</div>',
       '#weight' => -10,
     ];
 
