@@ -39,15 +39,15 @@
 }
 
 /* @todo the icon paths only work for sites in domain roots */
+.upgrade-status-summary tr.known-errors {
+  background-color: #fcf4f2;
+}
 .upgrade-status-summary tr.known-errors > td:first-child {
-  color: #734c00;
   background-image: url(/core/misc/icons/e32700/error.svg);
 }
-.upgrade-status-summary tr.no-known-error > td:first-child {
-  color: #325e1c;
-  background-image: url(/core/misc/icons/73b355/check.svg);
+.upgrade-status-summary tr.no-known-error {
+  background-color: #f3faef;
 }
-.upgrade-status-summary tr.not-scanned > td:first-child {
-  color: #734c00;
-  background-image: url(/core/misc/icons/e29700/warning.svg);
+.upgrade-status-summary tr.no-known-error > td:first-child {
+  background-image: url(/core/misc/icons/73b355/check.svg);
 }

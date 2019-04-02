@@ -7,6 +7,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerManagerInterface;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\upgrade_status\ProjectCollectorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -57,6 +58,13 @@ class JobRunController extends ControllerBase {
   protected $cache;
 
   /**
+   * The renderer service.
+   *
+   * @var \Drupal\Core\Render\RendererInterface
+   */
+  protected $renderer;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -66,7 +74,8 @@ class JobRunController extends ControllerBase {
       $container->get('state'),
       $container->get('upgrade_status.project_collector'),
       $container->get('date.formatter'),
-      $container->get('cache.upgrade_status')
+      $container->get('cache.upgrade_status'),
+      $container->get('renderer')
     );
   }
 
@@ -80,6 +89,8 @@ class JobRunController extends ControllerBase {
    * @param \Drupal\Core\Datetime\DateFormatterInterface
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.
+   * @param \Drupal\Core\Render\RendererInterface $renderer
+   *   The renderer service.
    */
   public function __construct(
     QueueFactory $queue,
@@ -87,7 +98,8 @@ class JobRunController extends ControllerBase {
     StateInterface $state,
     ProjectCollectorInterface $projectCollector,
     DateFormatterInterface $dateFormatter,
-    CacheBackendInterface $cache
+    CacheBackendInterface $cache,
+    RendererInterface $renderer
   ) {
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
     $this->queueManager = $queue_manager;
@@ -95,6 +107,7 @@ class JobRunController extends ControllerBase {
     $this->projectCollector = $projectCollector;
     $this->dateFormatter = $dateFormatter;
     $this->cache = $cache;
+    $this->renderer = $renderer;
   }
 
   /**
@@ -141,18 +154,23 @@ class JobRunController extends ControllerBase {
     $project = $job->data->getName();
     $selector = '.project-' . $project;
     $result = $this->cache->get($project);
+
     if (empty($result)) {
+      $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType());
       $result = [$selector, 'not-scanned', $this->t('To be scanned')];
     }
     else {
       $report = json_decode($result->data, TRUE);
       if (!empty($report['totals']['file_errors'])) {
+        $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType(), FALSE, TRUE);
         $result = [$selector, 'known-errors', $this->formatPlural($report['totals']['file_errors'], '@count error', '@count errors')];
       }
       else {
+        $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType(), FALSE);
         $result = [$selector, 'no-known-error', $this->t('No known errors')];
       }
     }
+    $result[] = $this->renderer->render($operations);
 
     return new JsonResponse([
       'status' => TRUE,

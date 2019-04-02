@@ -106,7 +106,11 @@
             .removeClass('no-known-error known-errors not-scanned')
             .addClass(progress.result[1]);
           $('table tr' + progress.result[0] + ' td:nth-child(2)')
-            .replaceWith('<td>' + progress.result[2].toString() + '</td>');
+            .replaceWith('<td>' + progress.result[2] + '</td>');
+          var newNodes = $('<td>' + progress.result[3]+ '</td>');
+          Drupal.attachBehaviors(newNodes);
+          $('table tr' + progress.result[0] + ' td:nth-child(3)')
+              .replaceWith(newNodes);
         }
 
         if (progress.percentage == 100) {

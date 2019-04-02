@@ -2,10 +2,8 @@
 
 namespace Drupal\upgrade_status\Controller;
 
-use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Url;
 use Drupal\upgrade_status\Form\UpgradeStatusForm;
 use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -139,13 +137,9 @@ class ReportController extends ControllerBase {
           ],
           'status' => [
             '#type' => 'markup',
-            '#markup' => $this->t('To be scanned'),
+            '#markup' => $this->t('Not scanned'),
           ],
-          'operations' => [
-            '#type' => 'operations',
-            // @todo add release info for contrib
-            '#links' => [],
-          ],
+          'operations' => $this->projectCollector->getProjectOperations($name, $extension->getType()),
         ];
         $counters['not-scanned']++;
         continue;
@@ -172,24 +166,7 @@ class ReportController extends ControllerBase {
             '#type' => 'markup',
             '#markup' => $this->t('No known errors'),
           ],
-          'operations' => [
-            '#type' => 'operations',
-            // @todo add rescan operation and release info for contrib
-            '#links' => [
-              're-scan' => [
-                'title' => $this->t('Re-scan'),
-                'url' => Url::fromRoute('upgrade_status.add_project', ['type' => $extension->getType(), 'project_machine_name' => $extension->getName()]),
-                'attributes' => [
-                  'class' => ['use-ajax'],
-                  'data-dialog-type' => 'modal',
-                  'data-dialog-options' => Json::encode([
-                    'width' => 1024,
-                    'height' => 568,
-                  ]),
-                ],
-              ],
-            ],
-          ],
+          'operations' => $this->projectCollector->getProjectOperations($name, $extension->getType(), FALSE),
         ];
         $counters['no-known-error']++;
         continue;
@@ -208,35 +185,7 @@ class ReportController extends ControllerBase {
           '#type' => 'markup',
           '#markup' => $this->formatPlural($project_error_count, '@count error', '@count errors'),
         ],
-        'operations' => [
-          '#type' => 'operations',
-          '#links' => [
-            'errors' => [
-              'title' => $this->t('View errors'),
-              'url' => Url::fromRoute('upgrade_status.project', ['project_name' => $name]),
-              'attributes' => [
-                'class' => ['use-ajax'],
-                'data-dialog-type' => 'modal',
-                'data-dialog-options' => Json::encode([
-                  'width' => 1024,
-                  'height' => 568,
-                ]),
-              ],
-            ],
-            're-scan' => [
-              'title' => $this->t('Re-scan'),
-              'url' => Url::fromRoute('upgrade_status.add_project', ['type' => $extension->getType(), 'project_machine_name' => $extension->getName()]),
-              'attributes' => [
-                'class' => ['use-ajax'],
-                'data-dialog-type' => 'modal',
-                'data-dialog-options' => Json::encode([
-                  'width' => 1024,
-                  'height' => 568,
-                ]),
-              ],
-            ],
-          ],
-        ],
+        'operations' => $this->projectCollector->getProjectOperations($name, $extension->getType(), FALSE, TRUE),
       ];
     }
 

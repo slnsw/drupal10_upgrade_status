@@ -2,9 +2,11 @@
 
 namespace Drupal\upgrade_status;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ThemeHandler;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Url;
 use http\Exception\InvalidArgumentException;
 
 /**
@@ -138,6 +140,56 @@ class ProjectCollector implements ProjectCollectorInterface {
     }
 
     return $this->themeHandler->getTheme($project_machine_name);
+  }
+
+  /**
+   * Generate operations link render array for a project.
+   *
+   * @param string $name
+   *   Machine name of project.
+   * @param string $type
+   *   Type of project (module/theme).
+   * @param bool $unscanned
+   *   (Optional) Whether this project is new to be scanned.
+   * @param bool $errors
+   *   (Optional) Whether this project had any errors found.
+   * @return array
+   *   Render array of operations.
+   */
+  public function getProjectOperations($name, $type, $unscanned = TRUE, $errors = FALSE) {
+    $operations = [
+      '#type' => 'operations',
+      '#links' => [
+        'errors' => [
+          'title' => $this->t('View errors'),
+          'url' => Url::fromRoute('upgrade_status.project', ['project_name' => $name]),
+          'attributes' => [
+            'class' => ['use-ajax'],
+            'data-dialog-type' => 'modal',
+            'data-dialog-options' => Json::encode([
+              'width' => 1024,
+              'height' => 568,
+            ]),
+          ],
+        ],
+        're-scan' => [
+          'title' => $unscanned ? $this->t('Single scan') : $this->t('Re-scan'),
+          'url' => Url::fromRoute('upgrade_status.add_project', ['type' => $type, 'project_machine_name' => $name]),
+          'attributes' => [
+            'class' => ['use-ajax'],
+            'data-dialog-type' => 'modal',
+            'data-dialog-options' => Json::encode([
+              'width' => 1024,
+              'height' => 568,
+            ]),
+          ],
+        ],
+      ]
+    ];
+    if (!$errors) {
+      unset($operations['#links']['errors']);
+    }
+    return $operations;
   }
 
 }
