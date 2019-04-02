@@ -100,10 +100,10 @@
       var progressBar = void 0;
 
       function updateCallback(progress, pb) {
-        if (progress == 100) {
+        if (progress.percentage == 100) {
           pb.stopMonitoring();
           // @todo actually display something useful
-          $progress.empty();
+          $('.progress').remove();
           // Enable the submit button again.
           $('.form-submit').removeClass('is-disabled').removeAttr('disabled');
           $('#edit-cancel').remove();
