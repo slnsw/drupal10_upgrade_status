@@ -117,7 +117,8 @@ class UpgradeStatusForm extends FormBase {
         '#theme' => 'progress_bar',
         '#percent' => $percent,
         '#status' => TRUE,
-        '#message' => $this->t('Completed @completed of @job_count.', ['@completed' => $completed_jobs, '@job_count' => $job_count]),
+        '#label' => $this->t('Scanning projects...'),
+        '#message' => ['#markup' => $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $job_count])],
         '#weight' => 0,
         // @todo This progress bar requires JavaScript, document it.
         '#attached' => [

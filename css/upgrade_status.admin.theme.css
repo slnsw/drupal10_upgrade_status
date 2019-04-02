@@ -3,8 +3,7 @@
  * Styles used by the Upgrade Status module.
  */
 
-/* @todo avoid ID selector */
-#queueprogress {
+.drupal-upgrade-status-form .progress {
   margin: 0 1em 3em 1em;
 }
 

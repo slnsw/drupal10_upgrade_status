@@ -105,7 +105,7 @@ class JobRunController extends ControllerBase {
       return new JsonResponse([
         'status' => TRUE,
         'percentage' => 100,
-        'message' => $this->t('Completed @completed_jobs of @job_count',
+        'message' => $this->t('Completed @completed_jobs of @job_count.',
           [
             '@completed_jobs' => $job_count,
             '@job_count' => $job_count,
