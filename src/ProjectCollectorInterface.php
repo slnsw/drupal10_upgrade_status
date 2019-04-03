@@ -19,4 +19,38 @@ interface ProjectCollectorInterface {
    */
   public function collectProjects();
 
+  /**
+   * Returns a single extension based on type and machine name.
+   *
+   * @param string $type
+   *   One of 'module' or 'theme' to signify the type of the extension.
+   * @param string $project_machine_name
+   *   Machine name for the extension.
+   *
+   * @return \Drupal\Core\Extension\Extension
+   *   A project if exists.
+   *
+   * @throws \InvalidArgumentException
+   *   If the type was not one of the allowed ones.
+   * @throws \Drupal\Core\Extension\Exception\UnknownExtensionException
+   *   If there was no extension with the given name.
+   */
+  public function loadProject($type, $project_machine_name);
+
+  /**
+   * Generate operations link render array for a project.
+   *
+   * @param string $name
+   *   Machine name of project.
+   * @param string $type
+   *   Type of project (module/theme).
+   * @param bool $unscanned
+   *   (Optional) Whether this project is new to be scanned.
+   * @param bool $errors
+   *   (Optional) Whether this project had any errors found.
+   * @return array
+   *   Render array of operations.
+   */
+  public function getProjectOperations($name, $type, $unscanned = TRUE, $errors = FALSE);
+
 }

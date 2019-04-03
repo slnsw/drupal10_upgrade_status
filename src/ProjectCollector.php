@@ -7,7 +7,6 @@ use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ThemeHandler;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
-use http\Exception\InvalidArgumentException;
 
 /**
  * Collects projects collated for the purposes of upgrade status.
@@ -30,6 +29,11 @@ class ProjectCollector implements ProjectCollectorInterface {
    */
   protected $themeHandler;
 
+  /**
+   * A list of allowed extension types.
+   *
+   * @var array
+   */
   protected $allowedTypes = [
     'module',
     'theme',
@@ -125,14 +129,11 @@ class ProjectCollector implements ProjectCollectorInterface {
   }
 
   /**
-   * Returns a single Project.
-   *
-   * @param \Drupal\upgrade_status\string $type
-   * @param \Drupal\upgrade_status\string $project_machine_name
+   * {@inheritdoc}
    */
-  public function loadProject(string $type, string $project_machine_name) {
+  public function loadProject($type, $project_machine_name) {
     if (!in_array($type, $this->allowedTypes)) {
-      throw new InvalidArgumentException($this->t('Type must be either module or theme.'));
+      throw new \InvalidArgumentException('Type must be either module or theme.');
     }
 
     if ($type === 'module') {
@@ -143,18 +144,7 @@ class ProjectCollector implements ProjectCollectorInterface {
   }
 
   /**
-   * Generate operations link render array for a project.
-   *
-   * @param string $name
-   *   Machine name of project.
-   * @param string $type
-   *   Type of project (module/theme).
-   * @param bool $unscanned
-   *   (Optional) Whether this project is new to be scanned.
-   * @param bool $errors
-   *   (Optional) Whether this project had any errors found.
-   * @return array
-   *   Render array of operations.
+   * {@inheritdoc}
    */
   public function getProjectOperations($name, $type, $unscanned = TRUE, $errors = FALSE) {
     $operations = [
