@@ -83,10 +83,15 @@ class JobRunController extends ControllerBase {
    * Constructs a Drupal\upgrade_status\Controller\JobRunController.
    *
    * @param \Drupal\Core\Queue\QueueFactory $queue
+   *   The queue factory service.
    * @param \Drupal\Core\Queue\QueueWorkerManagerInterface $queue_manager
+   *   The queue manager service.
    * @param \Drupal\Core\State\StateInterface $state
+   *   The state service.
    * @param \Drupal\upgrade_status\ProjectCollectorInterface $projectCollector
+   *   The project collector service.
    * @param \Drupal\Core\Datetime\DateFormatterInterface
+   *   The date formatter service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.
    * @param \Drupal\Core\Render\RendererInterface $renderer
@@ -118,13 +123,80 @@ class JobRunController extends ControllerBase {
    * @throws \Drupal\Component\Plugin\Exception\PluginException
    */
   public function runNextJob() {
-    $job_count = $this->state->get('upgrade_status.number_of_jobs');
+    $remaining_count = $this->queue->numberOfItems();
+    $all_count = $this->state->get('upgrade_status.number_of_jobs');
 
-    // @todo not being able to claim a job may mean the last one is or
-    //   last ones are still running.
-    $job = $this->queue->claimItem();
-    if (!$job) {
-      // Jobs finished, delete the state data we use to keep track of them.
+    if ($remaining_count) {
+      $job = $this->queue->claimItem();
+      if ($job) {
+        // Process this job.
+        $queue_worker = $this->queueManager->createInstance('upgrade_status_deprecation_worker');
+        $queue_worker->processItem($job->data);
+        $this->queue->deleteItem($job);
+
+        $completed_jobs = $all_count - $this->queue->numberOfItems();
+        $message = $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $all_count]);
+        $percent = ($completed_jobs / $all_count) * 100;
+        $label = $this->t('Scanning projects...');
+
+        $project = $job->data->getName();
+        $selector = '.project-' . $project;
+        $result = $this->cache->get($project);
+
+        if (empty($result)) {
+          $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType());
+          $updates = [$selector, 'not-scanned', $this->t('Not scanned')];
+        }
+        else {
+          $report = json_decode($result->data, TRUE);
+          if (!empty($report['totals']['file_errors'])) {
+            $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType(), FALSE, TRUE);
+            $updates = [$selector, 'known-errors', $this->formatPlural($report['totals']['file_errors'], '@count error', '@count errors')];
+          }
+          else {
+            $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType(), FALSE);
+            $updates = [$selector, 'no-known-error', $this->t('No known errors')];
+          }
+        }
+        $updates[] = $this->renderer->render($operations);
+
+        $last_scan = '';
+        if ($percent == 100) {
+          // Jobs finished, delete the state data we use to keep track of them.
+          $this->state->delete('upgrade_status.number_of_jobs');
+          $this->state->set('upgrade_status.last_scan', REQUEST_TIME);
+          $last_scan = $this->t('Report last ran on @date', ['@date' => $this->dateFormatter->format(REQUEST_TIME)]);
+        }
+
+        return new JsonResponse([
+          'status' => TRUE,
+          'percentage' => $percent,
+          'message' => $message,
+          'label' => $label,
+          'result' => $updates,
+          'date' => $last_scan,
+        ]);
+      }
+      else {
+        // There appear to be jobs but we cannot claim any. Likely they are
+        // being processed in cron for example. Continue the feedback loop.
+        $completed_jobs = $all_count - $this->queue->numberOfItems();
+        $message = $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $all_count]);
+        $percent = ($completed_jobs / $all_count) * 100;
+        $label = $this->t('Scanning projects...');
+        return new JsonResponse([
+          'status' => TRUE,
+          'percentage' => $percent,
+          'message' => $message,
+          'label' => $label,
+          'result' => [],
+          'date' => '',
+        ]);
+      }
+    }
+    else {
+      // There does not appear to be any jobs left, but the progress runner was invoked
+      // anyway. Clean up the indicators for the progress runner so it can complete.
       $this->state->delete('upgrade_status.number_of_jobs');
       $this->state->set('upgrade_status.last_scan', REQUEST_TIME);
 
@@ -133,52 +205,14 @@ class JobRunController extends ControllerBase {
         'percentage' => 100,
         'message' => $this->t('Completed @completed_jobs of @job_count.',
           [
-            '@completed_jobs' => $job_count,
-            '@job_count' => $job_count,
+            '@completed_jobs' => $all_count,
+            '@job_count' => $all_count,
           ]),
         'label' => $this->t('Scan complete.'),
-        'last_scan' => $this->t('Report last ran on @date', ['@date' => $this->dateFormatter->format(REQUEST_TIME)]),
+        'result' => [],
+        'date' => $this->t('Report last ran on @date', ['@date' => $this->dateFormatter->format(REQUEST_TIME)]),
       ]);
     }
-
-    $queue_worker = $this->queueManager->createInstance('upgrade_status_deprecation_worker');
-    $queue_worker->processItem($job->data);
-
-    $this->queue->deleteItem($job);
-
-    $completed_jobs = $job_count - $this->queue->numberOfItems();
-    $message = $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $job_count]);
-    $percent = ($completed_jobs / $job_count) * 100;
-    $label = $this->t('Scanning projects...');
-
-    $project = $job->data->getName();
-    $selector = '.project-' . $project;
-    $result = $this->cache->get($project);
-
-    if (empty($result)) {
-      $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType());
-      $result = [$selector, 'not-scanned', $this->t('To be scanned')];
-    }
-    else {
-      $report = json_decode($result->data, TRUE);
-      if (!empty($report['totals']['file_errors'])) {
-        $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType(), FALSE, TRUE);
-        $result = [$selector, 'known-errors', $this->formatPlural($report['totals']['file_errors'], '@count error', '@count errors')];
-      }
-      else {
-        $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType(), FALSE);
-        $result = [$selector, 'no-known-error', $this->t('No known errors')];
-      }
-    }
-    $result[] = $this->renderer->render($operations);
-
-    return new JsonResponse([
-      'status' => TRUE,
-      'percentage' => $percent,
-      'message' => $message,
-      'label' => $label,
-      'result' => $result,
-    ]);
   }
 
   /**

@@ -10,10 +10,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Process a queue of project paths to perform deprecation analysis.
  *
+ * @todo figure out how to mix batch queue running with cron so they don't conflict.
+ *
  * @QueueWorker(
  *   id = "upgrade_status_deprecation_worker",
- *   title = @Translation("Upgrade Status Deprecation Worker"),
- *   cron = {"time" = 60}
+ *   title = @Translation("Upgrade Status Deprecation Worker")
  * )
  */
 class UpgradeStatusDeprecationWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {

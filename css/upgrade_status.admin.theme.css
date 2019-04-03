@@ -3,8 +3,19 @@
  * Styles used by the Upgrade Status module.
  */
 
+.drupal-upgrade-status-form .report-date {
+  font-weight: bold;
+  margin-bottom: 1em;
+}
+.drupal-upgrade-status-form .button {
+  margin-left: 0;
+}
+[dir="rtl"] .drupal-upgrade-status-form .button {
+  margin-left: inherit;
+  margin-right: 0;
+}
 .drupal-upgrade-status-form .progress {
-  margin: 0 1em 3em 1em;
+  margin-bottom: 3em;
 }
 
 .upgrade-status-summary > summary {

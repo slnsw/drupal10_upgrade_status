@@ -100,17 +100,21 @@
       var progressBar = void 0;
 
       function updateCallback(progress, pb) {
-        // Update table data as it comes in. @todo update operations.
-        if (progress.result) {
+        // Update table data as it comes in.
+        if (progress.result && progress.result.length) {
           $('table tr' + progress.result[0])
             .removeClass('no-known-error known-errors not-scanned')
             .addClass(progress.result[1]);
           $('table tr' + progress.result[0] + ' td:nth-child(2)')
             .replaceWith('<td>' + progress.result[2] + '</td>');
           var newNodes = $('<td>' + progress.result[3]+ '</td>');
-          Drupal.attachBehaviors(newNodes);
           $('table tr' + progress.result[0] + ' td:nth-child(3)')
               .replaceWith(newNodes);
+
+          // @todo Passed document as core active links JS seems to break on
+          //   elements that don't have a querySelectorAll() and would break
+          //   the dialog behavior.
+          Drupal.attachBehaviors(document, window.drupalSettings);
         }
 
         if (progress.percentage == 100) {
@@ -120,6 +124,7 @@
           // Enable the submit button again.
           $('.form-submit').removeClass('is-disabled').removeAttr('disabled');
           $('#edit-cancel').remove();
+          $('form').prepend('<div class="report-date">' + progress.date + '</div>');
         }
       }
 

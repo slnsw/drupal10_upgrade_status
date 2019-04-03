@@ -5,6 +5,7 @@ namespace Drupal\upgrade_status\Form;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormBuilder;
 use Drupal\Core\Form\FormStateInterface;
@@ -52,6 +53,13 @@ class UpgradeStatusForm extends FormBase {
   protected $formBuilder;
 
   /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatterInterface
+   */
+  protected $dateFormatter;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -60,7 +68,8 @@ class UpgradeStatusForm extends FormBase {
       $container->get('queue'),
       $container->get('state'),
       $container->get('cache.upgrade_status'),
-      $container->get('form_builder')
+      $container->get('form_builder'),
+      $container->get('date.formatter')
     );
   }
 
@@ -68,22 +77,32 @@ class UpgradeStatusForm extends FormBase {
    * Constructs a Drupal\upgrade_status\Form\UpgradeStatusForm.
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
+   *   The project collector service.
    * @param \Drupal\Core\Queue\QueueFactory $queue
+   *   The queue service
    * @param \Drupal\Core\State\StateInterface $state
+   *   The state service
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache service.
+   * @param \Drupal\Core\Form\FormBuilder
+   *   The form builder service.
+   * @param \Drupal\Core\Datetime\DateFormatterInterface
+   *   The date formatter service.
    */
   public function __construct(
     ProjectCollector $projectCollector,
     QueueFactory $queue,
     StateInterface $state,
     CacheBackendInterface $cache,
-    FormBuilder $formBuilder
+    FormBuilder $formBuilder,
+    DateFormatterInterface $dateFormatter
   ) {
     $this->projectCollector = $projectCollector;
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
     $this->state = $state;
     $this->cache = $cache;
     $this->formBuilder = $formBuilder;
+    $this->dateFormatter = $dateFormatter;
   }
 
   /**
@@ -160,8 +179,17 @@ class UpgradeStatusForm extends FormBase {
       return $form;
     }
 
+    $scan_date = $this->state->get('upgrade_status.last_scan');
+    if ($scan_date) {
+      $last_scan = $this->t('Report last ran on @date', ['@date' => $this->dateFormatter->format($scan_date)]);
+      $form['drupal_upgrade_status_form']['date'] = [
+        '#type' => 'markup',
+        '#markup' => '<div class="report-date">' . $last_scan . '</div>',
+      ];
+    }
+
     // If there was a prior scan, reflect that in the button label.
-    $button_label = $this->state->get('upgrade_status.last_scan') ? $this->t('Restart full scan') : $this->t('Start full scan');
+    $button_label = $scan_date ? $this->t('Restart full scan') : $this->t('Start full scan');
     $form['drupal_upgrade_status_form']['action']['submit'] = [
       '#type' => 'submit',
       '#value' => $button_label,
