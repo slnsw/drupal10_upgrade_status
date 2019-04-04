@@ -166,6 +166,7 @@ class UpgradeStatusForm extends FormBase {
         '#weight' => 5,
         '#disabled' => TRUE,
         '#name' => 'export',
+        '#submit' => [$this, '::exportFullReport'],
       ];
       $form['drupal_upgrade_status_form']['action']['cancel'] = [
         '#type' => 'button',
@@ -202,6 +203,7 @@ class UpgradeStatusForm extends FormBase {
       '#value' => $this->t('Export full report'),
       '#weight' => 5,
       '#name' => 'export',
+      '#submit' => [$this, '::exportFullReport'],
     ];
 
     return $form;
@@ -235,6 +237,11 @@ class UpgradeStatusForm extends FormBase {
   public function cancelScan() {
     $this->queue->deleteQueue();
     $this->state->delete('upgrade_status.number_of_jobs');
+  }
+
+  public function exportFullReport(array $form, FormStateInterface $form_state) {
+    $uri = Url::fromRoute('upgrade_status.export');
+    $form_state->setRedirectUrl($uri);
   }
 
   /**

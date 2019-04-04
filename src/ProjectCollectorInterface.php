@@ -35,7 +35,7 @@ interface ProjectCollectorInterface {
    * @throws \Drupal\Core\Extension\Exception\UnknownExtensionException
    *   If there was no extension with the given name.
    */
-  public function loadProject($type, $project_machine_name);
+  public function loadProject(string $type, string $project_machine_name);
 
   /**
    * Generate operations link render array for a project.

@@ -7,6 +7,7 @@ use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ThemeHandler;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use http\Exception\InvalidArgumentException;
 
 /**
  * Collects projects collated for the purposes of upgrade status.
@@ -131,9 +132,9 @@ class ProjectCollector implements ProjectCollectorInterface {
   /**
    * {@inheritdoc}
    */
-  public function loadProject($type, $project_machine_name) {
+  public function loadProject(string $type, string $project_machine_name) {
     if (!in_array($type, $this->allowedTypes)) {
-      throw new \InvalidArgumentException('Type must be either module or theme.');
+      throw new InvalidArgumentException($this->t('Type must be either module or theme.'));
     }
 
     if ($type === 'module') {

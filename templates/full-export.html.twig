@@ -1,0 +1,18 @@
+<div>
+  <h2>Upgrade Status - Full export</h2>
+  <div>
+    <h3>Custom modules and themes</h3>
+    {% for project in projects.custom %}
+      <h3>{{ project.name }}</h3>
+      {{ project.data }}
+    {% endfor %}
+  </div>
+
+  <div>
+    <h3>Contributed modules and themes</h3>
+    {% for project in projects.contrib %}
+      <h3>{{ project.name }}</h3>
+      {{ project.data }}
+    {% endfor %}
+  </div>
+</div>

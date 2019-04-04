@@ -18,3 +18,29 @@ function upgrade_status_rebuild() {
   \Drupal::state()->delete('upgrade_status.number_of_jobs');
   \Drupal::state()->delete('upgrade_status.last_scan');
 }
+
+/**
+ * Implements hook_theme().
+ */
+function upgrade_status_theme($existing, $type, $theme, $path) {
+  return [
+    'full_export' => [
+      'variables' => [
+        'projects' => [],
+      ],
+    ],
+  ];
+}
+
+function template_preprocess_full_export(&$variables) {
+  $projects = $variables['projects'];
+
+  foreach ($projects['custom'] as $key => $project) {
+    $variables['projects']['custom'][$key]['name'] = $projects['custom'][$key]['#title'];
+  }
+
+  foreach ($projects['contrib'] as $key => $project) {
+    $variables['projects']['contrib'][$key]['name'] = $projects['contrib'][$key]['#title'];
+  }
+}
+
