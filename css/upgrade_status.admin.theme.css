@@ -34,7 +34,10 @@
   margin-top: 1.2em;
 }
 .upgrade-status-summary thead th {
-  width: 33%;
+  width: 25%;
+}
+.upgrade-status-summary-custom thead th:nth-child(2) {
+  width: 50%;
 }
 .upgrade-status-summary tr > td:first-child {
   font-weight: bold;

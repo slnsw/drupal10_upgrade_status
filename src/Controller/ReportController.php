@@ -75,21 +75,21 @@ class ReportController extends ControllerBase {
       '#title' => $this->t('Custom modules and themes'),
       '#description' => $this->t('Custom code is specific to your site, and must be upgraded manually. <a href=":upgrade">Read more about how developers can upgrade their code to Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/documentation/9#deprecated']),
       '#open' => TRUE,
-      '#attributes' => ['class' => ['upgrade-status-summary']],
+      '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-custom']],
       'data' => $custom,
     ];
 
     // List contrib project status second.
     $contrib = ['#type' => 'markup', '#markup' => '<br /><strong>' . $this->t('No contributed projects found.') . '</strong>'];
     if (count($projects['contrib'])) {
-      $contrib = $this->buildProjectList($projects['contrib']);
+      $contrib = $this->buildProjectList($projects['contrib'], TRUE);
     }
     $content['contrib'] = [
       '#type' => 'details',
       '#title' => $this->t('Contributed modules and themes'),
       '#description' => $this->t('Contributed code is available from drupal.org. Problems here may be partially resolved by updating to the latest version. <a href=":update">Read more about how to update contributed projects</a>.', [':update' => 'https://www.drupal.org/docs/8/update/update-modules']),
       '#open' => TRUE,
-      '#attributes' => ['class' => ['upgrade-status-summary']],
+      '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-contrib']],
       'data' => $contrib,
     ];
 
@@ -101,24 +101,28 @@ class ReportController extends ControllerBase {
    *
    * @param \Drupal\Core\Extension\Extension[] $projects
    *   Array of extensions representing projects.
+   * @param bool $isContrib
+   *   (Optional) Whether the list to be produced is for contributed projects.
    *
    * @return array
    *   Build array.
    */
-  protected function buildProjectList(array $projects) {
+  protected function buildProjectList(array $projects, bool $isContrib = FALSE) {
     $counters = [
       'not-scanned' => 0,
       'no-known-error' => 0,
       'known-errors' => 0,
     ];
 
+    $header = ['project' => $this->t('Project'), 'status' => $this->t('Status')];
+    if ($isContrib) {
+      $header['update'] = $this->t('Available update');
+    }
+    $header['operations'] = $this->t('Operations');
+
     $build['data'] = [
       '#type' => 'table',
-      '#header' => [
-        'project' => $this->t('Project'),
-        'status' => $this->t('Status'),
-        'operations' => $this->t('Operations'),
-      ],
+      '#header' => $header,
       '#weight' => 20,
     ];
 
@@ -126,6 +130,18 @@ class ReportController extends ControllerBase {
       $cache = $this->cache->get($name);
       $info = $extension->info;
       $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
+
+      if (!$isContrib) {
+        $update = '';
+      }
+      else {
+        // @todo actually pull update data from update status API
+        $update = $this->t('Up to date');
+      }
+      $update_cell = [
+        '#type' => 'markup',
+        '#markup' => $update,
+      ];
 
       // If this project was not found in cache, it is not yet scanned, report that.
       if (empty($cache)) {
@@ -139,6 +155,7 @@ class ReportController extends ControllerBase {
             '#type' => 'markup',
             '#markup' => $this->t('Not scanned'),
           ],
+          'update' => $update_cell,
           'operations' => $this->projectCollector->getProjectOperations($name, $extension->getType()),
         ];
         $counters['not-scanned']++;
@@ -166,6 +183,7 @@ class ReportController extends ControllerBase {
             '#type' => 'markup',
             '#markup' => $this->t('No known errors'),
           ],
+          'update' => $update_cell,
           'operations' => $this->projectCollector->getProjectOperations($name, $extension->getType(), FALSE),
         ];
         $counters['no-known-error']++;
@@ -185,8 +203,18 @@ class ReportController extends ControllerBase {
           '#type' => 'markup',
           '#markup' => $this->formatPlural($project_error_count, '@count error', '@count errors'),
         ],
+        'update' => $update_cell,
         'operations' => $this->projectCollector->getProjectOperations($name, $extension->getType(), FALSE, TRUE),
       ];
+    }
+
+    if (!$isContrib) {
+      // If the list is not for contrib, remove the update placeholder.
+      foreach($build['data'] as $name => &$row) {
+        if (is_array($row)) {
+          unset($row['update']);
+        }
+      }
     }
 
     $summary = [];
