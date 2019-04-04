@@ -1,18 +1,32 @@
-<div>
-  <h2>Upgrade Status - Full export</h2>
-  <div>
-    <h3>Custom modules and themes</h3>
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Upgrade Status - Full report - {{ date }}</title>
+  <style>
+    th, td {
+      border-bottom: 1px solid #cdcdcd;
+      width: 47%;
+    }
+    th:nth-child(2), td:nth-child(2) {
+      width: 6%;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Full site upgrade status report - {{ date }}</h1>
+    <h2>Custom modules and themes</h2>
     {% for project in projects.custom %}
       <h3>{{ project.name }}</h3>
-      {{ project.data }}
-    {% endfor %}
-  </div>
+        {{ project.data }}
+      {% endfor %}
 
-  <div>
-    <h3>Contributed modules and themes</h3>
+    <h2>Contributed modules and themes</h2>
     {% for project in projects.contrib %}
       <h3>{{ project.name }}</h3>
       {{ project.data }}
-    {% endfor %}
-  </div>
-</div>
+      {% endfor %}
+</body>
+</html>

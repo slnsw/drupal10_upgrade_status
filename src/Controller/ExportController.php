@@ -83,6 +83,11 @@ class ExportController extends ControllerBase {
     );
   }
 
+  /**
+   * Generates full export of Upgrade Status report.
+   *
+   * @return HtmlResponse
+   */
   public function downloadFullExport() {
     $projects = $this->projectCollector->collectProjects();
 
@@ -90,10 +95,12 @@ class ExportController extends ControllerBase {
     $deprecation_list_controller = $this->classResolver->getInstanceFromDefinition(DeprecationListController::class);
 
     $content['#theme'] = 'full_export';
+    $time = $this->time->getCurrentTime();
+    $content['#date'] = $this->dateFormatter->format($time);
+
     foreach ($projects['custom'] as $project_machine_name => $project) {
       $content['#projects']['custom'][] = $deprecation_list_controller->content($project_machine_name);
     }
-
     foreach ($projects['contrib'] as $project_machine_name => $project) {
       $content['#projects']['contrib'][] = $deprecation_list_controller->content($project_machine_name);
     }
@@ -109,9 +116,6 @@ class ExportController extends ControllerBase {
     $bubbleable_metadata = $render_context->pop();
     $bubbleable_metadata->applyTo($content);
 
-
-
-    $time = $this->time->getCurrentTime();
     $formattedTime = $this->dateFormatter->format($time, 'html_datetime');
     $filename = 'full-export-' . $formattedTime . '.html';
 

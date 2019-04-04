@@ -27,6 +27,7 @@ function upgrade_status_theme($existing, $type, $theme, $path) {
     'full_export' => [
       'variables' => [
         'projects' => [],
+        'date' => '',
       ],
     ],
   ];
