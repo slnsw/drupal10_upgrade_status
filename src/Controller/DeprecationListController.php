@@ -124,10 +124,42 @@ class DeprecationListController extends ControllerBase {
         //   see https://www.php.net/manual/en/reflectionclass.getfilename.php
 
         // Link to documentation for a function in this specific Drupal version.
-        $api_version = preg_replace('!^(8\.\d+)\..+$!', '\1', \Drupal::VERSION);
-        $api_link = 'https://api.drupal.org/api/drupal/' . $api_version . '.x/search/';
-        $wrap_message = str_replace('\\', '&#8203;\\&#8203;', $error['message']);
-        $wrap_message = preg_replace('!deprecated function ([^(]+)\(\)!', 'deprecated function <a target="_blank" href="' . $api_link . '\1">\1()</a>', $wrap_message);
+        $api_version = preg_replace('!^(8\.\d+)\..+$!', '\1', \Drupal::VERSION) . '.x';
+        $api_link = 'https://api.drupal.org/api/drupal/' . $api_version . '/search/';
+        $formatted_error = preg_replace('!deprecated function ([^(]+)\(\)!', 'deprecated function <a target="_blank" href="' . $api_link . '\1">\1()</a>', $error['message']);
+
+        // Replace deprecated class links.
+        if (preg_match('!class (Drupal\\\\.+)\.!', $formatted_error, $found)) {
+          if (preg_match('!Drupal\\\\([a-z_0-9A-Z]+)\\\\(.+)$!', $found[1], $namespace)) {
+
+            $path_parts = explode('\\', $namespace[2]);
+            $class = array_pop($path_parts);
+            if (in_array($namespace[1], ['Component', 'Core'])) {
+              $class_file = 'core!lib!Drupal!' . $namespace[1];
+            }
+            elseif ($namespace[1] == 'Tests') {
+              $module = array_shift($path_parts);
+              $class_file = 'core!modules!' . $module . '!tests!src';
+            }
+            elseif (in_array($namespace[1], ['KernelTests', 'FunctionalTests', 'FunctionalJavascriptTests'])) {
+              $class_file = 'core!tests!Drupal!' . $namespace[1];
+            }
+            else {
+              $class_file = 'core!modules!' . $namespace[1] . '!src';
+            }
+
+            if (count($path_parts)) {
+              $class_file .= '!' . join('!', $path_parts);
+            }
+
+            $class_file .= '!' . $class . '.php';
+            $api_link = 'https://api.drupal.org/api/drupal/' . $class_file . '/class/' . $class . '/' . $api_version;
+            $formatted_error = str_replace($found[1], '<a href="' . $api_link . '">' . $found[1] . '</a>', $formatted_error);
+          }
+        }
+
+        // Allow error messages to wrap.
+        $formatted_error = str_replace('\\', '&#8203;\\&#8203;', $formatted_error);
 
         $table[] = [
           'filename' => [
@@ -140,7 +172,7 @@ class DeprecationListController extends ControllerBase {
           ],
           'issue' => [
             '#type' => 'markup',
-            '#markup' => $wrap_message,
+            '#markup' => $formatted_error,
           ],
         ];
       }
