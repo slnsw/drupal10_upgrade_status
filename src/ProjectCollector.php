@@ -153,7 +153,7 @@ class ProjectCollector implements ProjectCollectorInterface {
       '#links' => [
         'errors' => [
           'title' => $this->t('View errors'),
-          'url' => Url::fromRoute('upgrade_status.project', ['project_name' => $name]),
+          'url' => Url::fromRoute('upgrade_status.project', ['type' => $type, 'project_machine_name' => $name]),
           'attributes' => [
             'class' => ['use-ajax'],
             'data-dialog-type' => 'modal',
@@ -178,10 +178,10 @@ class ProjectCollector implements ProjectCollectorInterface {
       ]
     ];
 
-    if (!$unscanned) {
+    if ($errors) {
       $operations['#links']['export'] = [
         'title' => $this->t('Export'),
-        'url' => Url::fromRoute('upgrade_status.single_export', ['project_machine_name' => $name]),
+        'url' => Url::fromRoute('upgrade_status.single_export', ['type' => $type, 'project_machine_name' => $name]),
       ];
     }
 

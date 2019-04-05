@@ -16,18 +16,22 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class ExportController extends ControllerBase {
 
   /**
-   * Class Resolver service.
+   * The class resolver service.
    *
    * @var \Drupal\Core\DependencyInjection\ClassResolverInterface
    */
   protected $classResolver;
 
   /**
+   * The project collector service.
+   *
    * @var \Drupal\upgrade_status\ProjectCollectorInterface
    */
   protected $projectCollector;
 
   /**
+   * The renderer service.
+   *
    * @var \Drupal\Core\Render\RendererInterface
    */
   protected $renderer;
@@ -53,6 +57,22 @@ class ExportController extends ControllerBase {
    */
   protected $dateFormatter;
 
+  /**
+   * Constructs a \Drupal\upgrade_status\Controller\ExportController.
+   *
+   * @param \Drupal\Core\DependencyInjection\ClassResolverInterface $class_resolver
+   *   The class resolver service.
+   * @param \Drupal\upgrade_status\ProjectCollectorInterface $project_collector
+   *   The project collector service.
+   * @param \Drupal\Core\Render\RendererInterface $renderer
+   *   The renderer service.
+   * @param \Drupal\Core\Render\RenderCacheInterface $render_cache
+   *   The render cache service.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
+   *   The date formatter service.
+   */
   public function __construct(
     ClassResolverInterface $class_resolver,
     ProjectCollectorInterface $project_collector,
@@ -101,22 +121,36 @@ class ExportController extends ControllerBase {
     $content['#date'] = $this->dateFormatter->format($time);
 
     foreach ($projects['custom'] as $project_machine_name => $project) {
-      $content['#projects']['custom'][] = $deprecation_list_controller->content($project_machine_name);
+      $content['#projects']['custom'][] = $deprecation_list_controller->content($project->getType(), $project_machine_name);
     }
 
     foreach ($projects['contrib'] as $project_machine_name => $project) {
-      $content['#projects']['contrib'][] = $deprecation_list_controller->content($project_machine_name);
+      $content['#projects']['contrib'][] = $deprecation_list_controller->content($project->getType(), $project_machine_name);
     }
 
     return $this->createResponse($content, $filename);
   }
 
-  public function downloadSingleExport(string $project_machine_name) {
+  /**
+   * Generates single project export of Upgrade Status report.
+   *
+   * @param string $type
+   *   Type of the extension, it can be either 'module' or 'theme.
+   * @param string $project_machine_name
+   *   The machine name of the project.
+   *
+   * @return HtmlResponse
+   */
+  public function downloadSingleExport(string $type, string $project_machine_name) {
+    $extension = $this->projectCollector->loadProject($type, $project_machine_name);
+    $info = $extension->info;
+    $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
+
     $deprecation_list_controller = $this->classResolver->getInstanceFromDefinition(DeprecationListController::class);
 
     $content['#theme'] = 'single_export';
-    $content['#project'] = $deprecation_list_controller->content($project_machine_name);
-    $content['#project']['name'] = $project_machine_name;
+    $content['#project'] = $deprecation_list_controller->content($type, $project_machine_name);
+    $content['#project']['name'] = $label;
     $time = $this->time->getCurrentTime();
     $formattedTime = $this->dateFormatter->format($time, 'html_datetime');
     $content['#date'] = $this->dateFormatter->format($time);
@@ -125,6 +159,11 @@ class ExportController extends ControllerBase {
     return $this->createResponse($content, $filename);
   }
 
+  /**
+   * Wraps the report output in a response.
+   *
+   * @return HtmlResponse
+   */
   protected function createResponse(&$content, string $filename) {
     $render_context = new RenderContext();
     $this->renderer->executeInRenderContext($render_context, function () use (&$content) {

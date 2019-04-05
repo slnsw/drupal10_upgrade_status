@@ -4,6 +4,7 @@ namespace Drupal\upgrade_status\Controller;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\upgrade_status\ProjectCollectorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class DeprecationListController extends ControllerBase {
@@ -16,13 +17,23 @@ class DeprecationListController extends ControllerBase {
   protected $cache;
 
   /**
+   * The project collector service.
+   *
+   * @var \Drupal\upgrade_status\ProjectCollectorInterface
+   */
+  protected $projectCollector;
+
+  /**
    * Constructs a \Drupal\upgrade_status\Controller\DeprecationListController.
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.
+   * @param \Drupal\upgrade_status\ProjectCollectorInterface $project_collector
+   *   The project collector service.
    */
-  public function __construct(CacheBackendInterface $cache) {
+  public function __construct(CacheBackendInterface $cache, ProjectCollectorInterface $project_collector) {
     $this->cache = $cache;
+    $this->projectCollector = $project_collector;
   }
 
   /**
@@ -30,27 +41,32 @@ class DeprecationListController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('cache.upgrade_status')
+      $container->get('cache.upgrade_status'),
+      $container->get('upgrade_status.project_collector')
     );
   }
 
   /**
    * Builds content for the error list page/popup.
    *
-   * @param string $project_name
-   *   Name of the project to list errors for.
+   * @param string $type
+   *   Type of the extension, it can be either 'module' or 'theme.
+   * @param string $project_machine_name
+   *   The machine name of the project.
    *
    * @return array
    *   Build array.
    */
-  public function content(string $project_name) {
-    $cache = $this->cache->get($project_name);
+  public function content(string $type, string $project_machine_name) {
+    $cache = $this->cache->get($project_machine_name);
+    $extension = $this->projectCollector->loadProject($type, $project_machine_name);
+    $info = $extension->info;
+    $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
 
     // This project was not yet scanned or the scan results were removed.
     if (empty($cache)) {
       return [
-        // @todo print human readable name and version
-        '#title' => $project_name,
+        '#title' => $label,
         'data' => [
           '#type' => 'markup',
           '#markup' => $this->t('No deprecation scanning data available.'),
@@ -69,8 +85,7 @@ class DeprecationListController extends ControllerBase {
     // If this project had no known issues found, report that.
     if ($project_error_count === 0) {
       return [
-        // @todo print human readable name and version
-        '#title' => $project_name,
+        '#title' => $label,
         'data' => [
           '#type' => 'markup',
           '#markup' => $this->t('No known issues found.'),
@@ -131,10 +146,9 @@ class DeprecationListController extends ControllerBase {
       }
     }
 
-    // @todo print human readable name and version
     // @todo include action button to export once/if available
     return [
-      '#title' => $this->formatPlural($project_error_count, '@count known Drupal 9 error found in @project_name', '@count known Drupal 9 errors found in @project_name', ['@project_name' => $project_name]),
+      '#title' => $this->formatPlural($project_error_count, '@count known Drupal 9 error found in @project_name', '@count known Drupal 9 errors found in @project_name', ['@project_name' => $label]),
       'data' => $table,
     ];
   }

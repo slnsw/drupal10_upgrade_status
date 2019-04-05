@@ -7,7 +7,7 @@ upgrade_status.report:
     _permission: 'administer software updates'
 
 upgrade_status.project:
-  path: '/admin/reports/upgrade/project/{project_name}'
+  path: '/admin/reports/upgrade/project/{type}/{project_machine_name}'
   defaults:
     _controller: '\Drupal\upgrade_status\Controller\DeprecationListController::content'
     _title: 'Deprecation report'
@@ -42,7 +42,7 @@ upgrade_status.full_export:
     _permission: 'administer software updates'
 
 upgrade_status.single_export:
-  path: '/admin/reports/upgrade/export/{project_machine_name}'
+  path: '/admin/reports/upgrade/export/{type}/{project_machine_name}'
   defaults:
     _controller: '\Drupal\upgrade_status\Controller\ExportController::downloadSingleExport'
     _title: 'Upgrade status'
