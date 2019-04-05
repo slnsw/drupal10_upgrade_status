@@ -30,6 +30,12 @@ function upgrade_status_theme($existing, $type, $theme, $path) {
         'date' => '',
       ],
     ],
+    'single_export' => [
+      'variables' => [
+        'project' => [],
+        'date' => '',
+      ],
+    ],
   ];
 }
 

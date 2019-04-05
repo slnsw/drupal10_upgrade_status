@@ -96,15 +96,36 @@ class ExportController extends ControllerBase {
 
     $content['#theme'] = 'full_export';
     $time = $this->time->getCurrentTime();
+    $formattedTime = $this->dateFormatter->format($time, 'html_datetime');
+    $filename = 'full-export-' . $formattedTime . '.html';
     $content['#date'] = $this->dateFormatter->format($time);
 
     foreach ($projects['custom'] as $project_machine_name => $project) {
       $content['#projects']['custom'][] = $deprecation_list_controller->content($project_machine_name);
     }
+
     foreach ($projects['contrib'] as $project_machine_name => $project) {
       $content['#projects']['contrib'][] = $deprecation_list_controller->content($project_machine_name);
     }
 
+    return $this->createResponse($content, $filename);
+  }
+
+  public function downloadSingleExport(string $project_machine_name) {
+    $deprecation_list_controller = $this->classResolver->getInstanceFromDefinition(DeprecationListController::class);
+
+    $content['#theme'] = 'single_export';
+    $content['#project'] = $deprecation_list_controller->content($project_machine_name);
+    $content['#project']['name'] = $project_machine_name;
+    $time = $this->time->getCurrentTime();
+    $formattedTime = $this->dateFormatter->format($time, 'html_datetime');
+    $content['#date'] = $this->dateFormatter->format($time);
+    $filename = 'single-export-' . $project_machine_name . '-' .$formattedTime . '.html';
+
+    return $this->createResponse($content, $filename);
+  }
+
+  protected function createResponse(&$content, string $filename) {
     $render_context = new RenderContext();
     $this->renderer->executeInRenderContext($render_context, function () use (&$content) {
       // RendererInterface::render() renders the $html render array and updates
@@ -116,13 +137,9 @@ class ExportController extends ControllerBase {
     $bubbleable_metadata = $render_context->pop();
     $bubbleable_metadata->applyTo($content);
 
-    $formattedTime = $this->dateFormatter->format($time, 'html_datetime');
-    $filename = 'full-export-' . $formattedTime . '.html';
-
     $output = $this->renderCache->getCacheableRenderArray($content);
     $output['#cache']['tags'][] = 'rendered';
     $response = new HtmlResponse($output, 200);
-    //$response->headers->set('Content-Type', 'application/force-download;');
     $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
     return $response;

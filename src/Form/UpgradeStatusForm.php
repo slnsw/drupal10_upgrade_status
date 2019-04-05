@@ -240,7 +240,7 @@ class UpgradeStatusForm extends FormBase {
   }
 
   public function exportFullReport(array $form, FormStateInterface $form_state) {
-    $uri = Url::fromRoute('upgrade_status.export');
+    $uri = Url::fromRoute('upgrade_status.full_export');
     $form_state->setRedirectUrl($uri);
   }
 

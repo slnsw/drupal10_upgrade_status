@@ -1,0 +1,22 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Upgrade Status - Single report - {{ project.name }} - {{ date }}</title>
+  <style>
+    th, td {
+      border-bottom: 1px solid #cdcdcd;
+      width: 47%;
+    }
+    th:nth-child(2), td:nth-child(2) {
+      width: 6%;
+    }
+  </style>
+</head>
+
+<body>
+<h1>Upgrade status report for {{ project.name }} project - {{ date }}</h1>
+{{ project.data }}
+</body>
+</html>

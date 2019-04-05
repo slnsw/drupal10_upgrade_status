@@ -33,10 +33,18 @@ upgrade_status.add_project:
   requirements:
     _permission: 'administer software updates'
 
-upgrade_status.export:
-  path: '/admin/reports/upgrade/full-export'
+upgrade_status.full_export:
+  path: '/admin/reports/upgrade/export'
   defaults:
     _controller: '\Drupal\upgrade_status\Controller\ExportController::downloadFullExport'
+    _title: 'Upgrade status'
+  requirements:
+    _permission: 'administer software updates'
+
+upgrade_status.single_export:
+  path: '/admin/reports/upgrade/export/{project_machine_name}'
+  defaults:
+    _controller: '\Drupal\upgrade_status\Controller\ExportController::downloadSingleExport'
     _title: 'Upgrade status'
   requirements:
     _permission: 'administer software updates'

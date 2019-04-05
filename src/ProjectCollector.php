@@ -177,6 +177,14 @@ class ProjectCollector implements ProjectCollectorInterface {
         ],
       ]
     ];
+
+    if (!$unscanned) {
+      $operations['#links']['export'] = [
+        'title' => $this->t('Export'),
+        'url' => Url::fromRoute('upgrade_status.single_export', ['project_machine_name' => $name]),
+      ];
+    }
+
     if (!$errors) {
       unset($operations['#links']['errors']);
     }
