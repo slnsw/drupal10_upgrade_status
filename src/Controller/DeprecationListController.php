@@ -154,7 +154,7 @@ class DeprecationListController extends ControllerBase {
 
             $class_file .= '!' . $class . '.php';
             $api_link = 'https://api.drupal.org/api/drupal/' . $class_file . '/class/' . $class . '/' . $api_version;
-            $formatted_error = str_replace($found[1], '<a href="' . $api_link . '">' . $found[1] . '</a>', $formatted_error);
+            $formatted_error = str_replace($found[1], '<a target="_blank" href="' . $api_link . '">' . $found[1] . '</a>', $formatted_error);
           }
         }
 
