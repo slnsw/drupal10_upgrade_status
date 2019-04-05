@@ -4,6 +4,10 @@ namespace Drupal\upgrade_status\Controller;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
+use Drupal\Core\Url;
+use Drupal\update\UpdateManager;
+use Drupal\update\UpdateProcessor;
 use Drupal\upgrade_status\Form\UpgradeStatusForm;
 use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -25,6 +29,27 @@ class ReportController extends ControllerBase {
   protected $cache;
 
   /**
+   * Available releases store.
+   *
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface|mixed
+   */
+  protected $releaseStore;
+
+  /**
+   * Update Processor Service.
+   *
+   * @var \Drupal\update\UpdateProcessor
+   */
+  protected $updateProcessor;
+
+  /**
+   * The update manager service.
+   *
+   * @var \Drupal\update\UpdateManager
+   */
+  protected $updateManager;
+
+  /**
    * Constructs a \Drupal\upgrade_status\Controller\UpdateStatusReportController.
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
@@ -34,10 +59,16 @@ class ReportController extends ControllerBase {
    */
   public function __construct(
     ProjectCollector $projectCollector,
-    CacheBackendInterface $cache
+    CacheBackendInterface $cache,
+    KeyValueExpirableFactory $key_value_expirable,
+    UpdateProcessor $update_processor,
+    UpdateManager $update_manager
   ) {
     $this->projectCollector = $projectCollector;
     $this->cache = $cache;
+    $this->releaseStore = $key_value_expirable->get('update_available_releases');
+    $this->updateProcessor = $update_processor;
+    $this->updateManager = $update_manager;
   }
 
   /**
@@ -46,7 +77,10 @@ class ReportController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('upgrade_status.project_collector'),
-      $container->get('cache.upgrade_status')
+      $container->get('cache.upgrade_status'),
+      $container->get('keyvalue.expirable'),
+      $container->get('update.processor'),
+      $container->get('update.manager')
     );
   }
 
@@ -131,17 +165,35 @@ class ReportController extends ControllerBase {
       $info = $extension->info;
       $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
 
-      if (!$isContrib) {
-        $update = '';
-      }
-      else {
-        // @todo actually pull update data from update status API
-        $update = $this->t('Up to date');
-      }
       $update_cell = [
         '#type' => 'markup',
-        '#markup' => $update,
+        '#markup' => $this->t('Up to date'),
       ];
+
+      if ($isContrib) {
+        $projectUpdateData = $this->releaseStore->get($name);
+
+        if (is_null($projectUpdateData['releases'])) {
+          $this->updateManager->refreshUpdateData();
+          $projectInfos = $this->updateManager->getProjects();
+          $this->updateProcessor->createFetchTask($projectInfos[$name]);
+          $this->updateProcessor->processFetchTask($projectInfos[$name]);
+
+          $projectUpdateData = $this->releaseStore->get($name);
+        }
+
+        $latestRelease = reset($projectUpdateData['releases']);
+        $latestVersion = $latestRelease['version'];
+
+        if ($info['version'] !== $latestVersion) {
+          $link = $projectUpdateData['link'] . '/releases';
+          $update_cell = [
+            '#type' => 'link',
+            '#title' => $info['version'],
+            '#url' => Url::fromUri($link),
+          ];
+        }
+      }
 
       // If this project was not found in cache, it is not yet scanned, report that.
       if (empty($cache)) {

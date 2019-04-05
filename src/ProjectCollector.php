@@ -193,6 +193,7 @@ class ProjectCollector implements ProjectCollectorInterface {
     if (!$errors) {
       unset($operations['#links']['errors']);
     }
+
     return $operations;
   }
 
