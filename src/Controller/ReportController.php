@@ -167,13 +167,14 @@ class ReportController extends ControllerBase {
 
       $update_cell = [
         '#type' => 'markup',
-        '#markup' => $this->t('Up to date'),
+        '#markup' => $isContrib ? $this->t('Up to date') : '',
       ];
 
       if ($isContrib) {
         $projectUpdateData = $this->releaseStore->get($name);
 
         if (is_null($projectUpdateData['releases'])) {
+          // @todo is this not too expensive to run here?
           $this->updateManager->refreshUpdateData();
           $projectInfos = $this->updateManager->getProjects();
           $this->updateProcessor->createFetchTask($projectInfos[$name]);
@@ -186,7 +187,7 @@ class ReportController extends ControllerBase {
         $latestVersion = $latestRelease['version'];
 
         if ($info['version'] !== $latestVersion) {
-          $link = $projectUpdateData['link'] . '/releases';
+          $link = $projectUpdateData['link'] . '/releases/' . $info['version'];
           $update_cell = [
             '#type' => 'link',
             '#title' => $info['version'],
