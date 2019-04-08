@@ -75,16 +75,20 @@ class CancelScanForm extends FormBase {
    * @return array
    *   The form structure.
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state, $options = NULL) {
     $form['upgrade_status_cancel_form']['description'] = [
       '#type' => 'fieldgroup',
       'description_text' => [
         '#type' => 'markup',
         '#markup' => t('This action will cancel the scan and clear the current data. Are you sure you want to cancel this scan?'),
       ],
-   ];
+    ];
 
-    $form['upgrade_status_cancel_form']['action']['submit'] = [
+    $form['upgrade_status_cancel_form']['actions'] = [
+      '#type' => 'actions'
+    ];
+
+    $form['upgrade_status_cancel_form']['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Cancel scan'),
       '#weight' => 10,
@@ -105,5 +109,8 @@ class CancelScanForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->queue->deleteQueue();
-    $this->state->delete('upgrade_status.number_of_jobs');  }
+    $this->state->delete('upgrade_status.number_of_jobs');
+
+    $form_state->setRedirect('upgrade_status.report');
+  }
 }

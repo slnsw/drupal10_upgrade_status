@@ -48,3 +48,13 @@ upgrade_status.single_export:
     _title: 'Upgrade status'
   requirements:
     _permission: 'administer software updates'
+
+upgrade_status.cancel_form_controller:
+  path: '/admin/reports/upgrade_status/modal_form'
+  defaults:
+    _title: 'Cancel scan?'
+    _controller: '\Drupal\upgrade_status\Controller\CancelFormController::content'
+  requirements:
+    _permission: 'administer software updates'
+  options:
+    _admin_route: TRUE

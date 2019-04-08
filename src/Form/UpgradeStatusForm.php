@@ -2,8 +2,6 @@
 
 namespace Drupal\upgrade_status\Form;
 
-use Drupal\Core\Ajax\AjaxResponse;
-use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormBase;
@@ -168,15 +166,23 @@ class UpgradeStatusForm extends FormBase {
         '#name' => 'export',
         '#submit' => [[$this, 'exportFullReport']],
       ];
+      // @todo: this shouldn't be a link.
       $form['drupal_upgrade_status_form']['action']['cancel'] = [
-        '#type' => 'button',
-        '#value' => $this->t('Cancel'),
+        '#type' => 'link',
+        '#title' => $this->t('Cancel'),
         '#weight' => 10,
         '#name' => 'cancel',
-        '#ajax' => [
-          'callback' => '::loadCancelForm',
+        '#url' => Url::fromRoute('upgrade_status.cancel_form_controller'),
+        '#attributes' => [
+          'class' => [
+            'use-ajax',
+            'button',
+          ],
         ],
       ];
+
+      $form['drupal_upgrade_status_form']['#attached']['library'][] = 'core/drupal.dialog.ajax';
+
       return $form;
     }
 
@@ -211,32 +217,6 @@ class UpgradeStatusForm extends FormBase {
 
   protected function processNextJobUrl() {
     return Url::fromRoute('upgrade_status.run_job')->toString(TRUE)->getGeneratedUrl();
-  }
-
-  public function loadCancelForm() {
-    $response = new AjaxResponse();
-
-    $modal_form = $this
-      ->formBuilder
-      ->getForm(CancelScanForm::class);
-
-    $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
-    $response->setAttachments($form['#attached']);
-
-    $options = [
-      'width' => 1024,
-      'height' => 568,
-    ];
-
-    $title = t('Cancel Scan?');
-
-    $response->addCommand(new OpenModalDialogCommand($title, $modal_form, $options));
-    return $response;
-  }
-
-  public function cancelScan() {
-    $this->queue->deleteQueue();
-    $this->state->delete('upgrade_status.number_of_jobs');
   }
 
   public function exportFullReport(array $form, FormStateInterface $form_state) {
