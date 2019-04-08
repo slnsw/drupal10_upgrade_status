@@ -7,6 +7,7 @@ use Drupal\Core\Extension\Extension;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Exception;
+use Nette\Neon\Neon;
 use PHPStan\Command\AnalyseApplication;
 use PHPStan\Command\CommandHelper;
 use Symfony\Component\Console\Input\StringInput;
@@ -59,6 +60,11 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $phpstanNeonPath;
 
   /**
+   * @var string
+   */
+  protected $upgradeStatusTemporaryDirectory;
+
+  /**
    * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
@@ -84,9 +90,10 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
 
     $this->populateAutoLoader();
 
-    // Set the PHPStan configuration neon file path.
-    $module_path = drupal_get_path('module', 'upgrade_status');
-    $this->phpstanNeonPath = DRUPAL_ROOT . "/$module_path/deprecation_testing.neon";
+    $this->upgradeStatusTemporaryDirectory = file_directory_temp() . '/upgrade_status';
+    // @todo: check if temporary directory // modified neon file exists
+    $this->prepareTempDirectory();
+    $this->createModifiedNeonFile();
   }
 
   /**
@@ -149,6 +156,54 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       // Store the analysis results in our cache bin.
       $this->cache->set($extension->getName(), $this->outputInterface->fetch());
     }
+  }
+
+  /**
+   * Prepare fundamental directories for upgrade_status.
+   *
+   * The created directories in Drupal's temporary directory is needed to
+   * dynamically set temporary directory for PHPStan in the neon file
+   * provided by upgrade_status.
+   * The temporary directory used by PHPStan cache.
+   *
+   * @return bool
+   *   True if the temporary directory is created, false if not.
+   */
+  protected function prepareTempDirectory() {
+    $success = file_prepare_directory($this->upgradeStatusTemporaryDirectory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+
+    if(!$success) {
+      $this->logger->error($this->t("Couldn't write temporary directory for Upgrade Status: @directory", ['@directory' => $this->upgradeStatusTemporaryDirectory]));
+      return $success;
+    }
+
+    $phpstan_cache_directory = $this->upgradeStatusTemporaryDirectory . '/phpstan';
+    $success = file_prepare_directory($phpstan_cache_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+
+    if(!$success) {
+      $this->logger->error($this->t("Couldn't write temporary directory for PHPStan: @directory", ['@directory' => $phpstan_cache_directory]));
+    }
+
+    return $success;
+  }
+
+  /**
+   * Creates the final config file in the temporary directory.
+   *
+   * @return bool
+   */
+  protected function createModifiedNeonFile() {
+    $module_path = drupal_get_path('module', 'upgrade_status');
+    $unmodified_neon_file = DRUPAL_ROOT . "/$module_path/deprecation_testing.neon";
+    $config = file_get_contents($unmodified_neon_file);
+    $neon = Neon::decode($config);
+    $neon['parameters']['tmpDir'] = $this->upgradeStatusTemporaryDirectory . '/phpstan';
+
+    // Set the PHPStan configuration neon file path.    $this->phpstanNeonPath = file_directory_temp() . '/deprecation_testing.neon';
+    $this->phpstanNeonPath = $this->upgradeStatusTemporaryDirectory . '/deprecation_testing.neon';
+    $success = file_put_contents($this->phpstanNeonPath, Neon::encode($neon), Neon::BLOCK);
+
+    return $success ? TRUE : FALSE;
   }
 
 }
