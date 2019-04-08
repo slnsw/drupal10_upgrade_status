@@ -36,20 +36,6 @@ class ReportController extends ControllerBase {
   protected $releaseStore;
 
   /**
-   * Update Processor Service.
-   *
-   * @var \Drupal\update\UpdateProcessor
-   */
-  protected $updateProcessor;
-
-  /**
-   * The update manager service.
-   *
-   * @var \Drupal\update\UpdateManager
-   */
-  protected $updateManager;
-
-  /**
    * Constructs a \Drupal\upgrade_status\Controller\UpdateStatusReportController.
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
@@ -60,15 +46,11 @@ class ReportController extends ControllerBase {
   public function __construct(
     ProjectCollector $projectCollector,
     CacheBackendInterface $cache,
-    KeyValueExpirableFactory $key_value_expirable,
-    UpdateProcessor $update_processor,
-    UpdateManager $update_manager
+    KeyValueExpirableFactory $key_value_expirable
   ) {
     $this->projectCollector = $projectCollector;
     $this->cache = $cache;
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
-    $this->updateProcessor = $update_processor;
-    $this->updateManager = $update_manager;
   }
 
   /**
@@ -78,9 +60,7 @@ class ReportController extends ControllerBase {
     return new static(
       $container->get('upgrade_status.project_collector'),
       $container->get('cache.upgrade_status'),
-      $container->get('keyvalue.expirable'),
-      $container->get('update.processor'),
-      $container->get('update.manager')
+      $container->get('keyvalue.expirable')
     );
   }
 
@@ -173,26 +153,25 @@ class ReportController extends ControllerBase {
       if ($isContrib) {
         $projectUpdateData = $this->releaseStore->get($name);
 
+        // @todo: trigger update information fetch.
         if (is_null($projectUpdateData['releases'])) {
-          // @todo is this not too expensive to run here?
-          $this->updateManager->refreshUpdateData();
-          $projectInfos = $this->updateManager->getProjects();
-          $this->updateProcessor->createFetchTask($projectInfos[$name]);
-          $this->updateProcessor->processFetchTask($projectInfos[$name]);
-
-          $projectUpdateData = $this->releaseStore->get($name);
-        }
-
-        $latestRelease = reset($projectUpdateData['releases']);
-        $latestVersion = $latestRelease['version'];
-
-        if ($info['version'] !== $latestVersion) {
-          $link = $projectUpdateData['link'] . '/releases/' . $info['version'];
           $update_cell = [
-            '#type' => 'link',
-            '#title' => $info['version'],
-            '#url' => Url::fromUri($link),
+            '#type' => 'markup',
+            '#markup' => $this->t('Release information can not be found.'),
           ];
+        }
+        else {
+          $latestRelease = reset($projectUpdateData['releases']);
+          $latestVersion = $latestRelease['version'];
+
+          if ($info['version'] !== $latestVersion) {
+            $link = $projectUpdateData['link'] . '/releases/' . $info['version'];
+            $update_cell = [
+              '#type' => 'link',
+              '#title' => $info['version'],
+              '#url' => Url::fromUri($link),
+            ];
+          }
         }
       }
 

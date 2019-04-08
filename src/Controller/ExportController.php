@@ -6,12 +6,11 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
-use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Render\RenderCacheInterface;
-use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\upgrade_status\ProjectCollectorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 class ExportController extends ControllerBase {
 
@@ -162,23 +161,10 @@ class ExportController extends ControllerBase {
   /**
    * Wraps the report output in a response.
    *
-   * @return HtmlResponse
+   * @return \Symfony\Component\HttpFoundation\Response
    */
   protected function createResponse(&$content, string $filename) {
-    $render_context = new RenderContext();
-    $this->renderer->executeInRenderContext($render_context, function () use (&$content) {
-      // RendererInterface::render() renders the $html render array and updates
-      // it in place. We don't care about the return value (which is just
-      // $html['#markup']), but about the resulting render array.
-      // @todo Simplify this when https://www.drupal.org/node/2495001 lands.
-      $this->renderer->render($content);
-    });
-    $bubbleable_metadata = $render_context->pop();
-    $bubbleable_metadata->applyTo($content);
-
-    $output = $this->renderCache->getCacheableRenderArray($content);
-    $output['#cache']['tags'][] = 'rendered';
-    $response = new HtmlResponse($output, 200);
+    $response = new Response($this->renderer->renderRoot($content));
     $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
     return $response;
