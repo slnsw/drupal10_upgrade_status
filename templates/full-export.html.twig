@@ -5,12 +5,29 @@
   <meta charset="utf-8">
   <title>Full site upgrade status report - {{ date }}</title>
   <style>
+    body {
+      font-family: Helvetia, Arial, sans-serif;
+    }
     th, td {
       border-bottom: 1px solid #cdcdcd;
       width: 47%;
+      padding: 0.3em;
     }
     th:nth-child(2), td:nth-child(2) {
       width: 6%;
+    }
+    th {
+      padding: 1em 0.3em;
+      text-align: left;
+      border-bottom: 3px solid #cdcdcd;
+    }
+    h2 {
+      border-bottom: 3px solid #cdcdcd;
+      padding: 0.4em 0;
+      text-transform: uppercase;
+    }
+    .error-description {
+      margin-bottom: 1em;
     }
   </style>
 </head>
@@ -20,12 +37,14 @@
     <h2>Custom modules and themes</h2>
     {% for project in projects.custom %}
       <h3>{{ project.name }}</h3>
-        {{ project.data }}
+      {{ project.description }}
+      {{ project.data }}
       {% endfor %}
 
     <h2>Contributed modules and themes</h2>
     {% for project in projects.contrib %}
       <h3>{{ project.name }}</h3>
+      {{ project.description }}
       {{ project.data }}
       {% endfor %}
 </body>

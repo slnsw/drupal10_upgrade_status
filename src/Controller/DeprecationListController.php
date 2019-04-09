@@ -180,7 +180,11 @@ class DeprecationListController extends ControllerBase {
 
     // @todo include action button to export once/if available
     return [
-      '#title' => $this->formatPlural($project_error_count, '@count known Drupal 9 error found in @project_name', '@count known Drupal 9 errors found in @project_name', ['@project_name' => $label]),
+      '#title' => $label,
+      'description' => [
+        '#type' => '#markup',
+        '#markup' => '<div class="error-description">' . $this->formatPlural($project_error_count, '@count known Drupal 9 error.', '@count known Drupal 9 errors found.') . '</div>',
+        ],
       'data' => $table,
     ];
   }
