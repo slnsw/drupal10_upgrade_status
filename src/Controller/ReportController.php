@@ -165,10 +165,10 @@ class ReportController extends ControllerBase {
           $latestVersion = $latestRelease['version'];
 
           if ($info['version'] !== $latestVersion) {
-            $link = $projectUpdateData['link'] . '/releases/' . $info['version'];
+            $link = $projectUpdateData['link'] . '/releases/' . $latestVersion;
             $update_cell = [
               '#type' => 'link',
-              '#title' => $info['version'],
+              '#title' => $latestVersion,
               '#url' => Url::fromUri($link),
             ];
           }
