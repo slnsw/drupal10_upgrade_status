@@ -113,6 +113,57 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       $GLOBALS['autoloaderInWorkingDirectory'] = DRUPAL_ROOT . '/autoload.php';
     }
 
+    $projectDir = DRUPAL_ROOT . '/' . $extension->subpath;
+    $paths = $this->getDirContents($projectDir);
+    foreach ($paths as $key => $filePath) {
+      if(substr($filePath, -3) !== 'php'
+        && substr($filePath, -7) !== '.module'
+        && substr($filePath, -8) !== '.install') {
+        unset($paths[$key]);
+      }
+    }
+
+    $finalResult = [
+      'totals' => [
+        'errors' => 0,
+        'file_errors' => 0,
+      ],
+      'files' => [],
+    ];
+    // @todo: refactor and validate.
+    for ($fileCount = 10, $fileChecked = 0; $fileChecked <= count($paths); $fileChecked += $fileCount) {
+      $filesToCheck = array_slice($paths, $fileChecked, $fileCount);
+      $resultString = $this->checkDeprecationErrorMessages($filesToCheck);
+      $resultArray = json_decode($resultString, TRUE);
+      if (!is_array($resultArray)) {
+        continue;
+      }
+      $finalResult['totals']['errors'] += $resultArray['totals']['errors'];
+      $finalResult['totals']['file_errors'] += $resultArray['totals']['file_errors'];
+      $finalResult['files'] = array_merge($finalResult['files'], $resultArray['files']);
+    }
+
+    // Store the analysis results in our cache bin.
+    $this->cache->set($extension->getName(), json_encode($finalResult));
+  }
+
+  function getDirContents($dir, &$results = []){
+    $files = scandir($dir);
+
+    foreach($files as $key => $value){
+      $path = realpath($dir . '/' . $value);
+      if(!is_dir($path)) {
+        $results[] = $path;
+      } else if($value != '.' && $value != '..') {
+        $this->getDirContents($path, $results);
+        $results[] = $path;
+      }
+    }
+
+    return $results;
+  }
+
+  function checkDeprecationErrorMessages(array $paths) {
     // Analyse code in the given directory with PHPStan. The most sensible way
     // we could find was to pretend we have Symfony console inputs and outputs
     // and take the result from there. PHPStan as-is is highly tied to the
@@ -121,7 +172,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       $result = CommandHelper::begin(
         $this->inputInterface,
         $this->outputInterface,
-        [$extension->subpath],
+        $paths,
         NULL,
         NULL,
         NULL,
@@ -153,8 +204,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
         )
       );
 
-      // Store the analysis results in our cache bin.
-      $this->cache->set($extension->getName(), $this->outputInterface->fetch());
+      return $this->outputInterface->fetch();
     }
   }
 
