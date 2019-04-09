@@ -249,7 +249,8 @@ class ReportController extends ControllerBase {
       }
     }
 
-    $summary = [];
+    // @todo Make the display better and more visual.
+    /* $summary = [];
     if ($counters['known-errors'] > 0) {
       $summary[] = $this->formatPlural($counters['known-errors'], '@count total error found', '@count total errors found');
     }
@@ -263,7 +264,7 @@ class ReportController extends ControllerBase {
       '#type' => 'markup',
       '#markup' => '<div class="report-counters">' . join(', ', $summary) . '.</div>',
       '#weight' => -10,
-    ];
+    ];*/
 
     return $build;
   }

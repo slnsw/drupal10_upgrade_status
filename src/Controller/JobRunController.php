@@ -170,7 +170,7 @@ class JobRunController extends ControllerBase {
 
         return new JsonResponse([
           'status' => TRUE,
-          'percentage' => $percent,
+          'percentage' => floor($percent),
           'message' => $message,
           'label' => $label,
           'result' => $updates,
