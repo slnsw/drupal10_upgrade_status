@@ -199,7 +199,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $neon = Neon::decode($config);
     $neon['parameters']['tmpDir'] = $this->upgradeStatusTemporaryDirectory . '/phpstan';
 
-    // Set the PHPStan configuration neon file path.    $this->phpstanNeonPath = file_directory_temp() . '/deprecation_testing.neon';
+    // Set the PHPStan configuration neon file path.
     $this->phpstanNeonPath = $this->upgradeStatusTemporaryDirectory . '/deprecation_testing.neon';
     $success = file_put_contents($this->phpstanNeonPath, Neon::encode($neon), Neon::BLOCK);
 
