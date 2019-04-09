@@ -108,7 +108,7 @@
           $('table tr' + progress.result[0] + ' td:nth-child(2)')
             .replaceWith('<td>' + progress.result[2] + '</td>');
           var newNodes = $('<td>' + progress.result[3]+ '</td>');
-          $('table tr' + progress.result[0] + ' td:nth-child(4)')
+          $('table tr' + progress.result[0] + ' td:last-child')
               .replaceWith(newNodes);
 
           // @todo Passed document as core active links JS seems to break on
