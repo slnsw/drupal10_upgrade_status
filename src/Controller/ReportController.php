@@ -157,7 +157,7 @@ class ReportController extends ControllerBase {
         if (is_null($projectUpdateData['releases'])) {
           $update_cell = [
             '#type' => 'markup',
-            '#markup' => $this->t('Release information can not be found.'),
+            '#markup' => $this->t('N/A'),
           ];
         }
         else {
