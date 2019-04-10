@@ -153,7 +153,7 @@ class ExportController extends ControllerBase {
     $time = $this->time->getCurrentTime();
     $formattedTime = $this->dateFormatter->format($time, 'html_datetime');
     $content['#date'] = $this->dateFormatter->format($time);
-    $filename = 'single-export-' . $project_machine_name . '-' .$formattedTime . '.html';
+    $filename = 'single-export-' . $project_machine_name . '-' . $formattedTime . '.html';
 
     return $this->createResponse($content, $filename);
   }

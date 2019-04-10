@@ -90,7 +90,7 @@ class JobRunController extends ControllerBase {
    *   The state service.
    * @param \Drupal\upgrade_status\ProjectCollectorInterface $projectCollector
    *   The project collector service.
-   * @param \Drupal\Core\Datetime\DateFormatterInterface
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.
@@ -151,11 +151,21 @@ class JobRunController extends ControllerBase {
           $report = json_decode($result->data, TRUE);
           if (!empty($report['totals']['file_errors'])) {
             $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType(), FALSE, TRUE);
-            $updates = [$selector, 'known-errors', $this->formatPlural($report['totals']['file_errors'], '@count error', '@count errors')];
+            $updates = [
+              $selector,
+              'known-errors',
+              $this->formatPlural(
+                $report['totals']['file_errors'], '@count error', '@count errors'
+              ),
+            ];
           }
           else {
             $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType(), FALSE);
-            $updates = [$selector, 'no-known-error', $this->t('No known errors')];
+            $updates = [
+              $selector,
+              'no-known-error',
+              $this->t('No known errors'),
+            ];
           }
         }
         $updates[] = $this->renderer->render($operations);

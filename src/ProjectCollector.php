@@ -180,7 +180,7 @@ class ProjectCollector implements ProjectCollectorInterface {
             ]),
           ],
         ],
-      ]
+      ],
     ];
 
     if ($errors) {

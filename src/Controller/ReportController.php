@@ -6,8 +6,6 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
 use Drupal\Core\Url;
-use Drupal\update\UpdateManager;
-use Drupal\update\UpdateProcessor;
 use Drupal\upgrade_status\Form\UpgradeStatusForm;
 use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -42,6 +40,7 @@ class ReportController extends ControllerBase {
    *   The project collector service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.
+   * @param \Drupal\Core\KeyValueStore\KeyValueExpirableFactory $key_value_expirable
    */
   public function __construct(
     ProjectCollector $projectCollector,
@@ -242,7 +241,7 @@ class ReportController extends ControllerBase {
 
     if (!$isContrib) {
       // If the list is not for contrib, remove the update placeholder.
-      foreach($build['data'] as $name => &$row) {
+      foreach ($build['data'] as $name => &$row) {
         if (is_array($row)) {
           unset($row['update']);
         }

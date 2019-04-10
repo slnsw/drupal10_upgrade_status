@@ -37,10 +37,8 @@ class CancelScanForm extends FormBase {
   /**
    * Constructs a Drupal\upgrade_status\Form\UpgradeStatusForm.
    *
-   * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
    * @param \Drupal\Core\Queue\QueueFactory $queue
    * @param \Drupal\Core\State\StateInterface $state
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    */
   public function __construct(
     QueueFactory $queue,
@@ -51,41 +49,26 @@ class CancelScanForm extends FormBase {
   }
 
   /**
-   * Returns a unique string identifying the form.
-   *
-   * The returned ID should be a unique string that can be a valid PHP function
-   * name, since it's used in hook implementation names such as
-   * hook_form_FORM_ID_alter().
-   *
-   * @return string
-   *   The unique string identifying the form.
+   * {@inheritdoc}
    */
   public function getFormId() {
     return 'upgrade_status_cancel_form';
   }
 
   /**
-   * Form constructor.
-   *
-   * @param array $form
-   *   An associative array containing the structure of the form.
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   The current state of the form.
-   *
-   * @return array
-   *   The form structure.
+   * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, $options = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state) {
     $form['upgrade_status_cancel_form']['description'] = [
       '#type' => 'fieldgroup',
       'description_text' => [
         '#type' => 'markup',
-        '#markup' => t('This action will cancel the scan and clear the current data. Are you sure you want to cancel this scan?'),
+        '#markup' => $this->t('This action will cancel the scan and clear the current data. Are you sure you want to cancel this scan?'),
       ],
     ];
 
     $form['upgrade_status_cancel_form']['actions'] = [
-      '#type' => 'actions'
+      '#type' => 'actions',
     ];
 
     $form['upgrade_status_cancel_form']['actions']['submit'] = [
@@ -113,4 +96,5 @@ class CancelScanForm extends FormBase {
 
     $form_state->setRedirect('upgrade_status.report');
   }
+
 }

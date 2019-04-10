@@ -77,14 +77,14 @@ class UpgradeStatusForm extends FormBase {
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
    *   The project collector service.
    * @param \Drupal\Core\Queue\QueueFactory $queue
-   *   The queue service
+   *   The queue service.
    * @param \Drupal\Core\State\StateInterface $state
-   *   The state service
+   *   The state service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.
-   * @param \Drupal\Core\Form\FormBuilder
+   * @param \Drupal\Core\Form\FormBuilder $formBuilder
    *   The form builder service.
-   * @param \Drupal\Core\Datetime\DateFormatterInterface
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter service.
    */
   public function __construct(
@@ -135,7 +135,13 @@ class UpgradeStatusForm extends FormBase {
         '#percent' => $percent,
         '#status' => TRUE,
         '#label' => $this->t('Scanning projects...'),
-        '#message' => ['#markup' => $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $job_count])],
+        '#message' => [
+          '#markup' => $this->t('Completed @completed_jobs of @job_count.',
+            [
+              '@completed_jobs' => $completed_jobs,
+              '@job_count' => $job_count,
+            ]),
+        ],
         '#weight' => 0,
         // @todo This progress bar requires JavaScript, document it.
         '#attached' => [
@@ -238,7 +244,7 @@ class UpgradeStatusForm extends FormBase {
     if ($button['#name'] == 'cancel') {
       // Cancel all queued items and delete the queue state metadata.
       $this->queue->deleteQueue();
-      \Drupal::state()->delete('upgrade_status.number_of_jobs');
+      $this->state->delete('upgrade_status.number_of_jobs');
     }
     else {
       // Clear the queue and the stored data to run a new queue.
