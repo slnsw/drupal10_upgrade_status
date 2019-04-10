@@ -239,29 +239,20 @@ class UpgradeStatusForm extends FormBase {
    *   The current state of the form.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $button = $form_state->getTriggeringElement();
+    // Clear the queue and the stored data to run a new queue.
+    $this->clearData();
 
-    if ($button['#name'] == 'cancel') {
-      // Cancel all queued items and delete the queue state metadata.
-      $this->queue->deleteQueue();
-      $this->state->delete('upgrade_status.number_of_jobs');
+    // Queue each project for deprecation scanning.
+    $projects = $this->projectCollector->collectProjects();
+    foreach ($projects['custom'] as $projectData) {
+      $this->queue->createItem($projectData);
     }
-    else {
-      // Clear the queue and the stored data to run a new queue.
-      $this->clearData();
-
-      // Queue each project for deprecation scanning.
-      $projects = $this->projectCollector->collectProjects();
-      foreach ($projects['custom'] as $projectData) {
-        $this->queue->createItem($projectData);
-      }
-      foreach ($projects['contrib'] as $projectData) {
-        $this->queue->createItem($projectData);
-      }
-
-      $job_count = $this->queue->numberOfItems();
-      $this->state->set('upgrade_status.number_of_jobs', $job_count);
+    foreach ($projects['contrib'] as $projectData) {
+      $this->queue->createItem($projectData);
     }
+
+    $job_count = $this->queue->numberOfItems();
+    $this->state->set('upgrade_status.number_of_jobs', $job_count);
   }
 
   /**
