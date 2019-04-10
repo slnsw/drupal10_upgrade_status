@@ -201,6 +201,7 @@ class DeprecationListController extends ControllerBase {
         '#attributes' => [
           'class' => [
             'button',
+            'button--primary',
           ],
         ],
       ],
