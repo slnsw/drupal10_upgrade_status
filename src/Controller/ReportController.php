@@ -6,8 +6,6 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
 use Drupal\Core\Url;
-use Drupal\update\UpdateManager;
-use Drupal\update\UpdateProcessor;
 use Drupal\upgrade_status\Form\UpgradeStatusForm;
 use Drupal\upgrade_status\ProjectCollector;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -42,6 +40,7 @@ class ReportController extends ControllerBase {
    *   The project collector service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.
+   * @param \Drupal\Core\KeyValueStore\KeyValueExpirableFactory $key_value_expirable
    */
   public function __construct(
     ProjectCollector $projectCollector,
@@ -157,7 +156,7 @@ class ReportController extends ControllerBase {
         if (is_null($projectUpdateData['releases'])) {
           $update_cell = [
             '#type' => 'markup',
-            '#markup' => $this->t('Release information can not be found.'),
+            '#markup' => $this->t('N/A'),
           ];
         }
         else {
@@ -165,10 +164,10 @@ class ReportController extends ControllerBase {
           $latestVersion = $latestRelease['version'];
 
           if ($info['version'] !== $latestVersion) {
-            $link = $projectUpdateData['link'] . '/releases/' . $info['version'];
+            $link = $projectUpdateData['link'] . '/releases/' . $latestVersion;
             $update_cell = [
               '#type' => 'link',
-              '#title' => $info['version'],
+              '#title' => $latestVersion,
               '#url' => Url::fromUri($link),
             ];
           }
@@ -242,14 +241,15 @@ class ReportController extends ControllerBase {
 
     if (!$isContrib) {
       // If the list is not for contrib, remove the update placeholder.
-      foreach($build['data'] as $name => &$row) {
+      foreach ($build['data'] as $name => &$row) {
         if (is_array($row)) {
           unset($row['update']);
         }
       }
     }
 
-    $summary = [];
+    // @todo Make the display better and more visual.
+    /* $summary = [];
     if ($counters['known-errors'] > 0) {
       $summary[] = $this->formatPlural($counters['known-errors'], '@count total error found', '@count total errors found');
     }
@@ -263,7 +263,7 @@ class ReportController extends ControllerBase {
       '#type' => 'markup',
       '#markup' => '<div class="report-counters">' . join(', ', $summary) . '.</div>',
       '#weight' => -10,
-    ];
+    ];*/
 
     return $build;
   }

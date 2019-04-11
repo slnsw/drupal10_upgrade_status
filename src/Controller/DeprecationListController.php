@@ -4,6 +4,7 @@ namespace Drupal\upgrade_status\Controller;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Url;
 use Drupal\upgrade_status\ProjectCollectorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -178,11 +179,35 @@ class DeprecationListController extends ControllerBase {
       }
     }
 
-    // @todo include action button to export once/if available
-    return [
-      '#title' => $this->formatPlural($project_error_count, '@count known Drupal 9 error found in @project_name', '@count known Drupal 9 errors found in @project_name', ['@project_name' => $label]),
+    $content = [
+      '#title' => $label,
+      'description' => [
+        '#type' => '#markup',
+        '#markup' => '<div class="error-description">' . $this->formatPlural($project_error_count, '@count known compatibility Drupal 9 error.', '@count known Drupal 9 compatibility errors found.') . '</div>',
+      ],
       'data' => $table,
+      'export' => [
+        '#type' => 'link',
+        '#title' => $this->t('Export report'),
+        '#weight' => 10,
+        '#name' => 'export',
+        '#url' => Url::fromRoute(
+          'upgrade_status.single_export',
+          [
+            'type' => $type,
+            'project_machine_name' => $project_machine_name,
+          ]
+        ),
+        '#attributes' => [
+          'class' => [
+            'button',
+            'button--primary',
+          ],
+        ],
+      ],
     ];
+
+    return $content;
   }
 
 }

@@ -65,3 +65,7 @@
 .upgrade-status-summary tr.no-known-error > td:first-child {
   background-image: url(/core/misc/icons/73b355/check.svg);
 }
+
+.error-description {
+  margin-bottom: 1em;
+}

@@ -175,12 +175,12 @@ class ProjectCollector implements ProjectCollectorInterface {
             'class' => ['use-ajax'],
             'data-dialog-type' => 'modal',
             'data-dialog-options' => Json::encode([
-              'width' => 1024,
-              'height' => 568,
+              'width' => 400,
+              'height' => 100,
             ]),
           ],
         ],
-      ]
+      ],
     ];
 
     if ($errors) {

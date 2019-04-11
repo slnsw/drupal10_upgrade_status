@@ -222,7 +222,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected function prepareTempDirectory() {
     $success = file_prepare_directory($this->upgradeStatusTemporaryDirectory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
-    if(!$success) {
+    if (!$success) {
       $this->logger->error($this->t("Couldn't write temporary directory for Upgrade Status: @directory", ['@directory' => $this->upgradeStatusTemporaryDirectory]));
       return $success;
     }
@@ -230,7 +230,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $phpstan_cache_directory = $this->upgradeStatusTemporaryDirectory . '/phpstan';
     $success = file_prepare_directory($phpstan_cache_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
-    if(!$success) {
+    if (!$success) {
       $this->logger->error($this->t("Couldn't write temporary directory for PHPStan: @directory", ['@directory' => $phpstan_cache_directory]));
     }
 

@@ -51,7 +51,7 @@ class CancelFormController extends ControllerBase {
     // Get the modal form using the form builder.
     $modal_form = $this->formBuilder->getForm(CancelScanForm::class);
 
-   $title = t('Cancel scan?');
+    $title = $this->t('Cancel scan?');
 
     // Add an AJAX command to open a modal dialog with the form as the content.
     $response->addCommand(new OpenModalDialogCommand($title, $modal_form, ['width' => '800']));

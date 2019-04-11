@@ -9,14 +9,31 @@
       border-bottom: 1px solid #cdcdcd;
       width: 47%;
     }
+    table {
+      width: 100%;
+    }
     th:nth-child(2), td:nth-child(2) {
       width: 6%;
+    }
+    body {
+      font-family: Helvetia, Arial, sans-serif;
+    }
+    th, td {
+      border-bottom: 1px solid #cdcdcd;
+      width: 47%;
+    }
+    th:nth-child(2), td:nth-child(2) {
+      width: 6%;
+    }
+    .error-description {
+      margin-bottom: 1em;
     }
   </style>
 </head>
 
 <body>
 <h1>{{ project.name }} upgrade status report - {{ date }}</h1>
+{{ project.description }}
 {{ project.data }}
 </body>
 </html>

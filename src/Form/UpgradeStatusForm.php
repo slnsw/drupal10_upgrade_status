@@ -77,14 +77,14 @@ class UpgradeStatusForm extends FormBase {
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
    *   The project collector service.
    * @param \Drupal\Core\Queue\QueueFactory $queue
-   *   The queue service
+   *   The queue service.
    * @param \Drupal\Core\State\StateInterface $state
-   *   The state service
+   *   The state service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.
-   * @param \Drupal\Core\Form\FormBuilder
+   * @param \Drupal\Core\Form\FormBuilder $formBuilder
    *   The form builder service.
-   * @param \Drupal\Core\Datetime\DateFormatterInterface
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter service.
    */
   public function __construct(
@@ -135,7 +135,13 @@ class UpgradeStatusForm extends FormBase {
         '#percent' => $percent,
         '#status' => TRUE,
         '#label' => $this->t('Scanning projects...'),
-        '#message' => ['#markup' => $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $job_count])],
+        '#message' => [
+          '#markup' => $this->t('Completed @completed_jobs of @job_count.',
+            [
+              '@completed_jobs' => $completed_jobs,
+              '@job_count' => $job_count,
+            ]),
+        ],
         '#weight' => 0,
         // @todo This progress bar requires JavaScript, document it.
         '#attached' => [
@@ -233,29 +239,20 @@ class UpgradeStatusForm extends FormBase {
    *   The current state of the form.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $button = $form_state->getTriggeringElement();
+    // Clear the queue and the stored data to run a new queue.
+    $this->clearData();
 
-    if ($button['#name'] == 'cancel') {
-      // Cancel all queued items and delete the queue state metadata.
-      $this->queue->deleteQueue();
-      \Drupal::state()->delete('upgrade_status.number_of_jobs');
+    // Queue each project for deprecation scanning.
+    $projects = $this->projectCollector->collectProjects();
+    foreach ($projects['custom'] as $projectData) {
+      $this->queue->createItem($projectData);
     }
-    else {
-      // Clear the queue and the stored data to run a new queue.
-      $this->clearData();
-
-      // Queue each project for deprecation scanning.
-      $projects = $this->projectCollector->collectProjects();
-      foreach ($projects['custom'] as $projectData) {
-        $this->queue->createItem($projectData);
-      }
-      foreach ($projects['contrib'] as $projectData) {
-        $this->queue->createItem($projectData);
-      }
-
-      $job_count = $this->queue->numberOfItems();
-      $this->state->set('upgrade_status.number_of_jobs', $job_count);
+    foreach ($projects['contrib'] as $projectData) {
+      $this->queue->createItem($projectData);
     }
+
+    $job_count = $this->queue->numberOfItems();
+    $this->state->set('upgrade_status.number_of_jobs', $job_count);
   }
 
   /**

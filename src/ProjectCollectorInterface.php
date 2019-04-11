@@ -48,6 +48,7 @@ interface ProjectCollectorInterface {
    *   (Optional) Whether this project is new to be scanned.
    * @param bool $errors
    *   (Optional) Whether this project had any errors found.
+   *
    * @return array
    *   Render array of operations.
    */
