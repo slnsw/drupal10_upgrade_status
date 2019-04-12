@@ -6,3 +6,4 @@ package: Administration
 core: 8.x
 dependencies:
   - drupal:update
+  - drupal:git_deploy
