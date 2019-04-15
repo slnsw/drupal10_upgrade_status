@@ -9,7 +9,7 @@ services:
     arguments: ['@cache.upgrade_status', '@logger.factory', '@upgrade_status.string_input', '@upgrade_status.buffered_output', '@upgrade_status.project_collector']
   upgrade_status.project_collector:
     class: Drupal\upgrade_status\ProjectCollector
-    arguments: ['@extension.list.module', '@theme_handler']
+    arguments: ['@extension.list.module', '@theme_handler', '@extension.list.profile']
   cache.upgrade_status:
     class: Drupal\Core\Cache\CacheBackendInterface
     tags:
