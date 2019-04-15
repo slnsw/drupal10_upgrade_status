@@ -4,6 +4,7 @@ namespace Drupal\upgrade_status;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Extension\ProfileExtensionList;
 use Drupal\Core\Extension\ThemeHandler;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
@@ -31,6 +32,13 @@ class ProjectCollector implements ProjectCollectorInterface {
   protected $themeHandler;
 
   /**
+   * The list of available profiles.
+   *
+   * @var \Drupal\Core\Extension\ProfileExtensionList
+   */
+  protected $profileExtensionList;
+
+  /**
    * A list of allowed extension types.
    *
    * @var array
@@ -38,22 +46,25 @@ class ProjectCollector implements ProjectCollectorInterface {
   protected $allowedTypes = [
     'module',
     'theme',
+    'profile',
   ];
 
   /**
    * Constructs a \Drupal\upgrade_status\ProjectCollector.
    *
-   * @param \Drupal\Core\Extension\ModuleExtensionList $moduleExtensionList
+   * @param \Drupal\Core\Extension\ModuleExtensionList $module_extension_list
    *   The module extension list service.
-   * @param \Drupal\Core\Extension\ThemeHandler $themeHandler
+   * @param \Drupal\Core\Extension\ThemeHandler $theme_handler
    *   The theme extension handler service.
    */
   public function __construct(
-    ModuleExtensionList $moduleExtensionList,
-    ThemeHandler $themeHandler
+    ModuleExtensionList $module_extension_list,
+    ThemeHandler $theme_handler,
+    ProfileExtensionList $profile_extension_list
   ) {
-    $this->moduleExtensionList = $moduleExtensionList;
-    $this->themeHandler = $themeHandler;
+    $this->moduleExtensionList = $module_extension_list;
+    $this->themeHandler = $theme_handler;
+    $this->profileExtensionList = $profile_extension_list;
   }
 
   /**
@@ -63,7 +74,9 @@ class ProjectCollector implements ProjectCollectorInterface {
     $projects = ['custom' => [], 'contrib' => []];
     $modules = $this->moduleExtensionList->reset()->getList();
     $themes = $this->themeHandler->rebuildThemeData();
-    $extensions = array_merge($modules, $themes);
+    $profiles = $this->profileExtensionList->getList();
+    $extensions = array_merge($modules, $themes, $profiles);
+    unset($modules, $themes, $profiles);
 
     /** @var \Drupal\Core\Extension\Extension $extension */
     foreach ($extensions as $key => $extension) {
@@ -73,7 +86,7 @@ class ProjectCollector implements ProjectCollectorInterface {
         continue;
       }
 
-      if ($extension->status === 0) {
+      if ($extension->getType() !== 'profile' && $extension->status === 0) {
         // Ignore disabled extensions.
         continue;
       }
@@ -94,6 +107,11 @@ class ProjectCollector implements ProjectCollectorInterface {
       // extensions with a project key and composer packages also include it.
       if (empty($project)) {
         $projects['custom'][$key] = $extension;
+        continue;
+      }
+
+      if ($project === 'drupal') {
+        // Ensure to omit all core related extension from the list.
         continue;
       }
 
@@ -144,6 +162,10 @@ class ProjectCollector implements ProjectCollectorInterface {
 
     if ($type === 'module') {
       return $this->moduleExtensionList->get($project_machine_name);
+    }
+
+    if ($type === 'profile') {
+      return $this->profileExtensionList->get($project_machine_name);
     }
 
     return $this->themeHandler->getTheme($project_machine_name);
