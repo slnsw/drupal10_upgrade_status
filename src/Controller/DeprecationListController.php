@@ -2,8 +2,8 @@
 
 namespace Drupal\upgrade_status\Controller;
 
-use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\ProjectCollectorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -11,11 +11,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class DeprecationListController extends ControllerBase {
 
   /**
-   * The cache service.
+   * Upgrade status scan result storage.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
    */
-  protected $cache;
+  protected $scanResultStorage;
 
   /**
    * The project collector service.
@@ -27,13 +27,13 @@ class DeprecationListController extends ControllerBase {
   /**
    * Constructs a \Drupal\upgrade_status\Controller\DeprecationListController.
    *
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
-   *   The cache service.
+   * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
+   *   The key/value factory.
    * @param \Drupal\upgrade_status\ProjectCollectorInterface $project_collector
    *   The project collector service.
    */
-  public function __construct(CacheBackendInterface $cache, ProjectCollectorInterface $project_collector) {
-    $this->cache = $cache;
+  public function __construct(KeyValueFactoryInterface $key_value_factory, ProjectCollectorInterface $project_collector) {
+    $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->projectCollector = $project_collector;
   }
 
@@ -42,7 +42,7 @@ class DeprecationListController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('cache.upgrade_status'),
+      $container->get('keyvalue'),
       $container->get('upgrade_status.project_collector')
     );
   }
@@ -59,13 +59,13 @@ class DeprecationListController extends ControllerBase {
    *   Build array.
    */
   public function content(string $type, string $project_machine_name) {
-    $cache = $this->cache->get($project_machine_name);
+    $scan_result = $this->scanResultStorage->get($project_machine_name);
     $extension = $this->projectCollector->loadProject($type, $project_machine_name);
     $info = $extension->info;
     $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
 
     // This project was not yet scanned or the scan results were removed.
-    if (empty($cache)) {
+    if (empty($scan_result)) {
       return [
         '#title' => $label,
         'data' => [
@@ -75,7 +75,7 @@ class DeprecationListController extends ControllerBase {
       ];
     }
 
-    $report = json_decode($cache->data, TRUE);
+    $report = json_decode($scan_result, TRUE);
     if (isset($report['totals'])) {
       $project_error_count = $report['totals']['file_errors'];
     }

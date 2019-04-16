@@ -2,9 +2,9 @@
 
 namespace Drupal\upgrade_status\Controller;
 
-use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
+use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\Form\UpgradeStatusForm;
 use Drupal\upgrade_status\ProjectCollector;
@@ -20,11 +20,11 @@ class ReportController extends ControllerBase {
   protected $projectCollector;
 
   /**
-   * The cache service.
+   * Upgrade status scan result storage.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
    */
-  protected $cache;
+  protected $scanResultStorage;
 
   /**
    * Available releases store.
@@ -38,17 +38,17 @@ class ReportController extends ControllerBase {
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
    *   The project collector service.
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
-   *   The cache service.
+   * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
+   *   The key/value factory.
    * @param \Drupal\Core\KeyValueStore\KeyValueExpirableFactory $key_value_expirable
    */
   public function __construct(
     ProjectCollector $projectCollector,
-    CacheBackendInterface $cache,
+    KeyValueFactoryInterface $key_value_factory,
     KeyValueExpirableFactory $key_value_expirable
   ) {
     $this->projectCollector = $projectCollector;
-    $this->cache = $cache;
+    $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
   }
 
@@ -58,7 +58,7 @@ class ReportController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('upgrade_status.project_collector'),
-      $container->get('cache.upgrade_status'),
+      $container->get('keyvalue'),
       $container->get('keyvalue.expirable')
     );
   }
@@ -140,7 +140,7 @@ class ReportController extends ControllerBase {
     ];
 
     foreach ($projects as $name => $extension) {
-      $cache = $this->cache->get($name);
+      $scan_result = $this->scanResultStorage->get($name);
       $info = $extension->info;
       $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
 
@@ -174,8 +174,8 @@ class ReportController extends ControllerBase {
         }
       }
 
-      // If this project was not found in cache, it is not yet scanned, report that.
-      if (empty($cache)) {
+      // If this project was not found in our keyvalue storage, it is not yet scanned, report that.
+      if (empty($scan_result)) {
         $build['data'][$name] = [
           '#attributes' => ['class' => ['not-scanned', 'project-' . $name]],
           'project' => [
@@ -194,7 +194,7 @@ class ReportController extends ControllerBase {
       }
 
       // Unpack JSON of deprecations to display results.
-      $report = json_decode($cache->data, TRUE);
+      $report = json_decode($scan_result, TRUE);
       if (isset($report['totals'])) {
         $project_error_count = $report['totals']['file_errors'];
       }

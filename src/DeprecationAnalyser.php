@@ -2,9 +2,9 @@
 
 namespace Drupal\upgrade_status;
 
-use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\Extension;
+use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Exception;
 use Nette\Neon\Neon;
@@ -26,11 +26,11 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   const ERROR_FORMAT = 'json';
 
   /**
-   * The cache service.
+   * Upgrade status scan result storage.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
    */
-  protected $cache;
+  protected $scanResultStorage;
 
   /**
    * The logger service.
@@ -75,8 +75,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   /**
    * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
-   *   The cache service.
+   * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
+   *   The key/value factory.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
    * @param \Symfony\Component\Console\Input\StringInput $output
@@ -85,13 +85,13 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    *   The Symfony Console output interface.
    */
   public function __construct(
-    CacheBackendInterface $cache,
+    KeyValueFactoryInterface $key_value_factory,
     LoggerInterface $logger,
     StringInput $input,
     BufferedOutput $output,
     ConfigFactoryInterface $config_factory
   ) {
-    $this->cache = $cache;
+    $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     // Log errors to an upgrade status logger channel.
     $this->logger = $logger;
     $this->inputInterface = $input;
@@ -149,7 +149,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       for ($offset = 0; $offset <= count($paths); $offset += $num_of_files) {
         $files = array_slice($paths, $offset, $num_of_files);
         if ($files === 0) {
-          $this->cache->set($extension->getName(), json_encode($result));
+          $this->scanResultStorage->set($extension->getName(), json_encode($result));
           continue;
         }
         $raw_errors = $this->checkDeprecationErrorMessages($files);
@@ -163,8 +163,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       }
     }
 
-    // Store the analysis results in our cache bin.
-    $this->cache->set($extension->getName(), json_encode($result));
+    // Store the analysis results in our storage bin.
+    $this->scanResultStorage->set($extension->getName(), json_encode($result));
   }
 
   function getDirContents($dir, &$results = []){

@@ -13,7 +13,7 @@ interface DeprecationAnalyserInterface {
    *   The extension to analyse.
    *
    * @return null
-   *   Errors are logged to the logger, data is stored to cache.
+   *   Errors are logged to the logger, data is stored to keyvalue storage.
    */
   public function analyse(Extension $extension);
 

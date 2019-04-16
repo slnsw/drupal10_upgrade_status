@@ -2,11 +2,11 @@
 
 namespace Drupal\upgrade_status\Form;
 
-use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormBuilder;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
@@ -37,11 +37,11 @@ class UpgradeStatusForm extends FormBase {
   protected $state;
 
   /**
-   * The cache service.
+   * Upgrade status scan result storage.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
    */
-  protected $cache;
+  protected $scanResultStorage;
 
   /**
    * The form builder service.
@@ -65,7 +65,7 @@ class UpgradeStatusForm extends FormBase {
       $container->get('upgrade_status.project_collector'),
       $container->get('queue'),
       $container->get('state'),
-      $container->get('cache.upgrade_status'),
+      $container->get('keyvalue'),
       $container->get('form_builder'),
       $container->get('date.formatter')
     );
@@ -80,8 +80,8 @@ class UpgradeStatusForm extends FormBase {
    *   The queue service.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state service.
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
-   *   The cache service.
+   * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
+   *   The key/value factory.
    * @param \Drupal\Core\Form\FormBuilder $formBuilder
    *   The form builder service.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
@@ -91,14 +91,14 @@ class UpgradeStatusForm extends FormBase {
     ProjectCollector $projectCollector,
     QueueFactory $queue,
     StateInterface $state,
-    CacheBackendInterface $cache,
+    KeyValueFactoryInterface $key_value_factory,
     FormBuilder $formBuilder,
     DateFormatterInterface $dateFormatter
   ) {
     $this->projectCollector = $projectCollector;
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
     $this->state = $state;
-    $this->cache = $cache;
+    $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->formBuilder = $formBuilder;
     $this->dateFormatter = $dateFormatter;
   }
@@ -256,11 +256,11 @@ class UpgradeStatusForm extends FormBase {
   }
 
   /**
-   * Removes all items from queue and clears cache.
+   * Removes all items from queue and clears storage.
    */
   protected function clearData() {
     $this->queue->deleteQueue();
-    $this->cache->deleteAll();
+    $this->scanResultStorage->deleteAll();
   }
 
 }

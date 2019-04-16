@@ -2,9 +2,9 @@
 
 namespace Drupal\upgrade_status\Controller;
 
-use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\Core\Render\RendererInterface;
@@ -51,11 +51,11 @@ class JobRunController extends ControllerBase {
   protected $dateFormatter;
 
   /**
-   * The cache service.
+   * Upgrade status scan result storage.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
    */
-  protected $cache;
+  protected $scanResultStorage;
 
   /**
    * The renderer service.
@@ -74,7 +74,7 @@ class JobRunController extends ControllerBase {
       $container->get('state'),
       $container->get('upgrade_status.project_collector'),
       $container->get('date.formatter'),
-      $container->get('cache.upgrade_status'),
+      $container->get('keyvalue'),
       $container->get('renderer')
     );
   }
@@ -92,8 +92,8 @@ class JobRunController extends ControllerBase {
    *   The project collector service.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter service.
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
-   *   The cache service.
+   * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
+   *   The key/value factory.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
    */
@@ -103,7 +103,7 @@ class JobRunController extends ControllerBase {
     StateInterface $state,
     ProjectCollectorInterface $projectCollector,
     DateFormatterInterface $dateFormatter,
-    CacheBackendInterface $cache,
+    KeyValueFactoryInterface $key_value_factory,
     RendererInterface $renderer
   ) {
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
@@ -111,7 +111,7 @@ class JobRunController extends ControllerBase {
     $this->state = $state;
     $this->projectCollector = $projectCollector;
     $this->dateFormatter = $dateFormatter;
-    $this->cache = $cache;
+    $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->renderer = $renderer;
   }
 
@@ -141,7 +141,7 @@ class JobRunController extends ControllerBase {
 
         $project = $job->data->getName();
         $selector = '.project-' . $project;
-        $result = $this->cache->get($project);
+        $result = $this->scanResultStorage->get($project);
 
         if (empty($result)) {
           $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType());
