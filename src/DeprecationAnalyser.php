@@ -3,13 +3,14 @@
 namespace Drupal\upgrade_status;
 
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\Extension;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Exception;
 use Nette\Neon\Neon;
 use PHPStan\Command\AnalyseApplication;
 use PHPStan\Command\CommandHelper;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Input\StringInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
@@ -65,28 +66,37 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $upgradeStatusTemporaryDirectory;
 
   /**
+   * A configuration object containing upgrade_status settings.
+   *
+   * @var \Drupal\Core\Config\ImmutableConfig
+   */
+  protected $config;
+
+  /**
    * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache service.
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
-   *   The logger factory service.
-   * @param \Symfony\Component\Console\Input\StringInput $inputInterface
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger.
+   * @param \Symfony\Component\Console\Input\StringInput $output
    *   The Symfony Console input interface.
-   * @param \Symfony\Component\Console\Output\BufferedOutput $outputInterface
+   * @param \Symfony\Component\Console\Output\BufferedOutput $output
    *   The Symfony Console output interface.
    */
   public function __construct(
     CacheBackendInterface $cache,
-    LoggerChannelFactoryInterface $loggerFactory,
-    StringInput $inputInterface,
-    BufferedOutput $outputInterface
+    LoggerInterface $logger,
+    StringInput $input,
+    BufferedOutput $output,
+    ConfigFactoryInterface $config_factory
   ) {
     $this->cache = $cache;
     // Log errors to an upgrade status logger channel.
-    $this->logger = $loggerFactory->get('upgrade_status');
-    $this->inputInterface = $inputInterface;
-    $this->outputInterface = $outputInterface;
+    $this->logger = $logger;
+    $this->inputInterface = $input;
+    $this->outputInterface = $output;
+    $this->config = $config_factory->get('upgrade_status.settings');
 
     $this->populateAutoLoader();
 
@@ -113,38 +123,46 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       $GLOBALS['autoloaderInWorkingDirectory'] = DRUPAL_ROOT . '/autoload.php';
     }
 
-    $projectDir = DRUPAL_ROOT . '/' . $extension->subpath;
-    $paths = $this->getDirContents($projectDir);
-    foreach ($paths as $key => $filePath) {
-      if(substr($filePath, -3) !== 'php'
-        && substr($filePath, -7) !== '.module'
-        && substr($filePath, -8) !== '.install') {
+    $project_dir = DRUPAL_ROOT . '/' . $extension->subpath;
+    $paths = $this->getDirContents($project_dir);
+    foreach ($paths as $key => $file_path) {
+      if(substr($file_path, -3) !== 'php'
+        && substr($file_path, -7) !== '.module'
+        && substr($file_path, -8) !== '.install') {
         unset($paths[$key]);
       }
     }
 
-    $finalResult = [
+    $result = [
       'totals' => [
         'errors' => 0,
         'file_errors' => 0,
       ],
       'files' => [],
     ];
-    // @todo: refactor and validate.
-    for ($fileCount = 10, $fileChecked = 0; $fileChecked <= count($paths); $fileChecked += $fileCount) {
-      $filesToCheck = array_slice($paths, $fileChecked, $fileCount);
-      $resultString = $this->checkDeprecationErrorMessages($filesToCheck);
-      $resultArray = json_decode($resultString, TRUE);
-      if (!is_array($resultArray)) {
-        continue;
+
+    if (!empty($paths)) {
+      $num_of_files = $this->config->get('paths_per_scan');
+      // @todo: refactor and validate.
+      for ($offset = 0; $offset <= count($paths); $offset += $num_of_files) {
+        $files = array_slice($paths, $offset, $num_of_files);
+        if ($files === 0) {
+          $this->cache->set($extension->getName(), json_encode($result));
+          continue;
+        }
+        $raw_errors = $this->checkDeprecationErrorMessages($files);
+        $errors = json_decode($raw_errors, TRUE);
+        if (!is_array($errors)) {
+          continue;
+        }
+        $result['totals']['errors'] += $errors['totals']['errors'];
+        $result['totals']['file_errors'] += $errors['totals']['file_errors'];
+        $result['files'] = array_merge($result['files'], $errors['files']);
       }
-      $finalResult['totals']['errors'] += $resultArray['totals']['errors'];
-      $finalResult['totals']['file_errors'] += $resultArray['totals']['file_errors'];
-      $finalResult['files'] = array_merge($finalResult['files'], $resultArray['files']);
     }
 
     // Store the analysis results in our cache bin.
-    $this->cache->set($extension->getName(), json_encode($finalResult));
+    $this->cache->set($extension->getName(), json_encode($result));
   }
 
   function getDirContents($dir, &$results = []){
@@ -163,7 +181,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     return $results;
   }
 
-  function checkDeprecationErrorMessages(array $paths) {
+  public function checkDeprecationErrorMessages(array $paths) {
     // Analyse code in the given directory with PHPStan. The most sensible way
     // we could find was to pretend we have Symfony console inputs and outputs
     // and take the result from there. PHPStan as-is is highly tied to the
