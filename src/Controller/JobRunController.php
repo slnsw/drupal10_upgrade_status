@@ -18,7 +18,7 @@ class JobRunController extends ControllerBase {
   /**
    * The queue service.
    *
-   * @var \Drupal\Core\Queue\QueueFactory
+   * @var \Drupal\Core\Queue\DatabaseQueue
    */
   protected $queue;
 
@@ -190,6 +190,12 @@ class JobRunController extends ControllerBase {
       else {
         // There appear to be jobs but we cannot claim any. Likely they are
         // being processed in cron for example. Continue the feedback loop.
+
+        // todo: review
+        // if the job failed because of an error, remove it from the queue.
+        $this->queue->garbageCollection();
+        $failedJob = $this->queue->claimItem();
+        $this->queue->deleteItem($failedJob);
         $completed_jobs = $all_count - $this->queue->numberOfItems();
         $message = $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $all_count]);
         $percent = ($completed_jobs / $all_count) * 100;

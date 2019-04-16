@@ -101,9 +101,11 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $this->populateAutoLoader();
 
     $this->upgradeStatusTemporaryDirectory = file_directory_temp() . '/upgrade_status';
-    // @todo: check if temporary directory // modified neon file exists
-    $this->prepareTempDirectory();
-    $this->createModifiedNeonFile();
+    $this->phpstanNeonPath = $this->upgradeStatusTemporaryDirectory . '/deprecation_testing.neon';
+    if (!file_exists($this->phpstanNeonPath)) {
+      $this->prepareTempDirectory();
+      $this->createModifiedNeonFile();
+    }
   }
 
   /**
@@ -266,9 +268,6 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $config = file_get_contents($unmodified_neon_file);
     $neon = Neon::decode($config);
     $neon['parameters']['tmpDir'] = $this->upgradeStatusTemporaryDirectory . '/phpstan';
-
-    // Set the PHPStan configuration neon file path.
-    $this->phpstanNeonPath = $this->upgradeStatusTemporaryDirectory . '/deprecation_testing.neon';
     $success = file_put_contents($this->phpstanNeonPath, Neon::encode($neon), Neon::BLOCK);
 
     return $success ? TRUE : FALSE;
