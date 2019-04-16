@@ -6,7 +6,6 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
-use Drupal\Core\Render\RenderCacheInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\upgrade_status\ProjectCollectorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -36,13 +35,6 @@ class ExportController extends ControllerBase {
   protected $renderer;
 
   /**
-   * The render cache service.
-   *
-   * @var \Drupal\Core\Render\RenderCacheInterface
-   */
-  protected $renderCache;
-
-  /**
    * The time service.
    *
    * @var \Drupal\Component\Datetime\TimeInterface
@@ -65,8 +57,6 @@ class ExportController extends ControllerBase {
    *   The project collector service.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
-   * @param \Drupal\Core\Render\RenderCacheInterface $render_cache
-   *   The render cache service.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
@@ -76,14 +66,12 @@ class ExportController extends ControllerBase {
     ClassResolverInterface $class_resolver,
     ProjectCollectorInterface $project_collector,
     RendererInterface $renderer,
-    RenderCacheInterface $render_cache,
     TimeInterface $time,
     DateFormatterInterface $date_formatter
   ) {
     $this->classResolver = $class_resolver;
     $this->projectCollector = $project_collector;
     $this->renderer = $renderer;
-    $this->renderCache = $render_cache;
     $this->time = $time;
     $this->dateFormatter = $date_formatter;
   }
@@ -96,7 +84,6 @@ class ExportController extends ControllerBase {
       $container->get('class_resolver'),
       $container->get('upgrade_status.project_collector'),
       $container->get('renderer'),
-      $container->get('render_cache'),
       $container->get('datetime.time'),
       $container->get('date.formatter')
     );
@@ -105,7 +92,7 @@ class ExportController extends ControllerBase {
   /**
    * Generates full export of Upgrade Status report.
    *
-   * @return HtmlResponse
+   * @return \Symfony\Component\HttpFoundation\Response
    */
   public function downloadFullExport() {
     $projects = $this->projectCollector->collectProjects();
@@ -138,7 +125,7 @@ class ExportController extends ControllerBase {
    * @param string $project_machine_name
    *   The machine name of the project.
    *
-   * @return HtmlResponse
+   * @return \Symfony\Component\HttpFoundation\Response
    */
   public function downloadSingleExport(string $type, string $project_machine_name) {
     $extension = $this->projectCollector->loadProject($type, $project_machine_name);
