@@ -148,7 +148,7 @@ class JobRunController extends ControllerBase {
           $updates = [$selector, 'not-scanned', $this->t('Not scanned')];
         }
         else {
-          $report = json_decode($result->data, TRUE);
+          $report = json_decode($result, TRUE);
           if (!empty($report['totals']['file_errors'])) {
             $operations = $this->projectCollector->getProjectOperations($project, $job->data->getType(), FALSE, TRUE);
             $updates = [
