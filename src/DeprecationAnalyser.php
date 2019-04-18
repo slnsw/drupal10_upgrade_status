@@ -148,18 +148,16 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       // @todo: refactor and validate.
       for ($offset = 0; $offset <= count($paths); $offset += $num_of_files) {
         $files = array_slice($paths, $offset, $num_of_files);
-        if ($files === 0) {
-          $this->scanResultStorage->set($extension->getName(), json_encode($result));
-          continue;
+        if (!empty($files)) {
+          $raw_errors = $this->checkDeprecationErrorMessages($files);
+          $errors = json_decode($raw_errors, TRUE);
+          if (!is_array($errors)) {
+            continue;
+          }
+          $result['totals']['errors'] += $errors['totals']['errors'];
+          $result['totals']['file_errors'] += $errors['totals']['file_errors'];
+          $result['files'] = array_merge($result['files'], $errors['files']);
         }
-        $raw_errors = $this->checkDeprecationErrorMessages($files);
-        $errors = json_decode($raw_errors, TRUE);
-        if (!is_array($errors)) {
-          continue;
-        }
-        $result['totals']['errors'] += $errors['totals']['errors'];
-        $result['totals']['file_errors'] += $errors['totals']['file_errors'];
-        $result['files'] = array_merge($result['files'], $errors['files']);
       }
     }
 
