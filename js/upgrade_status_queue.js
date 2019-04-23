@@ -71,8 +71,10 @@
             }, pb.delay);
           },
           error: function error(xmlhttp) {
-            var e = new Drupal.AjaxError(xmlhttp, pb.uri);
-            pb.displayError('<pre>' + e.message + '</pre>');
+            pb.setProgress(progress);
+            pb.timer = setTimeout(function () {
+              pb.sendPing();
+            }, pb.delay);
           }
         });
       }

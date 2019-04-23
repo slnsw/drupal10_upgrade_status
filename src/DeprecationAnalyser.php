@@ -120,6 +120,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    * {@inheritdoc}
    */
   public function analyse(Extension $extension) {
+    drupal_register_shutdown_function([$this, 'logFatalError'], $extension->getName());
+
     // Set the autoloader for PHPStan.
     if (!isset($GLOBALS['autoloaderInWorkingDirectory'])) {
       $GLOBALS['autoloaderInWorkingDirectory'] = DRUPAL_ROOT . '/autoload.php';
@@ -269,6 +271,36 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $success = file_put_contents($this->phpstanNeonPath, Neon::encode($neon), Neon::BLOCK);
 
     return $success ? TRUE : FALSE;
+  }
+
+  public function logFatalError(string $project_name) {
+    $result = $this->scanResultStorage->get($project_name);
+    $message = error_get_last();
+
+    if (empty($result)) {
+
+      $result = [
+        'totals' => [
+          'errors' => 0,
+          'file_errors' => 1,
+        ],
+        'files' => [],
+      ];
+
+      $file_name = $message['file'];
+
+      $result['files'][$file_name] = [
+        'errors' => 1,
+        'messages' => [
+          [
+            'message' => $message['message'],
+            'line' => $message['line']
+          ],
+        ],
+      ];
+      $this->scanResultStorage->set($project_name, json_encode($result));
+    }
+
   }
 
 }
