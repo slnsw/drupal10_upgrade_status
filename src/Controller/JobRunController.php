@@ -249,6 +249,7 @@ class JobRunController extends ControllerBase {
     $number_of_jobs = $this->state->get('upgrade_status.number_of_jobs');
     $number_of_jobs++;
     $this->state->set('upgrade_status.number_of_jobs', $number_of_jobs);
+    $this->scanResultStorage->set($project_machine_name, '');
 
     return [
       '#title' => $this->t('Add project to queue'),
