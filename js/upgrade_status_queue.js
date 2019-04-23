@@ -70,8 +70,7 @@
               pb.sendPing();
             }, pb.delay);
           },
-          error: function error(xmlhttp) {
-            pb.setProgress(progress);
+          error: function error() {
             pb.timer = setTimeout(function () {
               pb.sendPing();
             }, pb.delay);
