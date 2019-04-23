@@ -79,10 +79,12 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    *   The key/value factory.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
-   * @param \Symfony\Component\Console\Input\StringInput $output
+   * @param \Symfony\Component\Console\Input\StringInput $input
    *   The Symfony Console input interface.
    * @param \Symfony\Component\Console\Output\BufferedOutput $output
    *   The Symfony Console output interface.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
    */
   public function __construct(
     KeyValueFactoryInterface $key_value_factory,
@@ -130,7 +132,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $project_dir = DRUPAL_ROOT . '/' . $extension->subpath;
     $paths = $this->getDirContents($project_dir);
     foreach ($paths as $key => $file_path) {
-      if(substr($file_path, -3) !== 'php'
+      if (substr($file_path, -3) !== 'php'
         && substr($file_path, -7) !== '.module'
         && substr($file_path, -8) !== '.install') {
         unset($paths[$key]);
@@ -167,14 +169,18 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $this->scanResultStorage->set($extension->getName(), json_encode($result));
   }
 
-  function getDirContents($dir, &$results = []){
+  public function getDirContents($dir, &$results = []) {
     $files = scandir($dir);
 
-    foreach($files as $key => $value){
+    foreach ($files as $value) {
       $path = realpath($dir . '/' . $value);
-      if(!is_dir($path)) {
+
+      if (!is_dir($path)) {
         $results[] = $path;
-      } else if($value != '.' && $value != '..') {
+        continue;
+      }
+
+      if ($value != '.' && $value != '..') {
         $this->getDirContents($path, $results);
         $results[] = $path;
       }
@@ -294,10 +300,11 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
         'messages' => [
           [
             'message' => $message['message'],
-            'line' => $message['line']
+            'line' => $message['line'],
           ],
         ],
       ];
+
       $this->scanResultStorage->set($project_name, json_encode($result));
     }
 
