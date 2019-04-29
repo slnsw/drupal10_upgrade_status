@@ -135,7 +135,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       if (substr($file_path, -3) !== 'php'
         && substr($file_path, -7) !== '.module'
         && substr($file_path, -8) !== '.install'
-        && substr($file_path, -3) !== '.inc') {
+        && substr($file_path, -3) !== 'inc') {
         unset($paths[$key]);
       }
     }
