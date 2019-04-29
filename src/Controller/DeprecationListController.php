@@ -138,11 +138,7 @@ class DeprecationListController extends ControllerBase {
             if (in_array($namespace[1], ['Component', 'Core'])) {
               $class_file = 'core!lib!Drupal!' . $namespace[1];
             }
-            elseif ($namespace[1] == 'Tests') {
-              $module = array_shift($path_parts);
-              $class_file = 'core!modules!' . $module . '!tests!src';
-            }
-            elseif (in_array($namespace[1], ['KernelTests', 'FunctionalTests', 'FunctionalJavascriptTests'])) {
+            elseif (in_array($namespace[1], ['KernelTests', 'FunctionalTests', 'FunctionalJavascriptTests', 'Tests'])) {
               $class_file = 'core!tests!Drupal!' . $namespace[1];
             }
             else {
