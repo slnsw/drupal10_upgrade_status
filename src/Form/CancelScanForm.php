@@ -29,7 +29,7 @@ class CancelScanForm extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('queue'),
+      $container->get('queue.inspectable'),
       $container->get('state')
     );
   }
