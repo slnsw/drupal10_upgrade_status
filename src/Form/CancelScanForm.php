@@ -4,16 +4,16 @@ namespace Drupal\upgrade_status\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
+use Drupal\upgrade_status\Queue\InspectableQueueFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class CancelScanForm extends FormBase {
 
   /**
-   * The queue service.
+   * The inspectable queue service.
    *
-   * @var \Drupal\Core\Queue\QueueFactory
+   * @var \Drupal\upgrade_status\Queue\InspectableQueueFactory
    */
   protected $queue;
 
@@ -37,11 +37,11 @@ class CancelScanForm extends FormBase {
   /**
    * Constructs a Drupal\upgrade_status\Form\UpgradeStatusForm.
    *
-   * @param \Drupal\Core\Queue\QueueFactory $queue
+   * @param \Drupal\upgrade_status\Queue\InspectableQueueFactory $queue
    * @param \Drupal\Core\State\StateInterface $state
    */
   public function __construct(
-    QueueFactory $queue,
+    InspectableQueueFactory $queue,
     StateInterface $state
   ) {
     $this->queue = $queue->get('upgrade_status_deprecation_worker');

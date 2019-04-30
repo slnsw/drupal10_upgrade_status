@@ -5,11 +5,11 @@ namespace Drupal\upgrade_status\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
-use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\upgrade_status\ProjectCollectorInterface;
+use Drupal\upgrade_status\Queue\InspectableQueueFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -69,7 +69,7 @@ class JobRunController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('queue'),
+      $container->get('queue.inspectable'),
       $container->get('plugin.manager.queue_worker'),
       $container->get('state'),
       $container->get('upgrade_status.project_collector'),
@@ -82,7 +82,7 @@ class JobRunController extends ControllerBase {
   /**
    * Constructs a Drupal\upgrade_status\Controller\JobRunController.
    *
-   * @param \Drupal\Core\Queue\QueueFactory $queue
+   * @param \Drupal\upgrade_status\Queue\InspectableQueueFactory $queue
    *   The queue factory service.
    * @param \Drupal\Core\Queue\QueueWorkerManagerInterface $queue_manager
    *   The queue manager service.
@@ -98,7 +98,7 @@ class JobRunController extends ControllerBase {
    *   The renderer service.
    */
   public function __construct(
-    QueueFactory $queue,
+    InspectableQueueFactory $queue,
     QueueWorkerManagerInterface $queue_manager,
     StateInterface $state,
     ProjectCollectorInterface $projectCollector,

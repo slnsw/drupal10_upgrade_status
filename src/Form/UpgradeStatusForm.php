@@ -7,10 +7,10 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormBuilder;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
-use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\ProjectCollector;
+use Drupal\upgrade_status\Queue\InspectableQueueFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class UpgradeStatusForm extends FormBase {
@@ -23,9 +23,9 @@ class UpgradeStatusForm extends FormBase {
   protected $projectCollector;
 
   /**
-   * The queue service.
+   * The inspectable queue service.
    *
-   * @var \Drupal\Core\Queue\QueueFactory
+   * @var \Drupal\upgrade_status\Queue\InspectableQueueFactory
    */
   protected $queue;
 
@@ -63,7 +63,7 @@ class UpgradeStatusForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('upgrade_status.project_collector'),
-      $container->get('queue'),
+      $container->get('queue.inspectable'),
       $container->get('state'),
       $container->get('keyvalue'),
       $container->get('form_builder'),
@@ -76,8 +76,8 @@ class UpgradeStatusForm extends FormBase {
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
    *   The project collector service.
-   * @param \Drupal\Core\Queue\QueueFactory $queue
-   *   The queue service.
+   * @param \Drupal\upgrade_status\Queue\InspectableQueueFactory $queue
+   *   The inspectable queue service.
    * @param \Drupal\Core\State\StateInterface $state
    *   The state service.
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -89,7 +89,7 @@ class UpgradeStatusForm extends FormBase {
    */
   public function __construct(
     ProjectCollector $projectCollector,
-    QueueFactory $queue,
+    InspectableQueueFactory $queue,
     StateInterface $state,
     KeyValueFactoryInterface $key_value_factory,
     FormBuilder $formBuilder,

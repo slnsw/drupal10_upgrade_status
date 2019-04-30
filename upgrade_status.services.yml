@@ -13,3 +13,6 @@ services:
   logger.channel.upgrade_status:
     parent: logger.channel_base
     arguments: ['upgrade_status']
+  queue.inspectable:
+    class: Drupal\upgrade_status\Queue\InspectableQueueFactory
+    arguments: ['@database']
