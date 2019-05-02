@@ -8,6 +8,7 @@ use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\Form\UpgradeStatusForm;
 use Drupal\upgrade_status\ProjectCollector;
+use Drupal\upgrade_status\Queue\InspectableQueueFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class ReportController extends ControllerBase {
@@ -34,6 +35,13 @@ class ReportController extends ControllerBase {
   protected $releaseStore;
 
   /**
+   * The inspectable queue service.
+   *
+   * @var \Drupal\upgrade_status\Queue\InspectableQueueFactory
+   */
+  protected $queue;
+
+  /**
    * Constructs a \Drupal\upgrade_status\Controller\UpdateStatusReportController.
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
@@ -41,15 +49,19 @@ class ReportController extends ControllerBase {
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The key/value factory.
    * @param \Drupal\Core\KeyValueStore\KeyValueExpirableFactory $key_value_expirable
+   * @param \Drupal\upgrade_status\Queue\InspectableQueueFactory $queue
+   *   The inspectable queue service.
    */
   public function __construct(
     ProjectCollector $projectCollector,
     KeyValueFactoryInterface $key_value_factory,
-    KeyValueExpirableFactory $key_value_expirable
+    KeyValueExpirableFactory $key_value_expirable,
+    InspectableQueueFactory $queue
   ) {
     $this->projectCollector = $projectCollector;
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
+    $this->queue = $queue->get('upgrade_status_deprecation_worker');
   }
 
   /**
@@ -59,7 +71,8 @@ class ReportController extends ControllerBase {
     return new static(
       $container->get('upgrade_status.project_collector'),
       $container->get('keyvalue'),
-      $container->get('keyvalue.expirable')
+      $container->get('keyvalue.expirable'),
+      $container->get('queue.inspectable')
     );
   }
 
@@ -176,6 +189,8 @@ class ReportController extends ControllerBase {
 
       // If this project was not found in our keyvalue storage, it is not yet scanned, report that.
       if (empty($scan_result)) {
+        $job = $this->queue->getItem($extension);
+        $status = $job ? $this->t('In queue') : $this->t('Not scanned');
         $build['data'][$name] = [
           '#attributes' => ['class' => ['not-scanned', 'project-' . $name]],
           'project' => [
@@ -184,7 +199,7 @@ class ReportController extends ControllerBase {
           ],
           'status' => [
             '#type' => 'markup',
-            '#markup' => $this->t('Not scanned'),
+            '#markup' => $status,
           ],
           'update' => $update_cell,
           'operations' => $this->projectCollector->getProjectOperations($name, $extension->getType()),
