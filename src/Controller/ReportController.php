@@ -166,7 +166,7 @@ class ReportController extends ControllerBase {
         $projectUpdateData = $this->releaseStore->get($name);
 
         // @todo: trigger update information fetch.
-        if (is_null($projectUpdateData['releases'])) {
+        if (!isset($projectUpdateData['releases']) || is_null($projectUpdateData['releases'])) {
           $update_cell = [
             '#type' => 'markup',
             '#markup' => $this->t('N/A'),
