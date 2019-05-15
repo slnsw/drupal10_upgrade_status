@@ -45,6 +45,7 @@ class UpgradeStatusUiTest extends UpgradeStatusBaseTest {
     $assert_session->buttonExists('Start full scan');
     $assert_session->buttonNotExists('Restart full scan');
     $assert_session->buttonNotExists('Cancel');
+    $assert_session->buttonNotExists('Export full report');
 
     // Check links.
     $assert_session->linkExists('Single scan');

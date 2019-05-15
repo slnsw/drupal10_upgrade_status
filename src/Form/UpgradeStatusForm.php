@@ -199,6 +199,14 @@ class UpgradeStatusForm extends FormBase {
         '#type' => 'markup',
         '#markup' => '<div class="report-date">' . $last_scan . '</div>',
       ];
+
+      $form['drupal_upgrade_status_form']['action']['export'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Export full report'),
+        '#weight' => 5,
+        '#name' => 'export',
+        '#submit' => [[$this, 'exportFullReport']],
+      ];
     }
 
     // If there was a prior scan, reflect that in the button label.
@@ -209,13 +217,6 @@ class UpgradeStatusForm extends FormBase {
       '#weight' => 0,
       '#button_type' => 'primary',
       '#name' => 'scan',
-    ];
-    $form['drupal_upgrade_status_form']['action']['export'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Export full report'),
-      '#weight' => 5,
-      '#name' => 'export',
-      '#submit' => [[$this, 'exportFullReport']],
     ];
 
     return $form;
