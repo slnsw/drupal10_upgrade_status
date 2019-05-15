@@ -38,7 +38,6 @@ class UpgradeStatusUiTest extends UpgradeStatusBaseTest {
    */
   public function testUiBeforeScan() {
     $this->drupalGet(Url::fromRoute('upgrade_status.report'));
-
     $assert_session = $this->assertSession();
 
     // Check buttons.
@@ -52,9 +51,30 @@ class UpgradeStatusUiTest extends UpgradeStatusBaseTest {
     $assert_session->linkNotExists('View errors');
     $assert_session->linkNotExists('Re-scan');
 
-    $this->assertText('Not scanned');
-    $this->assertNoText('In queue');
-    $this->assertNoText('No known errors');
+    // Status for every project should be 'Not scanned'.
+    $status = $this->getSession()->getPage()->findAll('css', '*[class*=\'upgrade-status-summary-\'] *[class*=\'project-\'] td:nth-child(2)');
+    foreach ($status as $project_status) {
+      $this->assertSame('Not scanned', $project_status->getHtml());
+    }
+
+    // Check operations for custom projects.
+    $custom_operations = $this->getSession()->getPage()->findAll('css', '*[class*=\'upgrade-status-summary-custom\'] *[class*=\'project-\'] td:nth-child(3)');
+    foreach ($custom_operations as $operations) {
+      $this->assertTrue($operations->hasLink('Single scan'));
+      $this->assertFalse($operations->hasLink('View errors'));
+      $this->assertFalse($operations->hasLink('Re-scan'));
+      $this->assertFalse($operations->hasLink('Export'));
+    }
+
+    // Check operations for contributed projects.
+    $contrib_operations = $this->getSession()->getPage()->findAll('css', '*[class*=\'upgrade-status-summary-custom\'] *[class*=\'project-\'] td:nth-child(4)');
+    foreach ($contrib_operations as $operations) {
+      $this->assertTrue($operations->hasLink('Single scan'));
+      $this->assertFalse($operations->hasLink('View errors'));
+      $this->assertFalse($operations->hasLink('Re-scan'));
+      $this->assertFalse($operations->hasLink('Export'));
+    }
+
   }
 
   /**
@@ -68,23 +88,43 @@ class UpgradeStatusUiTest extends UpgradeStatusBaseTest {
 
     $this->drupalGet(Url::fromRoute('upgrade_status.report'));
 
+    $page = $this->getSession()->getPage();
     $assert_session = $this->assertSession();
 
-    // Check buttons.
+    // Check button appearance.
     $assert_session->buttonExists('Restart full scan');
     $assert_session->buttonExists('Export full report');
     $assert_session->buttonNotExists('Start full scan');
 
-    // Check links.
-    $assert_session->linkExists('View errors');
-    $assert_session->linkExists('Re-scan');
-    $assert_session->linkNotExists('Single scan');
+    $upgrade_status_test_error = $page->find('css', '.upgrade-status-summary-custom .project-upgrade_status_test_error');
+    $this->assertCount(3, $upgrade_status_test_error->findAll('css', 'td'));
+    $this->assertSame('1 error', $upgrade_status_test_error->find('css', 'td:nth-child(2)')->getHtml());
+    $upgrade_status_test_error->hasLink('View errors');
+    $upgrade_status_test_error->hasLink('Re-scan');
+    $upgrade_status_test_error->hasLink('Export');
 
-    // Check project statuses.
-    $this->assertText('No known errors');
-    $this->assertText('1 error');
-    $this->assertNoText('Not scanned');
-    $this->assertNoText('In queue');
+    $upgrade_status_test_no_error = $page->find('css', '.upgrade-status-summary-custom .project-upgrade_status_test_no_error');
+    $this->assertCount(3, $upgrade_status_test_no_error->findAll('css', 'td'));
+    $this->assertSame('No known errors', $upgrade_status_test_no_error->find('css', 'td:nth-child(2)')->getHtml());
+    $upgrade_status_test_no_error->hasLink('Re-scan');
+
+    $upgrade_status_test_submodules = $page->find('css', '.upgrade-status-summary-custom .project-upgrade_status_test_submodules');
+    $this->assertCount(3, $upgrade_status_test_submodules->findAll('css', 'td'));
+    $this->assertSame('No known errors', $upgrade_status_test_submodules->find('css', 'td:nth-child(2)')->getHtml());
+    $upgrade_status_test_submodules->hasLink('Re-scan');
+
+    // Contributed modules should have one extra column because of possible available update.
+    $upgrade_status_test_contrib_error = $page->find('css', '.upgrade-status-summary-contrib .project-upgrade_status_test_contrib_error');
+    $this->assertCount(4, $upgrade_status_test_contrib_error->findAll('css', 'td'));
+    $this->assertSame('1 error', $upgrade_status_test_contrib_error->find('css', 'td:nth-child(2)')->getHtml());
+    $upgrade_status_test_contrib_error->hasLink('Re-scan');
+
+    $upgrade_status_test_contrib_no_error = $page->find('css', '.upgrade-status-summary-contrib .project-upgrade_status_test_contrib_no_error');
+    $this->assertCount(4, $upgrade_status_test_contrib_no_error->findAll('css', 'td'));
+    $this->assertSame('No known errors', $upgrade_status_test_contrib_no_error->find('css', 'td:nth-child(2)')->getHtml());
+    $upgrade_status_test_contrib_no_error->hasLink('View errors');
+    $upgrade_status_test_contrib_no_error->hasLink('Re-scan');
+    $upgrade_status_test_contrib_no_error->hasLink('Export');
   }
 
   /**
@@ -92,9 +132,10 @@ class UpgradeStatusUiTest extends UpgradeStatusBaseTest {
    */
   public function testProjectCollector() {
     $this->drupalGet(Url::fromRoute('upgrade_status.report'));
+    $page = $this->getSession()->getPage();
 
-    $this->assertEqual(3, count($this->getSession()->getPage()->findAll('css', '.upgrade-status-summary-custom *[class*=\'project-\']')));
-    $this->assertEqual(4, count($this->getSession()->getPage()->findAll('css', '.upgrade-status-summary-contrib *[class*=\'project-\']')));
+    $this->assertCount(3, $page->findAll('css', '.upgrade-status-summary-custom *[class*=\'project-\']'));
+    $this->assertCount(4, $page->findAll('css', '.upgrade-status-summary-contrib *[class*=\'project-\']'));
   }
 
 }
