@@ -260,6 +260,8 @@ class UpgradeStatusForm extends FormBase {
    * Removes all items from queue and clears storage.
    */
   protected function clearData() {
+    $this->state->delete('upgrade_status.number_of_jobs');
+    $this->state->delete('upgrade_status.last_scan');
     $this->queue->deleteQueue();
     $this->scanResultStorage->deleteAll();
   }
