@@ -10,6 +10,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\upgrade_status\ProjectCollectorInterface;
 use Drupal\upgrade_status\Queue\InspectableQueueFactory;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -65,6 +66,13 @@ class JobRunController extends ControllerBase {
   protected $renderer;
 
   /**
+   * The logger service.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelInterface
+   */
+  protected $logger;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -75,7 +83,8 @@ class JobRunController extends ControllerBase {
       $container->get('upgrade_status.project_collector'),
       $container->get('date.formatter'),
       $container->get('keyvalue'),
-      $container->get('renderer')
+      $container->get('renderer'),
+      $container->get('logger.channel.upgrade_status')
     );
   }
 
@@ -96,6 +105,8 @@ class JobRunController extends ControllerBase {
    *   The key/value factory.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger.
    */
   public function __construct(
     InspectableQueueFactory $queue,
@@ -104,7 +115,8 @@ class JobRunController extends ControllerBase {
     ProjectCollectorInterface $projectCollector,
     DateFormatterInterface $dateFormatter,
     KeyValueFactoryInterface $key_value_factory,
-    RendererInterface $renderer
+    RendererInterface $renderer,
+    LoggerInterface $logger
   ) {
     $this->queue = $queue->get('upgrade_status_deprecation_worker');
     $this->queueManager = $queue_manager;
@@ -113,6 +125,7 @@ class JobRunController extends ControllerBase {
     $this->dateFormatter = $dateFormatter;
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->renderer = $renderer;
+    $this->logger = $logger;
   }
 
   /**
@@ -126,20 +139,30 @@ class JobRunController extends ControllerBase {
     $remaining_count = $this->queue->numberOfItems();
     $all_count = $this->state->get('upgrade_status.number_of_jobs');
 
+    $this->logger->notice($this->t('@remaining_count of @all_count queued jobs remain.',
+      [
+        '@remaining_count' => $remaining_count,
+        '@all_count' => $all_count,
+      ]
+    ));
+
     if ($remaining_count) {
       $job = $this->queue->claimItem();
       if ($job) {
         // Process this job.
+        $project = $job->data->getName();
+
+        $this->logger->notice($this->t('Attempting to process @project_machine_name.', ['@project_machine_name' => $project]));
         $queue_worker = $this->queueManager->createInstance('upgrade_status_deprecation_worker');
         $queue_worker->processItem($job->data);
         $this->queue->deleteItem($job);
+        $this->logger->notice($this->t('Removed @project_machine_name from the queue.', ['@project_machine_name' => $project]));
 
         $completed_jobs = $all_count - $this->queue->numberOfItems();
         $message = $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $all_count]);
         $percent = ($completed_jobs / $all_count) * 100;
         $label = $this->t('Scanning projects...');
 
-        $project = $job->data->getName();
         $selector = '.project-' . $project;
         $result = $this->scanResultStorage->get($project);
 
@@ -172,6 +195,7 @@ class JobRunController extends ControllerBase {
 
         $last_scan = '';
         if ($percent == 100) {
+          $this->logger->notice($this->t('All scanning done.'));
           // Jobs finished, delete the state data we use to keep track of them.
           $this->state->delete('upgrade_status.number_of_jobs');
           $this->state->set('upgrade_status.last_scan', REQUEST_TIME);
@@ -195,6 +219,7 @@ class JobRunController extends ControllerBase {
         // if the job failed because of an error, remove it from the queue.
         $this->queue->garbageCollection();
         $failedJob = $this->queue->claimItem();
+        $this->logger->notice($this->t('Queue item @project_machine_name failed and removed.', ['@project_machine_name' => $failedJob->data->getName()]));
         $this->queue->deleteItem($failedJob);
         $completed_jobs = $all_count - $this->queue->numberOfItems();
         $message = $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $all_count]);
@@ -215,6 +240,7 @@ class JobRunController extends ControllerBase {
       // anyway. Clean up the indicators for the progress runner so it can complete.
       $this->state->delete('upgrade_status.number_of_jobs');
       $this->state->set('upgrade_status.last_scan', REQUEST_TIME);
+      $this->logger->notice($this->t('Final cleanup ran.'));
 
       return new JsonResponse([
         'status' => TRUE,

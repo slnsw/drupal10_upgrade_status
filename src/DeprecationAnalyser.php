@@ -140,6 +140,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       }
     }
 
+    $this->logger->notice($this->t("Extension @project_machine_name contains @number files to process.", ['@project_machine_name' => $extension->getName(), '@number' => count($paths)]));
+
     $result = [
       'totals' => [
         'errors' => 0,
@@ -214,7 +216,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $container = $result->getContainer();
     $error_formatter_service = sprintf('errorFormatter.%s', self::ERROR_FORMAT);
     if (!$container->hasService($error_formatter_service)) {
-      $this->logger->error('Error formatter @formatter not found', ['@formatter' => self::ERROR_FORMAT]);
+      $this->logger->error('Error formatter @formatter not found.', ['@formatter' => self::ERROR_FORMAT]);
     }
     else {
       $errorFormatter = $container->getService($error_formatter_service);
@@ -250,7 +252,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $success = file_prepare_directory($this->upgradeStatusTemporaryDirectory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
     if (!$success) {
-      $this->logger->error($this->t("Couldn't write temporary directory for Upgrade Status: @directory", ['@directory' => $this->upgradeStatusTemporaryDirectory]));
+      $this->logger->error($this->t("Couldn't write temporary directory for Upgrade Status: @directory.", ['@directory' => $this->upgradeStatusTemporaryDirectory]));
       return $success;
     }
 
@@ -258,7 +260,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $success = file_prepare_directory($phpstan_cache_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
     if (!$success) {
-      $this->logger->error($this->t("Couldn't write temporary directory for PHPStan: @directory", ['@directory' => $phpstan_cache_directory]));
+      $this->logger->error($this->t("Couldn't write temporary directory for PHPStan: @directory.", ['@directory' => $phpstan_cache_directory]));
     }
 
     return $success;
@@ -277,6 +279,10 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $neon['parameters']['tmpDir'] = $this->upgradeStatusTemporaryDirectory . '/phpstan';
     $success = file_put_contents($this->phpstanNeonPath, Neon::encode($neon), Neon::BLOCK);
 
+    if (!$success) {
+      $this->logger->error($this->t("Couldn't write configuration for PHPStan: @file.", ['@file' => $this->phpstanNeonPath]));
+    }
+
     return $success ? TRUE : FALSE;
   }
 
@@ -285,6 +291,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $message = error_get_last();
 
     if (empty($result)) {
+
+      $this->logger->error($this->t("Fatal error occured for @project_machine_name.", ['@project_machine_name' => $project_name]));
 
       $result = [
         'totals' => [
