@@ -45,9 +45,9 @@ class InspectableQueue extends DatabaseQueue {
         ->connection
         ->query(
           sprintf("select * FROM %s WHERE data LIKE '%s'", self::TABLE_NAME, "%$path%"))
-        ->fetch();
+        ->fetchObject();
 
-      return $result ? (array) $result : FALSE;
+      return $result ? $result : FALSE;
     }
     catch (\Exception $e) {
       $this->catchException($e);

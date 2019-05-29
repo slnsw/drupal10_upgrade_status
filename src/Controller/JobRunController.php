@@ -146,6 +146,18 @@ class JobRunController extends ControllerBase {
       ]
     ));
 
+    // If a previous run resulted in a fatal error, gracefully recover.
+    $fatal_extension = $this->state->get('upgrade_status.scanning_job_fatal');
+    if (!empty($fatal_extension)) {
+      $item = $this->queue->getItem($fatal_extension);
+      $this->queue->deleteItem($item);
+      $this->state->delete('upgrade_status.scanning_job_fatal');
+
+      $this->logger->warning($this->t('Queue item @project_machine_name failed and removed.', ['@project_machine_name' => $fatal_extension->getName()]));
+      $remaining_count -= 1;
+    }
+
+    // If there are jobs remaining, claim one.
     if ($remaining_count) {
       $job = $this->queue->claimItem();
       if ($job) {
@@ -214,22 +226,13 @@ class JobRunController extends ControllerBase {
       else {
         // There appear to be jobs but we cannot claim any. Likely they are
         // being processed in cron for example. Continue the feedback loop.
-
-        // todo: review
-        // if the job failed because of an error, remove it from the queue.
-        $this->queue->garbageCollection();
-        $failedJob = $this->queue->claimItem();
-        $this->logger->notice($this->t('Queue item @project_machine_name failed and removed.', ['@project_machine_name' => $failedJob->data->getName()]));
-        $this->queue->deleteItem($failedJob);
         $completed_jobs = $all_count - $this->queue->numberOfItems();
         $message = $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $completed_jobs, '@job_count' => $all_count]);
-        $percent = ($completed_jobs / $all_count) * 100;
-        $label = $this->t('Scanning projects...');
         return new JsonResponse([
           'status' => TRUE,
-          'percentage' => $percent,
+          'percentage' => floor(($completed_jobs / $all_count) * 100),
           'message' => $message,
-          'label' => $label,
+          'label' => $this->t('Scanning projects...'),
           'result' => [],
           'date' => '',
         ]);
@@ -242,14 +245,11 @@ class JobRunController extends ControllerBase {
       $this->state->set('upgrade_status.last_scan', REQUEST_TIME);
       $this->logger->notice($this->t('Final cleanup ran.'));
 
+      $message = $this->t('Completed @completed_jobs of @job_count.', ['@completed_jobs' => $all_count, '@job_count' => $all_count]);
       return new JsonResponse([
         'status' => TRUE,
         'percentage' => 100,
-        'message' => $this->t('Completed @completed_jobs of @job_count.',
-          [
-            '@completed_jobs' => $all_count,
-            '@job_count' => $all_count,
-          ]),
+        'message' => $message,
         'label' => $this->t('Scan complete.'),
         'result' => [],
         'date' => $this->t('Report last ran on @date', ['@date' => $this->dateFormatter->format(REQUEST_TIME)]),

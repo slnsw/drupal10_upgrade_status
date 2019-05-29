@@ -262,6 +262,7 @@ class UpgradeStatusForm extends FormBase {
   protected function clearData() {
     $this->state->delete('upgrade_status.number_of_jobs');
     $this->state->delete('upgrade_status.last_scan');
+    $this->state->delete('upgrade_status.scanning_job_fatal');
     $this->queue->deleteQueue();
     $this->scanResultStorage->deleteAll();
   }

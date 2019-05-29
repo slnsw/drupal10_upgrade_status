@@ -5,6 +5,7 @@ namespace Drupal\upgrade_status;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Exception;
 use Nette\Neon\Neon;
@@ -73,6 +74,13 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $config;
 
   /**
+   * The state service.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
+
+  /**
    * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -91,7 +99,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     LoggerInterface $logger,
     StringInput $input,
     BufferedOutput $output,
-    ConfigFactoryInterface $config_factory
+    ConfigFactoryInterface $config_factory,
+    StateInterface $state
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     // Log errors to an upgrade status logger channel.
@@ -99,6 +108,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $this->inputInterface = $input;
     $this->outputInterface = $output;
     $this->config = $config_factory->get('upgrade_status.settings');
+    $this->state = $state;
 
     $this->populateAutoLoader();
 
@@ -122,7 +132,9 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    * {@inheritdoc}
    */
   public function analyse(Extension $extension) {
-    drupal_register_shutdown_function([$this, 'logFatalError'], $extension->getName());
+    // Prepare for possible fatal errors while autoloading or due to issues with
+    // dependencies.
+    drupal_register_shutdown_function([$this, 'logFatalError'], $extension);
 
     // Set the autoloader for PHPStan.
     if (!isset($GLOBALS['autoloaderInWorkingDirectory'])) {
@@ -286,13 +298,20 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     return $success ? TRUE : FALSE;
   }
 
-  public function logFatalError(string $project_name) {
+  /**
+   * Shutdown function to handle fatal errors in the parsing process.
+   *
+   * @param \Drupal\Core\Extension\Extension $extension
+   *   Failed extension.
+   */
+  public function logFatalError(Extension $extension) {
+    $project_name = $extension->getName();
     $result = $this->scanResultStorage->get($project_name);
     $message = error_get_last();
 
     if (empty($result)) {
 
-      $this->logger->error($this->t("Fatal error occured for @project_machine_name.", ['@project_machine_name' => $project_name]));
+      $this->logger->error($this->t("Fatal error occurred for @project_machine_name.", ['@project_machine_name' => $project_name]));
 
       $result = [
         'totals' => [
@@ -315,6 +334,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       ];
 
       $this->scanResultStorage->set($project_name, json_encode($result));
+      $this->state->set('upgrade_status.scanning_job_fatal', $extension);
     }
 
   }
