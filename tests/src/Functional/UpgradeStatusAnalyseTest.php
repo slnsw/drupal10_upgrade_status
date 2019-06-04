@@ -5,11 +5,11 @@ namespace Drupal\Tests\upgrade_status\Functional;
 use Drupal\Core\Url;
 
 /**
- * Tests the placing a block.
+ * Tests analysing sample projects.
  *
  * @group upgrade_status
  */
-class UpgradeStatusAnalyseTestBase extends UpgradeStatusTestBase {
+class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
 
   /**
    * Modules to install.

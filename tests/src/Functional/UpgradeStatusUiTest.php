@@ -5,7 +5,7 @@ namespace Drupal\Tests\upgrade_status\Functional;
 use Drupal\Core\Url;
 
 /**
- * Tests the placing a block.
+ * Tests the UI before and after running scans.
  *
  * @group upgrade_status
  */

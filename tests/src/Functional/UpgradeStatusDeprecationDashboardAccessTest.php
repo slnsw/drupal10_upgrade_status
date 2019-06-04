@@ -6,7 +6,7 @@ use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
 
 /**
- * Tests the accessibility of deprecation dashboard.
+ * Tests the accessibility of the deprecation dashboard.
  *
  * @group upgrade_status
  */
