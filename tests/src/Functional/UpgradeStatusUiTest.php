@@ -9,7 +9,7 @@ use Drupal\Core\Url;
  *
  * @group upgrade_status
  */
-class UpgradeStatusUiTest extends UpgradeStatusBaseTest {
+class UpgradeStatusUiTest extends UpgradeStatusTestBase {
 
   /**
    * Modules to install.

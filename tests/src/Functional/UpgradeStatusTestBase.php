@@ -7,7 +7,7 @@ use Drupal\Tests\BrowserTestBase;
 /**
  * Defines shared functions used by some of the functional tests.
  */
-abstract class UpgradeStatusBaseTest extends BrowserTestBase {
+abstract class UpgradeStatusTestBase extends BrowserTestBase {
 
   /**
    * Perform the scan by running the queue.
