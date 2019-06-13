@@ -53,7 +53,7 @@ class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
     $this->assertCount(1, $report['files']);
     $file = reset($report['files']);
     $message = $file['messages'][0];
-    $this->assertEquals('Call to deprecated function menu_cache_clear_all().', $message['message']);
+    $this->assertEquals("Call to deprecated function menu_cache_clear_all():\nin Drupal 8.6.0, will be removed before Drupal 9.0.0. Use\n\Drupal::cache('menu')->invalidateAll() instead.", $message['message']);
     $this->assertEquals(10, $message['line']);
 
     $project = $key_value->get('upgrade_status_test_no_error');
@@ -69,7 +69,7 @@ class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
     $this->assertCount(1, $report['files']);
     $file = reset($report['files']);
     $message = $file['messages'][0];
-    $this->assertEquals('Call to deprecated function format_string().', $message['message']);
+    $this->assertEquals("Call to deprecated function format_string():\nin Drupal 8.0.0, will be removed before Drupal 9.0.0.\nUse \Drupal\Component\Render\FormattableMarkup.", $message['message']);
     $this->assertEquals(15, $message['line']);
   }
 
