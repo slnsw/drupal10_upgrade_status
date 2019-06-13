@@ -6,15 +6,11 @@
     "license": "GPL-2.0-or-later",
     "require": {
         "drupal/core": "^8.6",
-        "mglaman/phpstan-drupal": "0.11.3",
-        "phpstan/phpstan": "0.11.6",
-        "phpstan/phpstan-deprecation-rules": "^0.11.0@dev",
+        "mglaman/phpstan-drupal": "^0.11.8",
+        "phpstan/phpstan": "^0.11.8",
+        "phpstan/phpstan-deprecation-rules": "^0.11.2@dev",
         "drupal/git_deploy": "2.x-dev",
         "phpunit/phpunit": "^4.8.35 || ^6.5"
-    },
-    "conflict": {
-        "nette/di": ">=3.0",
-        "nette/bootstrap": ">=3.0"
     },
     "minimum-stability": "dev"
 }
