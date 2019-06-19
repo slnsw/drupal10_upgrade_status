@@ -53,19 +53,17 @@ class InspectableQueue extends DatabaseQueue {
   public function getItem(Extension $data) {
     $path = $data->getPath();
     try {
-      // todo: refactor this.
-      $result = $this
+      $query = $this
         ->connection
-        ->query(
-          sprintf("select * FROM %s WHERE data LIKE '%s'", self::TABLE_NAME, "%$path%"))
-        ->fetchObject();
+        ->select(self::TABLE_NAME)
+        ->fields(self::TABLE_NAME);
+      $query->condition('data', "%$path%", 'LIKE');
+      $result = $query->execute()->fetchObject();
 
       return $result ? $result : FALSE;
     }
     catch (\Exception $e) {
-      // @todo should throw exceptions forward if not about the table, but
-      // this was failing miserably on testbot.
-      // $this->catchException($e);
+      $this->catchException($e);
 
       // If there is no table there cannot be any items.
       return 0;
