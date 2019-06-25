@@ -9,14 +9,5 @@
  * Implements hook_uninstall().
  */
 function upgrade_status_uninstall() {
-  \Drupal::state()->delete('upgrade_status.number_of_jobs');
-  \Drupal::state()->delete('upgrade_status.last_scan');
-  \Drupal::state()->delete('upgrade_status.scanning_job_fatal');
-
   \Drupal::keyValue('upgrade_status_scan_results')->deleteAll();
-
-  $queue_factory = \Drupal::service('queue.inspectable');
-  /** @var \Drupal\upgrade_status\Queue\InspectableQueue $queue */
-  $queue = $queue_factory->get('upgrade_status_deprecation_worker');
-  $queue->deleteQueue();
 }

@@ -6,13 +6,10 @@ services:
     class: Symfony\Component\Console\Output\BufferedOutput
   upgrade_status.deprecation_analyser:
     class: Drupal\upgrade_status\DeprecationAnalyser
-    arguments: ['@keyvalue', '@logger.channel.upgrade_status', '@upgrade_status.string_input', '@upgrade_status.buffered_output', '@config.factory', '@state']
+    arguments: ['@keyvalue', '@logger.channel.upgrade_status', '@upgrade_status.string_input', '@upgrade_status.buffered_output', '@config.factory']
   upgrade_status.project_collector:
     class: Drupal\upgrade_status\ProjectCollector
     arguments: ['@extension.list.module', '@theme_handler', '@extension.list.profile']
   logger.channel.upgrade_status:
     parent: logger.channel_base
     arguments: ['upgrade_status']
-  queue.inspectable:
-    class: Drupal\upgrade_status\Queue\InspectableQueueFactory
-    arguments: ['@database']

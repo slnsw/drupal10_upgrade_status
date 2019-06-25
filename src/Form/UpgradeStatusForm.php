@@ -3,7 +3,6 @@
 namespace Drupal\upgrade_status\Form;
 
 use Drupal\Component\Serialization\Json;
-use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -12,7 +11,6 @@ use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\ProjectCollector;
-use Drupal\upgrade_status\Queue\InspectableQueueFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class UpgradeStatusForm extends FormBase {
@@ -25,25 +23,11 @@ class UpgradeStatusForm extends FormBase {
   protected $projectCollector;
 
   /**
-   * The state service.
-   *
-   * @var \Drupal\Core\State\StateInterface
-   */
-  protected $state;
-
-  /**
    * Upgrade status scan result storage.
    *
    * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
    */
   protected $scanResultStorage;
-
-  /**
-   * The date formatter service.
-   *
-   * @var \Drupal\Core\Datetime\DateFormatterInterface
-   */
-  protected $dateFormatter;
 
   /**
    * Available releases store.
@@ -58,9 +42,7 @@ class UpgradeStatusForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('upgrade_status.project_collector'),
-      $container->get('state'),
       $container->get('keyvalue'),
-      $container->get('date.formatter'),
       $container->get('keyvalue.expirable')
     );
   }
@@ -70,26 +52,18 @@ class UpgradeStatusForm extends FormBase {
    *
    * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
    *   The project collector service.
-   * @param \Drupal\Core\State\StateInterface $state
-   *   The state service.
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The key/value factory.
-   * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
-   *   The date formatter service.
    * @param \Drupal\Core\KeyValueStore\KeyValueExpirableFactory $key_value_expirable
    *   The expirable key/value storage.
    */
   public function __construct(
     ProjectCollector $projectCollector,
-    StateInterface $state,
     KeyValueFactoryInterface $key_value_factory,
-    DateFormatterInterface $dateFormatter,
     KeyValueExpirableFactory $key_value_expirable
   ) {
     $this->projectCollector = $projectCollector;
-    $this->state = $state;
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
-    $this->dateFormatter = $dateFormatter;
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
   }
 
@@ -125,7 +99,7 @@ class UpgradeStatusForm extends FormBase {
     $form['custom'] = [
       '#type' => 'details',
       '#title' => $this->t('Custom modules and themes'),
-      '#description' => $this->t('Custom code is specific to your site, and must be upgraded manually. <a href=":upgrade">Read more about how developers can upgrade their code to Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/documentation/9#deprecated']),
+      '#description' => $this->t('Custom code is specific to your site, and must be upgraded manually. <a href=":upgrade">Read more about how developers can upgrade their code to Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/docs/9/how-drupal-9-is-made-and-what-is-included/how-and-why-we-deprecate-on-the-way-to-drupal-9']),
       '#open' => TRUE,
       '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-custom']],
       'data' => $custom,
@@ -152,25 +126,13 @@ class UpgradeStatusForm extends FormBase {
       '#value' => $this->t('Scan selected'),
       '#weight' => 2,
       '#button_type' => 'primary',
-      '#name' => 'scan',
     ];
-
-    $scan_date = $this->state->get('upgrade_status.last_scan');
-    if ($scan_date) {
-      $last_scan = $this->t('Report last ran on @date', ['@date' => $this->dateFormatter->format($scan_date)]);
-      $form['drupal_upgrade_status_form']['date'] = [
-        '#type' => 'markup',
-        '#markup' => '<div class="report-date">' . $last_scan . '</div>',
-      ];
-
-      $form['drupal_upgrade_status_form']['action']['export'] = [
-        '#type' => 'submit',
-        '#value' => $this->t('Export full report'),
-        '#weight' => 5,
-        '#name' => 'export',
-        '#submit' => [[$this, 'exportFullReport']],
-      ];
-    }
+    $form['drupal_upgrade_status_form']['action']['export'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Export selected'),
+      '#weight' => 5,
+      '#submit' => [[$this, 'exportReport']],
+    ];
 
     return $form;
   }
@@ -215,6 +177,17 @@ class UpgradeStatusForm extends FormBase {
         'class' => 'update-info',
         'data' => $isContrib ? $this->t('Up to date') : '',
       ];
+      $label_cell = [
+        'data' => [
+          '#type' => 'html_tag',
+          '#tag' => 'label',
+          '#value' => $label,
+          '#attributes' => [
+            'for' => 'edit-' . ($isContrib ? 'contrib' : 'custom') . '-data-data-' . str_replace('_', '-', $name),
+          ],
+        ],
+        'class' => 'project-label',
+      ];
 
       if ($isContrib) {
         $projectUpdateData = $this->releaseStore->get($name);
@@ -245,7 +218,7 @@ class UpgradeStatusForm extends FormBase {
       if (empty($scan_result)) {
         $build['data']['#options'][$name] = [
           '#attributes' => ['class' => ['not-scanned', 'project-' . $name]],
-          'project' => ['class' => 'project-label', 'data' => $label],
+          'project' => $label_cell,
           'update' => $update_cell,
           'status' => ['class' => 'status-info', 'data' => $this->t('Not scanned')],
         ];
@@ -255,8 +228,8 @@ class UpgradeStatusForm extends FormBase {
 
       // Unpack JSON of deprecations to display results.
       $report = json_decode($scan_result, TRUE);
-      if (isset($report['totals'])) {
-        $project_error_count = $report['totals']['file_errors'];
+      if (isset($report['data']['totals'])) {
+        $project_error_count = $report['data']['totals']['file_errors'];
       }
       else {
         $project_error_count = 0;
@@ -266,7 +239,7 @@ class UpgradeStatusForm extends FormBase {
       if ($project_error_count === 0) {
         $build['data']['#options'][$name] = [
           '#attributes' => ['class' => ['no-known-error', 'project-' . $name]],
-          'project' => ['class' => 'project-label', 'data' => $label],
+          'project' => $label_cell,
           'update' => $update_cell,
           'status' => ['class' => 'status-info', 'data' => $this->t('No known errors')],
         ];
@@ -279,14 +252,14 @@ class UpgradeStatusForm extends FormBase {
       // Finally this project had errors found, display them.
       $build['data']['#options'][$name] = [
         '#attributes' => ['class' => ['known-errors', 'project-' . $name]],
-        'project' => ['class' => 'project-label', 'data' => $label],
+        'project' => $label_cell,
         'update' => $update_cell,
         'status' => [
           'class' => 'status-info',
           'data' => [
             '#type' => 'link',
             '#title' => $this->formatPlural($project_error_count, '@count error', '@count errors'),
-            '#url' => Url::fromRoute('upgrade_status.project', ['type' =>$extension->getType(), 'project_machine_name' => $name]),
+            '#url' => Url::fromRoute('upgrade_status.project', ['type' => $extension->getType(), 'project_machine_name' => $name]),
             '#attributes' => [
               'class' => ['use-ajax'],
               'data-dialog-type' => 'modal',
@@ -329,9 +302,34 @@ class UpgradeStatusForm extends FormBase {
     return $build;
   }
 
-  public function exportFullReport(array $form, FormStateInterface $form_state) {
-    $uri = Url::fromRoute('upgrade_status.full_export');
-    $form_state->setRedirectUrl($uri);
+  /**
+   * Form submission handler.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   */
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    $operations = [];
+    $projects = $this->projectCollector->collectProjects();
+    $submitted = $form_state->getValues();
+
+    foreach (['custom', 'contrib'] as $type) {
+      foreach($submitted[$type]['data']['data'] as $project => $checked) {
+        if ($checked !== 0) {
+          // If the checkbox was checked, add a batch operation.
+          $operations[] = [static::class . '::parseProject', [$projects[$type][$project]]];
+        }
+      }
+    }
+    if (!empty($operations)) {
+      $batch = [
+        'title' => $this->t('Scanning projects'),
+        'operations' => $operations,
+      ];
+      batch_set($batch);
+    }
   }
 
   /**
@@ -342,50 +340,13 @@ class UpgradeStatusForm extends FormBase {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    */
-  public function submitForm(array &$form, FormStateInterface $form_state) {
-    $selected = [];
-
-    // Gather project list grouped by custom and contrib projects.
-    $projects = $this->projectCollector->collectProjects();
-
-    $submitted = $form_state->getValues();
-    foreach (['custom', 'contrib'] as $type) {
-      foreach($submitted[$type]['data']['data'] as $project => $checked) {
-        if ($checked !== 0) {
-          $selected[] = [static::class . '::parseProject', [$projects[$type][$project]]];
-        }
-      }
-    }
-    if (empty($selected)) {
-      return;
-    }
-
-    $batch = [
-      'title' => t('Scanning projects'),
-      'operations' => $selected,
-      //'finished' => '\Drupal\batch_example\DeleteNode::deleteNodeExampleFinishedCallback',
-    ];
-    batch_set($batch);
-    return;
-
-    // Clear the queue and the stored data to run a new queue.
-    $this->clearData();
-
-    // Queue each project for deprecation scanning.
-    $projects = $this->projectCollector->collectProjects();
-    foreach ($projects['custom'] as $projectData) {
-      $this->queue->createItem($projectData);
-    }
-    foreach ($projects['contrib'] as $projectData) {
-      $this->queue->createItem($projectData);
-    }
-
-    $job_count = $this->queue->numberOfItems();
-    $this->state->set('upgrade_status.number_of_jobs', $job_count);
+  public function exportReport(array &$form, FormStateInterface $form_state) {
+    $uri = Url::fromRoute('upgrade_status.full_export');
+    $form_state->setRedirectUrl($uri);
   }
 
   /**
-   * Analyse the codebase of an extension including all its sub-components.
+   * Batch callback to analyse a project.
    *
    * @param \Drupal\Core\Extension\Extension $extension
    *   The extension to analyse.
@@ -393,18 +354,8 @@ class UpgradeStatusForm extends FormBase {
    *   Batch context.
    */
   public static function parseProject(Extension $extension, &$context) {
+    $context['message'] = t('Completed @project.', ['@project' => $extension->getName()]);
     \Drupal::service('upgrade_status.deprecation_analyser')->analyse($extension);
-  }
-
-  /**
-   * Removes all items from queue and clears storage.
-   */
-  protected function clearData() {
-    $this->state->delete('upgrade_status.number_of_jobs');
-    $this->state->delete('upgrade_status.last_scan');
-    $this->state->delete('upgrade_status.scanning_job_fatal');
-    $this->queue->deleteQueue();
-    $this->scanResultStorage->deleteAll();
   }
 
 }

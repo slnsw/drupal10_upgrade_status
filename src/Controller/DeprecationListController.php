@@ -3,6 +3,7 @@
 namespace Drupal\upgrade_status\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\ProjectCollectorInterface;
@@ -25,16 +26,30 @@ class DeprecationListController extends ControllerBase {
   protected $projectCollector;
 
   /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatterInterface
+   */
+  protected $dateFormatter;
+
+  /**
    * Constructs a \Drupal\upgrade_status\Controller\DeprecationListController.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The key/value factory.
    * @param \Drupal\upgrade_status\ProjectCollectorInterface $project_collector
    *   The project collector service.
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
+   *   The date formatter service.
    */
-  public function __construct(KeyValueFactoryInterface $key_value_factory, ProjectCollectorInterface $project_collector) {
+  public function __construct(
+    KeyValueFactoryInterface $key_value_factory,
+    ProjectCollectorInterface $project_collector,
+    DateFormatterInterface $dateFormatter
+  ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->projectCollector = $project_collector;
+    $this->dateFormatter = $dateFormatter;
   }
 
   /**
@@ -43,7 +58,8 @@ class DeprecationListController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('keyvalue'),
-      $container->get('upgrade_status.project_collector')
+      $container->get('upgrade_status.project_collector'),
+      $container->get('date.formatter')
     );
   }
 
@@ -76,22 +92,24 @@ class DeprecationListController extends ControllerBase {
     }
 
     $report = json_decode($scan_result, TRUE);
-    if (isset($report['totals'])) {
-      $project_error_count = $report['totals']['file_errors'];
+    if (isset($report['data']['totals'])) {
+      $project_error_count = $report['data']['totals']['file_errors'];
     }
     else {
       $project_error_count = 0;
     }
 
+    $build = [
+      '#title' => $this->t('@title - scanned on @date.', ['@title' => $label, '@date' => $this->dateFormatter->format($report['date'])]),
+    ];
+
     // If this project had no known issues found, report that.
     if ($project_error_count === 0) {
-      return [
-        '#title' => $label,
-        'data' => [
-          '#type' => 'markup',
-          '#markup' => $this->t('No known issues found.'),
-        ],
+      $build['data'] = [
+        '#type' => 'markup',
+        '#markup' => $this->t('No known issues found.'),
       ];
+      return $build;
     }
 
     // Otherwise prepare list of errors in a table.
@@ -104,7 +122,7 @@ class DeprecationListController extends ControllerBase {
       ],
     ];
 
-    foreach ($report['files'] as $filepath => $errors) {
+    foreach ($report['data']['files'] as $filepath => $errors) {
       foreach ($errors['messages'] as $error) {
 
         // Remove the Drupal root directory and allow paths and namespaces to wrap.
@@ -175,35 +193,32 @@ class DeprecationListController extends ControllerBase {
       }
     }
 
-    $content = [
-      '#title' => $label,
-      'description' => [
-        '#type' => '#markup',
-        '#markup' => '<div class="error-description">' . $this->formatPlural($project_error_count, '@count known compatibility Drupal 9 error.', '@count known Drupal 9 compatibility errors found.') . '</div>',
-      ],
-      'data' => $table,
-      'export' => [
-        '#type' => 'link',
-        '#title' => $this->t('Export report'),
-        '#weight' => 10,
-        '#name' => 'export',
-        '#url' => Url::fromRoute(
-          'upgrade_status.single_export',
-          [
-            'type' => $type,
-            'project_machine_name' => $project_machine_name,
-          ]
-        ),
-        '#attributes' => [
-          'class' => [
-            'button',
-            'button--primary',
-          ],
+    $build['summary'] = [
+      '#type' => '#markup',
+      '#markup' => '<div class="error-description">' . $this->formatPlural($project_error_count, '@count known compatibility Drupal 9 error.', '@count known Drupal 9 compatibility errors found.') . '</div>',
+    ];
+    $build['data'] = $table;
+    $build['export'] = [
+      '#type' => 'link',
+      '#title' => $this->t('Export report'),
+      '#weight' => 10,
+      '#name' => 'export',
+      '#url' => Url::fromRoute(
+        'upgrade_status.single_export',
+        [
+          'type' => $type,
+          'project_machine_name' => $project_machine_name,
+        ]
+      ),
+      '#attributes' => [
+        'class' => [
+          'button',
+          'button--primary',
         ],
       ],
     ];
 
-    return $content;
+    return $build;
   }
 
 }

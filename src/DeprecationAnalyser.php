@@ -5,7 +5,6 @@ namespace Drupal\upgrade_status;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
-use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Exception;
 use Nette\Neon\Neon;
@@ -74,13 +73,6 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $config;
 
   /**
-   * The state service.
-   *
-   * @var \Drupal\Core\State\StateInterface
-   */
-  protected $state;
-
-  /**
    * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -99,8 +91,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     LoggerInterface $logger,
     StringInput $input,
     BufferedOutput $output,
-    ConfigFactoryInterface $config_factory,
-    StateInterface $state
+    ConfigFactoryInterface $config_factory
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     // Log errors to an upgrade status logger channel.
@@ -108,7 +99,6 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $this->inputInterface = $input;
     $this->outputInterface = $output;
     $this->config = $config_factory->get('upgrade_status.settings');
-    $this->state = $state;
 
     $this->populateAutoLoader();
 
@@ -154,7 +144,9 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
 
     $this->logger->notice($this->t("Extension @project_machine_name contains @number files to process.", ['@project_machine_name' => $extension->getName(), '@number' => count($paths)]));
 
-    $result = [
+    $result = [];
+    $result['date'] = REQUEST_TIME;
+    $result['data'] = [
       'totals' => [
         'errors' => 0,
         'file_errors' => 0,
@@ -168,14 +160,14 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       for ($offset = 0; $offset <= count($paths); $offset += $num_of_files) {
         $files = array_slice($paths, $offset, $num_of_files);
         if (!empty($files)) {
-          $raw_errors = $this->checkDeprecationErrorMessages($files);
+          $raw_errors = $this->runPhpStan($files);
           $errors = json_decode($raw_errors, TRUE);
           if (!is_array($errors)) {
             continue;
           }
-          $result['totals']['errors'] += $errors['totals']['errors'];
-          $result['totals']['file_errors'] += $errors['totals']['file_errors'];
-          $result['files'] = array_merge($result['files'], $errors['files']);
+          $result['data']['totals']['errors'] += $errors['totals']['errors'];
+          $result['data']['totals']['file_errors'] += $errors['totals']['file_errors'];
+          $result['data']['files'] = array_merge($result['data']['files'], $errors['files']);
         }
       }
     }
@@ -184,27 +176,39 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $this->scanResultStorage->set($extension->getName(), json_encode($result));
   }
 
-  public function getDirContents($dir, &$results = []) {
+  /**
+   * Get directory contents recursively.
+   *
+   * @param string $dir
+   *   Path to directory.
+   * @return array
+   *   The list of files found.
+   */
+  public function getDirContents(string $dir) {
+    $results = [];
     $files = scandir($dir);
-
     foreach ($files as $value) {
       $path = realpath($dir . '/' . $value);
-
       if (!is_dir($path)) {
         $results[] = $path;
         continue;
       }
-
       if ($value != '.' && $value != '..') {
-        $this->getDirContents($path, $results);
-        $results[] = $path;
+        $results = array_merge($results, $this->getDirContents($path, $results));
       }
     }
-
     return $results;
   }
 
-  public function checkDeprecationErrorMessages(array $paths) {
+  /**
+   * Run PHPStan on the given paths.
+   *
+   * @param array $paths
+   *   List of paths.
+   * @return mixed
+   *   Results in self::ERROR_FORMAT.
+   */
+  public function runPhpStan(array $paths) {
     // Analyse code in the given directory with PHPStan. The most sensible way
     // we could find was to pretend we have Symfony console inputs and outputs
     // and take the result from there. PHPStan as-is is highly tied to the
@@ -250,12 +254,11 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   }
 
   /**
-   * Prepare fundamental directories for upgrade_status.
+   * Prepare temporary directories for Upgrade Status.
    *
-   * The created directories in Drupal's temporary directory is needed to
-   * dynamically set temporary directory for PHPStan in the neon file
-   * provided by upgrade_status.
-   * The temporary directory used by PHPStan cache.
+   * The created directories in Drupal's temporary directory are needed to
+   * dynamically set a temporary directory for PHPStan's cache in the neon file
+   * provided by Upgrade Status.
    *
    * @return bool
    *   True if the temporary directory is created, false if not.
@@ -264,7 +267,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $success = file_prepare_directory($this->upgradeStatusTemporaryDirectory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
     if (!$success) {
-      $this->logger->error($this->t("Couldn't write temporary directory for Upgrade Status: @directory.", ['@directory' => $this->upgradeStatusTemporaryDirectory]));
+      $this->logger->error($this->t("Unable to create temporary directory for Upgrade Status: @directory.", ['@directory' => $this->upgradeStatusTemporaryDirectory]));
       return $success;
     }
 
@@ -272,7 +275,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $success = file_prepare_directory($phpstan_cache_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
     if (!$success) {
-      $this->logger->error($this->t("Couldn't write temporary directory for PHPStan: @directory.", ['@directory' => $phpstan_cache_directory]));
+      $this->logger->error($this->t("Unable to create temporary directory for PHPStan: @directory.", ['@directory' => $phpstan_cache_directory]));
     }
 
     return $success;
@@ -313,7 +316,9 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
 
       $this->logger->error($this->t("Fatal error occurred for @project_machine_name.", ['@project_machine_name' => $project_name]));
 
-      $result = [
+      $result = [];
+      $result['date'] = REQUEST_TIME;
+      $result['data'] = [
         'totals' => [
           'errors' => 0,
           'file_errors' => 1,
@@ -323,7 +328,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
 
       $file_name = $message['file'];
 
-      $result['files'][$file_name] = [
+      $result['data']['files'][$file_name] = [
         'errors' => 1,
         'messages' => [
           [
@@ -334,7 +339,6 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       ];
 
       $this->scanResultStorage->set($project_name, json_encode($result));
-      $this->state->set('upgrade_status.scanning_job_fatal', $extension);
     }
 
   }
