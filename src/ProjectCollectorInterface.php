@@ -37,21 +37,4 @@ interface ProjectCollectorInterface {
    */
   public function loadProject(string $type, string $project_machine_name);
 
-  /**
-   * Generate operations link render array for a project.
-   *
-   * @param string $name
-   *   Machine name of project.
-   * @param string $type
-   *   Type of project (module/theme).
-   * @param bool $unscanned
-   *   (Optional) Whether this project is new to be scanned.
-   * @param bool $errors
-   *   (Optional) Whether this project had any errors found.
-   *
-   * @return array
-   *   Render array of operations.
-   */
-  public function getProjectOperations($name, $type, $unscanned = TRUE, $errors = FALSE);
-
 }

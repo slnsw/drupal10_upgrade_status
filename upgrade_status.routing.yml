@@ -1,7 +1,7 @@
 upgrade_status.report:
   path: '/admin/reports/upgrade'
   defaults:
-    _controller: '\Drupal\upgrade_status\Controller\ReportController::content'
+    _form: '\Drupal\upgrade_status\Form\UpgradeStatusForm'
     _title: 'Upgrade status'
   requirements:
     _permission: 'administer software updates'
@@ -11,25 +11,6 @@ upgrade_status.project:
   defaults:
     _controller: '\Drupal\upgrade_status\Controller\DeprecationListController::content'
     _title: 'Deprecation report'
-  requirements:
-    _permission: 'administer software updates'
-
-upgrade_status.run_job:
-  path: '/admin/reports/upgrade/run-job'
-  defaults:
-    _controller: '\Drupal\upgrade_status\Controller\JobRunController::runNextJob'
-    _title: 'Run Job'
-  requirements:
-    _permission: 'administer software updates'
-    _format: 'json'
-  options:
-    _admin_route: TRUE
-
-upgrade_status.add_project:
-  path: '/admin/reports/upgrade/add-project/{type}/{project_machine_name}'
-  defaults:
-    _controller: '\Drupal\upgrade_status\Controller\JobRunController::addProjectToQueue'
-    _title: 'Add project to queue'
   requirements:
     _permission: 'administer software updates'
 
@@ -48,13 +29,3 @@ upgrade_status.single_export:
     _title: 'Upgrade status'
   requirements:
     _permission: 'administer software updates'
-
-upgrade_status.cancel_form_controller:
-  path: '/admin/reports/upgrade_status/modal_form'
-  defaults:
-    _title: 'Cancel scan?'
-    _controller: '\Drupal\upgrade_status\Controller\CancelFormController::content'
-  requirements:
-    _permission: 'administer software updates'
-  options:
-    _admin_route: TRUE
