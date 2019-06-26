@@ -2,12 +2,10 @@
 
 namespace Drupal\upgrade_status;
 
-use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ProfileExtensionList;
 use Drupal\Core\Extension\ThemeHandler;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\Core\Url;
 use http\Exception\InvalidArgumentException;
 
 /**

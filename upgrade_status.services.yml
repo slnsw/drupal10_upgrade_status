@@ -10,6 +10,9 @@ services:
   upgrade_status.project_collector:
     class: Drupal\upgrade_status\ProjectCollector
     arguments: ['@extension.list.module', '@theme_handler', '@extension.list.profile']
+  upgrade_status.result_formatter:
+    class: Drupal\upgrade_status\ScanResultFormatter
+    arguments: ['@keyvalue', '@date.formatter']
   logger.channel.upgrade_status:
     parent: logger.channel_base
     arguments: ['upgrade_status']
