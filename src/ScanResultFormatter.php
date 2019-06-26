@@ -30,7 +30,7 @@ class ScanResultFormatter {
   protected $dateFormatter;
 
   /**
-   * Constructs a \Drupal\upgrade_status\Controller\DeprecationListController.
+   * Constructs a \Drupal\upgrade_status\Controller\ScanResultFormatter.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The key/value factory.
@@ -190,7 +190,7 @@ class ScanResultFormatter {
       '#weight' => 10,
       '#name' => 'export',
       '#url' => Url::fromRoute(
-        'upgrade_status.single_export',
+        'upgrade_status.export',
         [
           'type' => $extension->getType(),
           'project_machine_name' => $extension->getName(),

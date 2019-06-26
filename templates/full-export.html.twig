@@ -40,14 +40,14 @@
     <h2>Custom modules and themes</h2>
     {% for project in projects.custom %}
       <h3>{{ project.name }}</h3>
-      {{ project.description }}
+      {{ project.summary }}
       {{ project.data }}
       {% endfor %}
 
     <h2>Contributed modules and themes</h2>
     {% for project in projects.contrib %}
       <h3>{{ project.name }}</h3>
-      {{ project.description }}
+      {{ project.summary }}
       {{ project.data }}
       {% endfor %}
 </body>

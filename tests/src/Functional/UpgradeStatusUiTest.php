@@ -73,7 +73,13 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
 
     // Click the second link about errors. Should be the contributed module.
     $this->clickLink('1 error', 1);
-    $this->assertText('Upgrade status test contrib error');
+    $this->assertText('Upgrade status test contrib error ' . \Drupal::VERSION . ' - scanned on');
+    $this->assertText('1 known Drupal 9 compatibility error found.');
+
+    // Go forward to the export page and assert that still contains the results
+    // as well as an export specific title.
+    $this->clickLink('Export report');
+    $this->assertText('Upgrade status test contrib error ' . \Drupal::VERSION . ' upgrade status report');
     $this->assertText('1 known Drupal 9 compatibility error found.');
   }
 

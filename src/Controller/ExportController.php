@@ -97,8 +97,8 @@ class ExportController extends ControllerBase {
   public function downloadFullExport() {
     $projects = $this->projectCollector->collectProjects();
 
-    /** @var \Drupal\upgrade_status\Controller\DeprecationListController $deprecation_list_controller */
-    $deprecation_list_controller = $this->classResolver->getInstanceFromDefinition(DeprecationListController::class);
+    /** @var \Drupal\upgrade_status\Controller\ScanResultController $deprecation_list_controller */
+    $deprecation_list_controller = $this->classResolver->getInstanceFromDefinition(ScanResultController::class);
 
     $content['#theme'] = 'full_export';
     $time = $this->time->getCurrentTime();
@@ -113,34 +113,6 @@ class ExportController extends ControllerBase {
     foreach ($projects['contrib'] as $project_machine_name => $project) {
       $content['#projects']['contrib'][] = $deprecation_list_controller->content($project->getType(), $project_machine_name);
     }
-
-    return $this->createResponse($content, $filename);
-  }
-
-  /**
-   * Generates single project export of Upgrade Status report.
-   *
-   * @param string $type
-   *   Type of the extension, it can be either 'module' or 'theme.
-   * @param string $project_machine_name
-   *   The machine name of the project.
-   *
-   * @return \Symfony\Component\HttpFoundation\Response
-   */
-  public function downloadSingleExport(string $type, string $project_machine_name) {
-    $extension = $this->projectCollector->loadProject($type, $project_machine_name);
-    $info = $extension->info;
-    $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
-
-    $deprecation_list_controller = $this->classResolver->getInstanceFromDefinition(DeprecationListController::class);
-
-    $content['#theme'] = 'single_export';
-    $content['#project'] = $deprecation_list_controller->content($type, $project_machine_name);
-    $content['#project']['name'] = $label;
-    $time = $this->time->getCurrentTime();
-    $formattedTime = $this->dateFormatter->format($time, 'html_datetime');
-    $content['#date'] = $this->dateFormatter->format($time);
-    $filename = 'single-export-' . $project_machine_name . '-' . $formattedTime . '.html';
 
     return $this->createResponse($content, $filename);
   }
