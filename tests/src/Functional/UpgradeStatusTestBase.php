@@ -10,24 +10,32 @@ use Drupal\Tests\BrowserTestBase;
 abstract class UpgradeStatusTestBase extends BrowserTestBase {
 
   /**
-   * Perform the scan by running the queue.
+   * Modules to install.
+   *
+   * @var array
    */
-  protected function runQueue() {
-    // Prepare for running the queue.
-    /** @var \Drupal\Core\Queue\QueueWorkerManagerInterface $worker_manager */
-    $worker_manager = \Drupal::service('plugin.manager.queue_worker');
-    /** @var \Drupal\upgrade_status\Plugin\QueueWorker\UpgradeStatusDeprecationWorker $worker */
-    $worker = $worker_manager->createInstance('upgrade_status_deprecation_worker');
+  public static $modules = [
+    'upgrade_status',
+    'upgrade_status_test_error',
+    'upgrade_status_test_no_error',
+    'upgrade_status_test_submodules_a',
+    'upgrade_status_test_contrib_error',
+    'upgrade_status_test_contrib_no_error',
+  ];
 
-    $queue_factory = \Drupal::service('queue.inspectable');
-    /** @var \Drupal\upgrade_status\Queue\InspectableQueue $queue */
-    $queue = $queue_factory->get('upgrade_status_deprecation_worker');
-
-    // Run the queue.
-    while ($queue->numberOfItems() !== 0 && ($item = $queue->claimItem())) {
-      $worker->processItem($item->data);
-      $queue->deleteItem($item);
-    }
+  /**
+   * Perform a full scan on all test modules.
+   */
+  protected function runFullScan() {
+    $edit = [
+      'contrib[data][data][upgrade_status]' => TRUE,
+      'custom[data][data][upgrade_status_test_error]' => TRUE,
+      'custom[data][data][upgrade_status_test_no_error]' => TRUE,
+      'custom[data][data][upgrade_status_test_submodules]' => TRUE,
+      'contrib[data][data][upgrade_status_test_contrib_error]' => TRUE,
+      'contrib[data][data][upgrade_status_test_contrib_no_error]' => TRUE,
+    ];
+    $this->drupalPostForm('admin/reports/upgrade', $edit, 'Scan selected');
   }
 
 }

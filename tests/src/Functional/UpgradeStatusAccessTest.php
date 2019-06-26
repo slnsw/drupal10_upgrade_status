@@ -10,7 +10,7 @@ use Drupal\Tests\BrowserTestBase;
  *
  * @group upgrade_status
  */
-class UpgradeStatusDeprecationDashboardAccessTest extends BrowserTestBase {
+class UpgradeStatusAccessTest extends BrowserTestBase {
 
   /**
    * Modules to install.
@@ -20,7 +20,7 @@ class UpgradeStatusDeprecationDashboardAccessTest extends BrowserTestBase {
   public static $modules = ['upgrade_status'];
 
   /**
-   * Tests deprecation dashboard without permission.
+   * Tests access without permission.
    */
   public function testDeprecationDashboardAccessUnprivileged() {
     $this->drupalGet(Url::fromRoute('upgrade_status.report'));
@@ -28,7 +28,7 @@ class UpgradeStatusDeprecationDashboardAccessTest extends BrowserTestBase {
   }
 
   /**
-   * Tests access to deprecation dashboard with user that has the correct permission.
+   * Tests access with user that has the correct permission.
    */
   public function testDeprecationDashboardAccessPrivileged() {
     $this->drupalLogin($this->drupalCreateUser(['administer software updates']));

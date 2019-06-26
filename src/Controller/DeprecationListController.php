@@ -195,7 +195,7 @@ class DeprecationListController extends ControllerBase {
 
     $build['summary'] = [
       '#type' => '#markup',
-      '#markup' => '<div class="error-description">' . $this->formatPlural($project_error_count, '@count known compatibility Drupal 9 error.', '@count known Drupal 9 compatibility errors found.') . '</div>',
+      '#markup' => '<div class="error-description">' . $this->formatPlural($project_error_count, '@count known Drupal 9 compatibility error found.', '@count known Drupal 9 compatibility errors found.') . '</div>',
     ];
     $build['data'] = $table;
     $build['export'] = [
