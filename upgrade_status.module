@@ -16,30 +16,28 @@ function upgrade_status_help($route_name, RouteMatchInterface $route_match) {
  */
 function upgrade_status_theme($existing, $type, $theme, $path) {
   return [
-    'full_export' => [
+    'upgrade_status_html_export' => [
       'variables' => [
         'projects' => [],
-        'date' => '',
-      ],
-    ],
-    'single_export' => [
-      'variables' => [
-        'project' => [],
-        'date' => '',
       ],
     ],
   ];
 }
 
-function template_preprocess_full_export(&$variables) {
+/**
+ * Preprocess project list for export.
+ *
+ * @param array $variables
+ *   Array of template variables.
+ */
+function template_preprocess_upgrade_status_html_export(&$variables) {
   $projects = $variables['projects'];
-
-  foreach ($projects['custom'] as $key => $project) {
-    $variables['projects']['custom'][$key]['name'] = $projects['custom'][$key]['#title'];
-  }
-
-  foreach ($projects['contrib'] as $key => $project) {
-    $variables['projects']['contrib'][$key]['name'] = $projects['contrib'][$key]['#title'];
+  $types = ['custom', 'contrib'];
+  foreach ($types as $type) {
+    if (!empty($projects[$type])) {
+      foreach ($projects[$type] as $key => $project) {
+        $variables['projects'][$type][$key]['name'] = $projects[$type][$key]['#title'];
+      }
+    }
   }
 }
-

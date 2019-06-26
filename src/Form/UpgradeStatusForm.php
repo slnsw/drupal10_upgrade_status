@@ -8,10 +8,13 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
-use Drupal\Core\State\StateInterface;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\ProjectCollector;
+use Drupal\upgrade_status\ScanResultFormatter;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Response;
+
 
 class UpgradeStatusForm extends FormBase {
 
@@ -37,34 +40,58 @@ class UpgradeStatusForm extends FormBase {
   protected $releaseStore;
 
   /**
+   * The scan result formatter service.
+   *
+   * @var \Drupal\upgrade_status\ScanResultFormatter
+   */
+  protected $resultFormatter;
+
+  /**
+   * The renderer service.
+   *
+   * @var \Drupal\Core\Render\RendererInterface
+   */
+  protected $renderer;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('upgrade_status.project_collector'),
       $container->get('keyvalue'),
-      $container->get('keyvalue.expirable')
+      $container->get('keyvalue.expirable'),
+      $container->get('upgrade_status.result_formatter'),
+      $container->get('renderer')
     );
   }
 
   /**
    * Constructs a Drupal\upgrade_status\Form\UpgradeStatusForm.
    *
-   * @param \Drupal\upgrade_status\ProjectCollector $projectCollector
+   * @param \Drupal\upgrade_status\ProjectCollector $project_collector
    *   The project collector service.
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The key/value factory.
    * @param \Drupal\Core\KeyValueStore\KeyValueExpirableFactory $key_value_expirable
    *   The expirable key/value storage.
+   * @param \Drupal\upgrade_status\ScanResultFormatter $result_formatter
+   *   The scan result formatter service.
+   * @param \Drupal\Core\Render\RendererInterface $renderer
+   *   The renderer service.
    */
   public function __construct(
-    ProjectCollector $projectCollector,
+    ProjectCollector $project_collector,
     KeyValueFactoryInterface $key_value_factory,
-    KeyValueExpirableFactory $key_value_expirable
+    KeyValueExpirableFactory $key_value_expirable,
+    ScanResultFormatter $result_formatter,
+    RendererInterface $renderer
   ) {
-    $this->projectCollector = $projectCollector;
+    $this->projectCollector = $project_collector;
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
+    $this->resultFormatter = $result_formatter;
+    $this->renderer = $renderer;
   }
 
   /**
@@ -341,8 +368,29 @@ class UpgradeStatusForm extends FormBase {
    *   The current state of the form.
    */
   public function exportReport(array &$form, FormStateInterface $form_state) {
-    $uri = Url::fromRoute('upgrade_status.full_export');
-    $form_state->setRedirectUrl($uri);
+    $extensions = [];
+    $projects = $this->projectCollector->collectProjects();
+    $submitted = $form_state->getValues();
+
+    foreach (['custom', 'contrib'] as $type) {
+      foreach($submitted[$type]['data']['data'] as $project => $checked) {
+        if ($checked !== 0) {
+          // If the checkbox was checked, add it to the list.
+          $extensions[$type][$project] = $this->resultFormatter->formatResult($projects[$type][$project]);
+        }
+      }
+    }
+
+    $build = [
+      '#theme' => 'upgrade_status_html_export',
+      '#projects' => $extensions
+    ];
+
+    $fileDate = $this->resultFormatter->formatDateTime(0, 'html_datetime');
+    $filename = 'upgrade-status-export-' . $fileDate . '.html';
+    $response = new Response($this->renderer->renderRoot($build));
+    $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    $form_state->setResponse($response);
   }
 
   /**

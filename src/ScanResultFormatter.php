@@ -2,6 +2,7 @@
 
 namespace Drupal\upgrade_status;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
@@ -30,19 +31,30 @@ class ScanResultFormatter {
   protected $dateFormatter;
 
   /**
+   * The time service.
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
+  protected $time;
+
+  /**
    * Constructs a \Drupal\upgrade_status\Controller\ScanResultFormatter.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The key/value factory.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $dateFormatter
    *   The date formatter service.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
    */
   public function __construct(
     KeyValueFactoryInterface $key_value_factory,
-    DateFormatterInterface $dateFormatter
+    DateFormatterInterface $dateFormatter,
+    TimeInterface $time
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->dateFormatter = $dateFormatter;
+    $this->time = $time;
   }
 
   /**
@@ -51,8 +63,25 @@ class ScanResultFormatter {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('keyvalue'),
-      $container->get('date.formatter')
+      $container->get('date.formatter'),
+      $container->get('datetime.time')
     );
+  }
+
+  /**
+   * Get scanning result for an extension.
+   *
+   * @param Extension $extension
+   *   Drupal extension object.
+   * @return null|array
+   *   Scan results array or null if no scan results are saved.
+   */
+  public function getRawResult(Extension $extension) {
+    $scan_results = $this->scanResultStorage->get($extension->getName());
+    if (!empty($scan_results)) {
+      $scan_results = json_decode($scan_results, TRUE);
+    }
+    return $scan_results;
   }
 
   /**
@@ -62,12 +91,12 @@ class ScanResultFormatter {
    *   Build array.
    */
   public function formatResult(Extension $extension) {
-    $scan_result = $this->scanResultStorage->get($extension->getName());
+    $result = $this->getRawResult($extension);
     $info = $extension->info;
     $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
 
     // This project was not yet scanned or the scan results were removed.
-    if (empty($scan_result)) {
+    if (empty($result)) {
       return [
         '#title' => $label,
         'data' => [
@@ -77,16 +106,19 @@ class ScanResultFormatter {
       ];
     }
 
-    $report = json_decode($scan_result, TRUE);
-    if (isset($report['data']['totals'])) {
-      $project_error_count = $report['data']['totals']['file_errors'];
+    if (isset($result['data']['totals'])) {
+      $project_error_count = $result['data']['totals']['file_errors'];
     }
     else {
       $project_error_count = 0;
     }
 
     $build = [
-      '#title' => $this->t('@title - scanned on @date.', ['@title' => $label, '@date' => $this->dateFormatter->format($report['date'])]),
+      '#title' => $label,
+      'date' => [
+        '#type' => 'markup',
+        '#markup' => '<div class="list-description">' . $this->t('Scanned on @date.', ['@date' => $this->dateFormatter->format($result['date'])]) . '</div>',
+      ],
     ];
 
     // If this project had no known issues found, report that.
@@ -108,8 +140,11 @@ class ScanResultFormatter {
       ],
     ];
 
-    foreach ($report['data']['files'] as $filepath => $errors) {
+    foreach ($result['data']['files'] as $filepath => $errors) {
       foreach ($errors['messages'] as $error) {
+
+        // Make the error more readable in case it has the deprecation text.
+        $error['message'] = preg_replace('!:\s+in!', '. Deprecated in', $error['message']);
 
         // Remove the Drupal root directory and allow paths and namespaces to wrap.
         // Emphasize filename as it may show up in the middle of the info.
@@ -181,7 +216,7 @@ class ScanResultFormatter {
 
     $build['summary'] = [
       '#type' => '#markup',
-      '#markup' => '<div class="error-description">' . $this->formatPlural($project_error_count, '@count known Drupal 9 compatibility error found.', '@count known Drupal 9 compatibility errors found.') . '</div>',
+      '#markup' => '<div class="list-description">' . $this->formatPlural($project_error_count, '@count known Drupal 9 compatibility error found.', '@count known Drupal 9 compatibility errors found.') . '</div>',
     ];
     $build['data'] = $table;
     $build['export'] = [
@@ -205,6 +240,24 @@ class ScanResultFormatter {
     ];
 
     return $build;
+  }
+
+  /**
+   * Format date/time.
+   *
+   * @param int $time
+   *   (optional) Timestamp. Current time used if not specified.
+   * @param string $format
+   *   (optiona) Format identifier. Default format is used it not specified.
+   *
+   * @return string
+   *   Formatted date/time.
+   */
+  public function formatDateTime($time = 0, $format = '') {
+    if (empty($time)) {
+      $time = $this->time->getCurrentTime();
+    }
+    return $this->dateFormatter->format($time, $format);
   }
 
 }

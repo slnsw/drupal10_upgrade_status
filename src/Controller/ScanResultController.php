@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ScanResultController extends ControllerBase {
 
   /**
-   * he scan result formatter service.
+   * The scan result formatter service.
    *
    * @var \Drupal\upgrade_status\ScanResultFormatter
    */
@@ -88,21 +88,20 @@ class ScanResultController extends ControllerBase {
    *   The machine name of the project.
    *
    * @return \Symfony\Component\HttpFoundation\Response
+   *   Response object.
    */
   public function resultExport(string $type, string $project_machine_name) {
     $extension = $this->projectCollector->loadProject($type, $project_machine_name);
-    $info = $extension->info;
-    $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
+    $result = $this->resultFormatter->getRawResult($extension);
 
-    $content['#theme'] = 'single_export';
-    $content['#project'] = $this->resultFormatter->formatResult($extension);
-    $content['#project']['name'] = $label;
-    //$time = $this->time->getCurrentTime();
-    //$formattedTime = $this->dateFormatter->format($time, 'html_datetime');
-    //$content['#date'] = $this->dateFormatter->format($time);
-    $filename = 'single-export-' . $project_machine_name /*. '-' . $formattedTime*/ . '.html';
+    $build = ['#theme' => 'upgrade_status_html_export'];
+    $build['#projects'][empty($extension->info['project']) ? 'custom' : 'contrib'] = [
+      $project_machine_name =>  $this->resultFormatter->formatResult($extension),
+    ];
 
-    $response = new Response($this->renderer->renderRoot($content));
+    $fileDate = $this->resultFormatter->formatDateTime($result['date'], 'html_datetime');
+    $filename = 'single-export-' . $project_machine_name . '-' . $fileDate . '.html';
+    $response = new Response($this->renderer->renderRoot($build));
     $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
     return $response;
