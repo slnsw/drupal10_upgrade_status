@@ -51,7 +51,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     // Custom projects have 3 columns of information.
     $upgrade_status_test_error = $page->find('css', '.upgrade-status-summary-custom .project-upgrade_status_test_error');
     $this->assertCount(3, $upgrade_status_test_error->findAll('css', 'td'));
-    $this->assertSame('1 error', strip_tags($upgrade_status_test_error->find('css', 'td.status-info')->getHtml()));
+    $this->assertSame('2 errors', strip_tags($upgrade_status_test_error->find('css', 'td.status-info')->getHtml()));
 
     $upgrade_status_test_no_error = $page->find('css', '.upgrade-status-summary-custom .project-upgrade_status_test_no_error');
     $this->assertCount(3, $upgrade_status_test_no_error->findAll('css', 'td'));
@@ -71,19 +71,21 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $this->assertCount(4, $upgrade_status_test_contrib_no_error->findAll('css', 'td'));
     $this->assertSame('No known errors', $upgrade_status_test_contrib_no_error->find('css', 'td.status-info')->getHtml());
 
-    // Click the second link about errors. Should be the contributed module.
-    $this->clickLink('1 error', 1);
-    $this->assertText('Upgrade status test contrib error ' . \Drupal::VERSION);
-    $this->assertText('1 known Drupal 9 compatibility error found.');
+    // Click the '2 errors' link. Should be the custom module.
+    $this->clickLink('2 errors');
+    $this->assertText('Upgrade status test error ' . \Drupal::VERSION);
+    $this->assertText('2 known Drupal 9 compatibility errors found.');
+    $this->assertText('Syntax error, unexpected T_STRING on line 3');
 
     // Go forward to the export page and assert that still contains the results
     // as well as an export specific title.
     $this->clickLink('Export report');
     $this->assertText('Upgrade Status report');
-    $this->assertText('Upgrade status test contrib error ' . \Drupal::VERSION);
-    $this->assertText('Contributed modules and themes');
-    $this->assertNoText('Custom modules and themes');
-    $this->assertText('1 known Drupal 9 compatibility error found.');
+    $this->assertText('Upgrade status test error ' . \Drupal::VERSION);
+    $this->assertText('Custom modules and themes');
+    $this->assertNoText('Contributed modules and themes');
+    $this->assertText('2 known Drupal 9 compatibility errors found.');
+    $this->assertText('Syntax error, unexpected T_STRING on line 3');
 
     // Run partial export of multiple projects.
     $edit = [
@@ -101,6 +103,8 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $this->assertText('Contributed modules and themes');
     $this->assertText('Custom modules and themes');
     $this->assertText('1 known Drupal 9 compatibility error found.');
+    $this->assertText('2 known Drupal 9 compatibility errors found.');
+    $this->assertText('Syntax error, unexpected T_STRING on line 3');
   }
 
   /**
