@@ -118,14 +118,23 @@ class ScanResultFormatter {
       'date' => [
         '#type' => 'markup',
         '#markup' => '<div class="list-description">' . $this->t('Scanned on @date.', ['@date' => $this->dateFormatter->format($result['date'])]) . '</div>',
+        '#weight' => -10,
       ],
     ];
+    if (!empty($result['plans'])) {
+      $build['plans'] = [
+        '#type' => 'markup',
+        '#markup' => '<div class="list-description">' . $result['plans'] . '</div>',
+        '#weight' => 50,
+      ];
+    }
 
     // If this project had no known issues found, report that.
     if ($project_error_count === 0) {
       $build['data'] = [
         '#type' => 'markup',
         '#markup' => $this->t('No known issues found.'),
+        '#weight' => 5,
       ];
       return $build;
     }
@@ -138,6 +147,7 @@ class ScanResultFormatter {
         'line' => $this->t('Line'),
         'issue' => $this->t('Error'),
       ],
+      '#weight' => 100,
     ];
 
     foreach ($result['data']['files'] as $filepath => $errors) {
@@ -217,12 +227,12 @@ class ScanResultFormatter {
     $build['summary'] = [
       '#type' => '#markup',
       '#markup' => '<div class="list-description">' . $this->formatPlural($project_error_count, '@count known Drupal 9 compatibility error found.', '@count known Drupal 9 compatibility errors found.') . '</div>',
+      '#weight' => 5,
     ];
     $build['data'] = $table;
     $build['export'] = [
       '#type' => 'link',
       '#title' => $this->t('Export report'),
-      '#weight' => 10,
       '#name' => 'export',
       '#url' => Url::fromRoute(
         'upgrade_status.export',
@@ -237,6 +247,7 @@ class ScanResultFormatter {
           'button--primary',
         ],
       ],
+      '#weight' => 200,
     ];
 
     return $build;

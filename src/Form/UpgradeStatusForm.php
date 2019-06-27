@@ -206,11 +206,13 @@ class UpgradeStatusForm extends FormBase {
       ];
       $label_cell = [
         'data' => [
-          '#type' => 'html_tag',
-          '#tag' => 'label',
-          '#value' => $label,
-          '#attributes' => [
-            'for' => 'edit-' . ($isContrib ? 'contrib' : 'custom') . '-data-data-' . str_replace('_', '-', $name),
+          'label' => [
+            '#type' => 'html_tag',
+            '#tag' => 'label',
+            '#value' => $label,
+            '#attributes' => [
+              'for' => 'edit-' . ($isContrib ? 'contrib' : 'custom') . '-data-data-' . str_replace('_', '-', $name),
+            ],
           ],
         ],
         'class' => 'project-label',
@@ -255,6 +257,14 @@ class UpgradeStatusForm extends FormBase {
 
       // Unpack JSON of deprecations to display results.
       $report = json_decode($scan_result, TRUE);
+
+      if (!empty($report['plans'])) {
+        $label_cell['data']['plans'] = [
+          '#type' => 'markup',
+          '#markup' => '<div>' . $report['plans'] . '</div>'
+        ];
+      }
+
       if (isset($report['data']['totals'])) {
         $project_error_count = $report['data']['totals']['file_errors'];
       }

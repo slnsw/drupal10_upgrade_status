@@ -7,6 +7,7 @@ use Drupal\Core\Extension\Extension;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Exception;
+use GuzzleHttp\Client;
 use Nette\Neon\Neon;
 use PHPStan\Command\AnalyseApplication;
 use PHPStan\Command\CommandHelper;
@@ -73,6 +74,13 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $config;
 
   /**
+   * HTTP Client for drupal.org API calls.
+   *
+   * @var \GuzzleHttp\Client
+   */
+  protected $httpClient;
+
+  /**
    * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -85,13 +93,16 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    *   The Symfony Console output interface.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
+   * @param \GuzzleHttp\Client $http_client
+   *   HTTP client.
    */
   public function __construct(
     KeyValueFactoryInterface $key_value_factory,
     LoggerInterface $logger,
     StringInput $input,
     BufferedOutput $output,
-    ConfigFactoryInterface $config_factory
+    ConfigFactoryInterface $config_factory,
+    Client $http_client
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     // Log errors to an upgrade status logger channel.
@@ -99,6 +110,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $this->inputInterface = $input;
     $this->outputInterface = $output;
     $this->config = $config_factory->get('upgrade_status.settings');
+    $this->httpClient = $http_client;
 
     $this->populateAutoLoader();
 
@@ -168,6 +180,22 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
           $result['data']['totals']['errors'] += $errors['totals']['errors'];
           $result['data']['totals']['file_errors'] += $errors['totals']['file_errors'];
           $result['data']['files'] = array_merge($result['data']['files'], $errors['files']);
+        }
+      }
+    }
+
+    // For contributed projects, attempt to grab Drupal 9 plan information.
+    if (!empty($extension->info['project'])) {
+      /** @var \Psr\Http\Message\ResponseInterface $response */
+      $response = $this->httpClient->request('GET', 'https://www.drupal.org/api-d7/node.json?field_project_machine_name=' . $extension->getName());
+      if ($response->getStatusCode()) {
+        $data = json_decode($response->getBody(), TRUE);
+        if (!empty($data['list'][0]['field_next_major_version_info']['value'])) {
+          $result['plans'] = str_replace('href="/', 'href="https://drupal.org/', $data['list'][0]['field_next_major_version_info']['value']);
+          // @todo implement "replaced by" collection once drupal.org exposes
+          // that in an accessible way
+          // @todo once/if drupal.org deprecation testing is in place, grab
+          // the status from there so we know if it improves by updating
         }
       }
     }
