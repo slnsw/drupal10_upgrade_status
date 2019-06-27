@@ -20,6 +20,13 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   use StringTranslationTrait;
 
   /**
+   * The oldest supported core minor version.
+   *
+   * @var string
+   */
+  const CORE_MINOR_OLDEST_SUPPORTED = '8.6';
+
+  /**
    * The error format to use to retrieve the report from PHPStan.
    *
    * @var string
@@ -183,6 +190,68 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
         }
       }
     }
+
+    foreach($result['data']['files'] as $path => &$errors) {
+      if (!empty($errors['messages'])) {
+        foreach($errors['messages'] as &$error) {
+          // Make the error more readable in case it has the deprecation text.
+          $error['message'] = preg_replace('!:\s+(in|as of)!', '. Deprecated \1', $error['message']);
+
+          // Set a default category for the messages we can't categorize.
+          $error['upgrade_status_category'] = 'uncategorized';
+
+          // Match a few variants of the deprecation message including the
+          // current standard: 'Deprecated in drupal:8.5.0'.
+          if (preg_match('!Deprecated (in|as of) [Dd]rupal[ :](8.\d)!', $error['message'], $version_found)) {
+
+            // Categorize deprecations for contributed projects based on
+            // community rules.
+            if (!empty($extension->info['project'])) {
+              // If the found deprecation is older than the oldest supported core
+              // version, it should be old enough to update either way.
+              if (version_compare($version_found[2], self::CORE_MINOR_OLDEST_SUPPORTED) < 0) {
+                $error['upgrade_status_category'] = 'old';
+              }
+              // If the deprecation is not old and we are dealing with a contrib
+              // module, the deprecation should be dealt with later.
+              else {
+                $error['upgrade_status_category'] = 'later';
+              }
+            }
+            // For custom projects, look at this site's version specifically.
+            else {
+              // If the found deprecation is older or equal to the current
+              // Drupal version on this site, it should be safe to update.
+              if (version_compare($version_found[2], \Drupal::VERSION) <= 0) {
+                $error['upgrade_status_category'] = 'safe';
+              }
+              else {
+                $error['upgrade_status_category'] = 'later';
+              }
+            }
+          }
+
+          // If the deprecation is already for Drupal 10, put it in the ignore
+          // category. This overwrites any categorization before intentionally.
+          if (preg_match('!(will be|is) removed (before|from) [Dd]rupal[ :](10.\d)!', $error['message'])) {
+            $error['upgrade_status_category'] = 'ignore';
+          }
+
+          // Sum up the error based on the category it ended up in. Split the
+          // categories into two high level buckets needing attention now or
+          // later for Drupal 9 compatibility. Ignore Drupal 10 here.
+          @$result['data']['totals']['upgrade_status_category'][$error['upgrade_status_category']]++;
+          if (in_array($error['upgrade_status_category'], ['safe', 'old', 'uncategorized'])) {
+            @$result['data']['totals']['upgrade_status_split']['attention']++;
+          }
+          elseif ($error['upgrade_status_category'] == 'later') {
+            @$result['data']['totals']['upgrade_status_split']['warning']++;
+          }
+        }
+      }
+    }
+
+    $this->logger->notice(json_encode($result));
 
     // For contributed projects, attempt to grab Drupal 9 plan information.
     if (!empty($extension->info['project'])) {

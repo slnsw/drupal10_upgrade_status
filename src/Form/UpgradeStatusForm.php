@@ -180,6 +180,7 @@ class UpgradeStatusForm extends FormBase {
       'not-scanned' => 0,
       'no-known-error' => 0,
       'known-errors' => 0,
+      'known-warnings' => 0,
     ];
 
     $header = ['project' => ['data' => $this->t('Project'), 'class' => 'project-label']];
@@ -283,19 +284,36 @@ class UpgradeStatusForm extends FormBase {
         $counters['no-known-error']++;
         continue;
       }
-      // Unlike the other two counters, this counts the number of errors, not projects.
-      $counters['known-errors'] += $project_error_count;
 
       // Finally this project had errors found, display them.
+      $error_label = [];
+      $error_class = 'known-warnings';
+      if (!empty($report['data']['totals']['upgrade_status_split']['attention'])) {
+        $counters['known-errors'] += $report['data']['totals']['upgrade_status_split']['attention'];
+        $error_class = 'known-errors';
+        $error_label[] = $this->formatPlural(
+          $report['data']['totals']['upgrade_status_split']['attention'],
+          '@count error',
+          '@count errors'
+        );
+      }
+      if (!empty($report['data']['totals']['upgrade_status_split']['warning'])) {
+        $counters['known-warnings'] += $report['data']['totals']['upgrade_status_split']['warning'];
+        $error_label[] = $this->formatPlural(
+          $report['data']['totals']['upgrade_status_split']['warning'],
+          '@count warning',
+          '@count warnings'
+        );
+      }
       $build['data']['#options'][$name] = [
-        '#attributes' => ['class' => ['known-errors', 'project-' . $name]],
+        '#attributes' => ['class' => [$error_class, 'project-' . $name]],
         'project' => $label_cell,
         'update' => $update_cell,
         'status' => [
           'class' => 'status-info',
           'data' => [
             '#type' => 'link',
-            '#title' => $this->formatPlural($project_error_count, '@count error', '@count errors'),
+            '#title' => join(', ', $error_label),
             '#url' => Url::fromRoute('upgrade_status.project', ['type' => $extension->getType(), 'project_machine_name' => $name]),
             '#attributes' => [
               'class' => ['use-ajax'],

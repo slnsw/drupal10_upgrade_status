@@ -142,7 +142,11 @@ class ScanResultFormatter {
     // Otherwise prepare list of errors in a table.
     $table = [
       '#type' => 'table',
+      '#attributes' => [
+        'class' => ['upgrade-status-summary'],
+      ],
       '#header' => [
+        'status' => $this->t('Status'),
         'filename' => $this->t('File name'),
         'line' => $this->t('Line'),
         'issue' => $this->t('Error'),
@@ -150,11 +154,9 @@ class ScanResultFormatter {
       '#weight' => 100,
     ];
 
+    $categories_found = [];
     foreach ($result['data']['files'] as $filepath => $errors) {
       foreach ($errors['messages'] as $error) {
-
-        // Make the error more readable in case it has the deprecation text.
-        $error['message'] = preg_replace('!:\s+in!', '. Deprecated in', $error['message']);
 
         // Remove the Drupal root directory and allow paths and namespaces to wrap.
         // Emphasize filename as it may show up in the middle of the info.
@@ -207,7 +209,36 @@ class ScanResultFormatter {
         // Allow error messages to wrap.
         $formatted_error = str_replace('\\', '&#8203;\\&#8203;', $formatted_error);
 
+        $error_class = 'known-errors';
+        $level_label = $this->t('N/A');
+        if (!empty($error['upgrade_status_category'])) {
+          if ($error['upgrade_status_category'] == 'ignore') {
+            $level_label = $this->t('Ignore');
+            $error_class = 'error-ignore';
+          } elseif ($error['upgrade_status_category'] == 'later') {
+            $level_label = $this->t('Later');
+            $error_class = 'known-warnings';
+          }
+          elseif ($error['upgrade_status_category'] == 'safe') {
+            $level_label = $this->t('Safe');
+          }
+          elseif ($error['upgrade_status_category'] == 'old') {
+            $level_label = $this->t('Old');
+          }
+          @$categories_found[$error['upgrade_status_category']]++;
+        }
+
         $table[] = [
+          '#attributes' => [
+            'class' => [$error_class],
+          ],
+          'status' => [
+            '#type' => 'markup',
+            '#markup' => $level_label,
+            '#wrapper_attributes' => [
+              'class' => ['status-info'],
+            ],
+          ],
           'filename' => [
             '#type' => 'markup',
             '#markup' => $short_path,
@@ -230,6 +261,36 @@ class ScanResultFormatter {
       '#weight' => 5,
     ];
     $build['data'] = $table;
+
+    $legend = [];
+    foreach($categories_found as $category => $found) {
+      switch ($category) {
+        case 'old':
+          $legend[] = $this->t('<strong>Old</strong>: Deprecated API use in contributed code from unsupported Drupal core version. Should not be used anymore.');
+          break;
+        case 'safe':
+          $legend[] = $this->t('<strong>Safe</strong>: Deprecated API use in custom code from previous or current core version. Should not be used anymore.');
+          break;
+        case 'later':
+          $legend[] = $this->t('<strong>Later</strong>: Deprecated API use that is not yet possible to remove. Revisit later.');
+          break;
+        case 'ignore':
+          $legend[] = $this->t('<strong>Ignore</strong>: Deprecated API use that is only removable for Drupal 10 or later.');
+          break;
+        case 'uncategorized':
+          $legend[] = $this->t('<strong>N/A</strong>: Not categorizable based on the deprecation message. Check manually.');
+          break;
+      }
+    }
+    $legend_string = '<div class="list-description"><h5>' . $this->t('Legend') . '</h5><ul><li>';
+    $legend_string .= join('</li><li>', $legend);
+    $legend_string .= '</li></ul></div>';
+    $build['legend'] = [
+      '#type' => 'markup',
+      '#markup' => $legend_string,
+      '#weight' => 150,
+    ];
+
     $build['export'] = [
       '#type' => 'link',
       '#title' => $this->t('Export report'),

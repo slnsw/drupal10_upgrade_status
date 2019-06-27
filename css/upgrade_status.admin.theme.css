@@ -47,12 +47,21 @@
 /* @todo the icon paths only work for sites in domain roots */
 .upgrade-status-summary tr.known-errors {
   background-color: #fcf4f2;
+  color: #a51b00;
 }
 .upgrade-status-summary tr.known-errors > td.status-info {
   background-image: url(/core/misc/icons/e32700/error.svg);
 }
+.upgrade-status-summary tr.known-warnings {
+  background-color: #fdf8ed;
+  color: #734c00;
+}
+.upgrade-status-summary tr.known-warnings > td.status-info {
+  background-image: url(/core/misc/icons/e29700/warning.svg);
+}
 .upgrade-status-summary tr.no-known-error {
   background-color: #f3faef;
+  color: #325e1c;
 }
 .upgrade-status-summary tr.no-known-error > td.status-info {
   background-image: url(/core/misc/icons/73b355/check.svg);
