@@ -288,11 +288,11 @@ class UpgradeStatusForm extends FormBase {
       // Finally this project had errors found, display them.
       $error_label = [];
       $error_class = 'known-warnings';
-      if (!empty($report['data']['totals']['upgrade_status_split']['attention'])) {
-        $counters['known-errors'] += $report['data']['totals']['upgrade_status_split']['attention'];
+      if (!empty($report['data']['totals']['upgrade_status_split']['error'])) {
+        $counters['known-errors'] += $report['data']['totals']['upgrade_status_split']['error'];
         $error_class = 'known-errors';
         $error_label[] = $this->formatPlural(
-          $report['data']['totals']['upgrade_status_split']['attention'],
+          $report['data']['totals']['upgrade_status_split']['error'],
           '@count error',
           '@count errors'
         );

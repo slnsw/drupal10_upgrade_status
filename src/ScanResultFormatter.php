@@ -154,7 +154,7 @@ class ScanResultFormatter {
       '#weight' => 100,
     ];
 
-    $categories_found = [];
+    $hasFixNow = FALSE;
     foreach ($result['data']['files'] as $filepath => $errors) {
       foreach ($errors['messages'] as $error) {
 
@@ -181,7 +181,7 @@ class ScanResultFormatter {
         $formatted_error = preg_replace('!deprecated function ([^(]+)\(\)!', 'deprecated function <a target="_blank" href="' . $api_link . '\1">\1()</a>', $error['message']);
 
         // Replace deprecated class links.
-        if (preg_match('!class (Drupal\\\\.+)\.!', $formatted_error, $found)) {
+        if (preg_match('!class (Drupal\\\\.+)\.( |$)!', $formatted_error, $found)) {
           if (preg_match('!Drupal\\\\([a-z_0-9A-Z]+)\\\\(.+)$!', $found[1], $namespace)) {
 
             $path_parts = explode('\\', $namespace[2]);
@@ -209,23 +209,21 @@ class ScanResultFormatter {
         // Allow error messages to wrap.
         $formatted_error = str_replace('\\', '&#8203;\\&#8203;', $formatted_error);
 
-        $error_class = 'known-errors';
-        $level_label = $this->t('N/A');
+        $error_class = 'known-warnings';
+        $level_label = $this->t('Check manually');
         if (!empty($error['upgrade_status_category'])) {
           if ($error['upgrade_status_category'] == 'ignore') {
             $level_label = $this->t('Ignore');
-            $error_class = 'error-ignore';
-          } elseif ($error['upgrade_status_category'] == 'later') {
-            $level_label = $this->t('Later');
-            $error_class = 'known-warnings';
+            $error_class = 'known-ignore';
           }
-          elseif ($error['upgrade_status_category'] == 'safe') {
-            $level_label = $this->t('Safe');
+          elseif ($error['upgrade_status_category'] == 'later') {
+            $level_label = $this->t('Fix later');
           }
-          elseif ($error['upgrade_status_category'] == 'old') {
-            $level_label = $this->t('Old');
+          elseif (in_array($error['upgrade_status_category'], ['safe', 'old'])) {
+            $level_label = $this->t('Fix now');
+            $error_class = 'known-errors';
+            $hasFixNow = TRUE;
           }
-          @$categories_found[$error['upgrade_status_category']]++;
         }
 
         $table[] = [
@@ -255,41 +253,28 @@ class ScanResultFormatter {
       }
     }
 
-    $build['summary'] = [
-      '#type' => '#markup',
-      '#markup' => '<div class="list-description">' . $this->formatPlural($project_error_count, '@count known Drupal 9 compatibility error found.', '@count known Drupal 9 compatibility errors found.') . '</div>',
-      '#weight' => 5,
-    ];
-    $build['data'] = $table;
-
-    $legend = [];
-    foreach($categories_found as $category => $found) {
-      switch ($category) {
-        case 'old':
-          $legend[] = $this->t('<strong>Old</strong>: Deprecated API use in contributed code from unsupported Drupal core version. Should not be used anymore.');
-          break;
-        case 'safe':
-          $legend[] = $this->t('<strong>Safe</strong>: Deprecated API use in custom code from previous or current core version. Should not be used anymore.');
-          break;
-        case 'later':
-          $legend[] = $this->t('<strong>Later</strong>: Deprecated API use that is not yet possible to remove. Revisit later.');
-          break;
-        case 'ignore':
-          $legend[] = $this->t('<strong>Ignore</strong>: Deprecated API use that is only removable for Drupal 10 or later.');
-          break;
-        case 'uncategorized':
-          $legend[] = $this->t('<strong>N/A</strong>: Not categorizable based on the deprecation message. Check manually.');
-          break;
+    $summary = [];
+    if (!empty($result['data']['totals']['upgrade_status_split']['error'])) {
+      $summary[] = $this->formatPlural($result['data']['totals']['upgrade_status_split']['error'], '@count error found.', '@count errors found.');
+    }
+    if (!empty($result['data']['totals']['upgrade_status_split']['warning'])) {
+      $summary[] = $this->formatPlural($result['data']['totals']['upgrade_status_split']['warning'], '@count warning found.', '@count warnings found.');
+    }
+    if ($hasFixNow) {
+      if (!empty($extension->info['project'])) {
+        $summary[] = $this->t('Items categorized "Fix now" are uses of deprecated APIs from community unsupported core versions.');
+      }
+      else {
+        $summary[] = $this->t('Items categorized "Fix now" are uses of deprecated APIs in custom code from current or older Drupal core version.');
       }
     }
-    $legend_string = '<div class="list-description"><h5>' . $this->t('Legend') . '</h5><ul><li>';
-    $legend_string .= join('</li><li>', $legend);
-    $legend_string .= '</li></ul></div>';
-    $build['legend'] = [
-      '#type' => 'markup',
-      '#markup' => $legend_string,
-      '#weight' => 150,
+    $build['summary'] = [
+      '#type' => '#markup',
+      '#markup' => '<div class="list-description">' . join(' ', $summary) . '</div>',
+      '#weight' => 5,
     ];
+
+    $build['data'] = $table;
 
     $build['export'] = [
       '#type' => 'link',

@@ -241,10 +241,10 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
           // categories into two high level buckets needing attention now or
           // later for Drupal 9 compatibility. Ignore Drupal 10 here.
           @$result['data']['totals']['upgrade_status_category'][$error['upgrade_status_category']]++;
-          if (in_array($error['upgrade_status_category'], ['safe', 'old', 'uncategorized'])) {
-            @$result['data']['totals']['upgrade_status_split']['attention']++;
+          if (in_array($error['upgrade_status_category'], ['safe', 'old'])) {
+            @$result['data']['totals']['upgrade_status_split']['error']++;
           }
-          elseif ($error['upgrade_status_category'] == 'later') {
+          elseif (in_array($error['upgrade_status_category'], ['later', 'uncategorized'])) {
             @$result['data']['totals']['upgrade_status_split']['warning']++;
           }
         }
