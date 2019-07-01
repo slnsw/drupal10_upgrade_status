@@ -4,6 +4,7 @@ description: 'Review current status of known Drupal 9 incompatibilities on the s
 configure: upgrade_status.report
 package: Administration
 core: 8.x
+php: 7.1
 dependencies:
   - drupal:update
   - drupal:git_deploy
