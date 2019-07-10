@@ -181,6 +181,8 @@ class UpgradeStatusForm extends FormBase {
       'no-known-error' => 0,
       'known-errors' => 0,
       'known-warnings' => 0,
+      'known-error-projects' => 0,
+      'known-warning-projects' => 0,
     ];
 
     $header = ['project' => ['data' => $this->t('Project'), 'class' => 'project-label']];
@@ -290,6 +292,7 @@ class UpgradeStatusForm extends FormBase {
       $error_class = 'known-warnings';
       if (!empty($report['data']['totals']['upgrade_status_split']['error'])) {
         $counters['known-errors'] += $report['data']['totals']['upgrade_status_split']['error'];
+        $counters['known-error-projects']++;
         $error_class = 'known-errors';
         $error_label[] = $this->formatPlural(
           $report['data']['totals']['upgrade_status_split']['error'],
@@ -299,6 +302,7 @@ class UpgradeStatusForm extends FormBase {
       }
       if (!empty($report['data']['totals']['upgrade_status_split']['warning'])) {
         $counters['known-warnings'] += $report['data']['totals']['upgrade_status_split']['warning'];
+        $counters['known-warning-projects']++;
         $error_label[] = $this->formatPlural(
           $report['data']['totals']['upgrade_status_split']['warning'],
           '@count warning',
@@ -341,30 +345,30 @@ class UpgradeStatusForm extends FormBase {
 
     if ($counters['known-errors'] > 0) {
       $summary[] = [
-        'type' => 'Error',
-        'count' => $counters['known-errors'],
-        'message' => $this->formatPlural($counters['known-errors'], '@count total error found', '@count total errors found')
+        'type' => $this->formatPlural($counters['known-errors'], '1 error', '@count errors'),
+        'class' => 'error',
+        'message' => $this->formatPlural($counters['known-error-projects'], 'Found in one project.', 'Found in @count projects.')
       ];
     }
     if ($counters['known-warnings'] > 0) {
       $summary[] = [
-        'type' => 'Warning',
-        'count' => $counters['known-warnings'],
-        'message' => $this->formatPlural($counters['known-warnings'], '@count total warning found', '@count total warnings found')
+        'type' => $this->formatPlural($counters['known-warnings'], '1 warning', '@count warnings'),
+        'class' => 'warning',
+        'message' => $this->formatPlural($counters['known-warning-projects'], 'Found in one project.', 'Found in @count projects.')
       ];
     }
     if ($counters['no-known-error'] > 0) {
       $summary[] = [
-        'type' => 'Checked',
-        'count' => $counters['no-known-error'],
-        'message' => $this->formatPlural($counters['no-known-error'], '@count project has no known errors', '@count projects have no known errors')
+        'type' => $this->formatPlural($counters['no-known-error'], '1 checked', '@count checked'),
+        'class' => 'checked',
+        'message' => $this->t('No known errors found.')
       ];
     }
     if ($counters['not-scanned'] > 0) {
       $summary[] = [
-        'type' => 'Not Scanned',
-        'count' => $counters['not-scanned'],
-        'message' => $this->formatPlural($counters['not-scanned'], '@count project remaining to scan', '@count projects remaining to scan')
+        'type' => $this->formatPlural($counters['not-scanned'], '1 not scanned', '@count not scanned'),
+        'class' => 'not-scanned',
+        'message' => $this->t('Scan to find errors.')
       ];
     }
 
