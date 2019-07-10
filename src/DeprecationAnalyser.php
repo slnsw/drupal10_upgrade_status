@@ -342,7 +342,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
           $result->getConsoleStyle(),
           $errorFormatter,
           $result->isDefaultLevelUsed(),
-          FALSE
+          FALSE,
+          NULL
         )
       );
 
