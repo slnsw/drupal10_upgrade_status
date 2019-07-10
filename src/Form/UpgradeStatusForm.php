@@ -337,22 +337,41 @@ class UpgradeStatusForm extends FormBase {
       }
     }
 
-    // @todo Make the display better and more visual.
-    /* $summary = [];
+    $summary = [];
+
     if ($counters['known-errors'] > 0) {
-      $summary[] = $this->formatPlural($counters['known-errors'], '@count total error found', '@count total errors found');
+      $summary[] = [
+        'type' => 'Error',
+        'count' => $counters['known-errors'],
+        'message' => $this->formatPlural($counters['known-errors'], '@count total error found', '@count total errors found')
+      ];
+    }
+    if ($counters['known-warnings'] > 0) {
+      $summary[] = [
+        'type' => 'Warning',
+        'count' => $counters['known-warnings'],
+        'message' => $this->formatPlural($counters['known-warnings'], '@count total warning found', '@count total warnings found')
+      ];
     }
     if ($counters['no-known-error'] > 0) {
-      $summary[] = $this->formatPlural($counters['no-known-error'], '@count project has no known errors', '@count projects have no known errors');
+      $summary[] = [
+        'type' => 'Checked',
+        'count' => $counters['no-known-error'],
+        'message' => $this->formatPlural($counters['no-known-error'], '@count project has no known errors', '@count projects have no known errors')
+      ];
     }
     if ($counters['not-scanned'] > 0) {
-      $summary[] = $this->formatPlural($counters['not-scanned'], '@count project remaining to scan', '@count projects remaining to scan');
+      $summary[] = [
+        'type' => 'Not Scanned',
+        'count' => $counters['not-scanned'],
+        'message' => $this->formatPlural($counters['not-scanned'], '@count project remaining to scan', '@count projects remaining to scan')
+      ];
     }
+
     $build['summary'] = [
-      '#type' => 'markup',
-      '#markup' => '<div class="report-counters">' . join(', ', $summary) . '.</div>',
-      '#weight' => -10,
-    ];*/
+      '#theme' => 'upgrade_status_summary_counter',
+      '#summary' => $summary
+    ];
 
     return $build;
   }

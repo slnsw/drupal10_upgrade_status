@@ -21,6 +21,11 @@ function upgrade_status_theme($existing, $type, $theme, $path) {
         'projects' => [],
       ],
     ],
+    'upgrade_status_summary_counter' => [
+      'variables' => [
+        'summary' => [],
+      ],
+    ],
   ];
 }
 
