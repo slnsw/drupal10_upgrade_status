@@ -207,9 +207,10 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
             // Categorize deprecations for contributed projects based on
             // community rules.
             if (!empty($extension->info['project'])) {
-              // If the found deprecation is older than the oldest supported core
-              // version, it should be old enough to update either way.
-              if (version_compare($version_found[2], self::CORE_MINOR_OLDEST_SUPPORTED) < 0) {
+              // If the found deprecation is older or equal to the oldest
+              // supported core version, it should be old enough to update
+              // either way.
+              if (version_compare($version_found[2], self::CORE_MINOR_OLDEST_SUPPORTED) <= 0) {
                 $error['upgrade_status_category'] = 'old';
               }
               // If the deprecation is not old and we are dealing with a contrib
