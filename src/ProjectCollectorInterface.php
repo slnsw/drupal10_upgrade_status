@@ -23,7 +23,8 @@ interface ProjectCollectorInterface {
    * Returns a single extension based on type and machine name.
    *
    * @param string $type
-   *   One of 'module' or 'theme' to signify the type of the extension.
+   *   One of 'module' or 'theme' or 'profile' to signify the type of the
+   *   extension.
    * @param string $project_machine_name
    *   Machine name for the extension.
    *

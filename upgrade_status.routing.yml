@@ -21,3 +21,13 @@ upgrade_status.export:
     _title: 'Upgrade status'
   requirements:
     _permission: 'administer software updates'
+
+upgrade_status.analyse:
+  path: '/admin/reports/upgrade/analyse/{type}/{project_machine_name}'
+  defaults:
+    _controller: '\Drupal\upgrade_status\Controller\ScanResultController::analyse'
+  requirements:
+    _permission: 'administer software updates'
+  # Support only POST so nothing accidental happens on GET.
+  methods:
+    - POST

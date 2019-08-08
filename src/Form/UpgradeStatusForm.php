@@ -6,12 +6,13 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\ProjectCollector;
 use Drupal\upgrade_status\ScanResultFormatter;
+use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Cookie\SetCookie;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -24,13 +25,6 @@ class UpgradeStatusForm extends FormBase {
    * @var \Drupal\upgrade_status\ProjectCollector
    */
   protected $projectCollector;
-
-  /**
-   * Upgrade status scan result storage.
-   *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
-   */
-  protected $scanResultStorage;
 
   /**
    * Available releases store.
@@ -59,7 +53,6 @@ class UpgradeStatusForm extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('upgrade_status.project_collector'),
-      $container->get('keyvalue'),
       $container->get('keyvalue.expirable'),
       $container->get('upgrade_status.result_formatter'),
       $container->get('renderer')
@@ -71,8 +64,6 @@ class UpgradeStatusForm extends FormBase {
    *
    * @param \Drupal\upgrade_status\ProjectCollector $project_collector
    *   The project collector service.
-   * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
-   *   The key/value factory.
    * @param \Drupal\Core\KeyValueStore\KeyValueExpirableFactory $key_value_expirable
    *   The expirable key/value storage.
    * @param \Drupal\upgrade_status\ScanResultFormatter $result_formatter
@@ -82,13 +73,11 @@ class UpgradeStatusForm extends FormBase {
    */
   public function __construct(
     ProjectCollector $project_collector,
-    KeyValueFactoryInterface $key_value_factory,
     KeyValueExpirableFactory $key_value_expirable,
     ScanResultFormatter $result_formatter,
     RendererInterface $renderer
   ) {
     $this->projectCollector = $project_collector;
-    $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
     $this->resultFormatter = $result_formatter;
     $this->renderer = $renderer;
@@ -199,7 +188,10 @@ class UpgradeStatusForm extends FormBase {
     ];
 
     foreach ($projects as $name => $extension) {
-      $scan_result = $this->scanResultStorage->get($name);
+      // Always use a fresh service. An injected service could get stale results
+      // because scan result saving happens in different HTTP requests for most
+      // cases (when analysis was successful).
+      $scan_result = \Drupal::service('keyvalue')->get('upgrade_status_scan_results')->get($name);
       $info = $extension->info;
       $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
 
@@ -454,7 +446,89 @@ class UpgradeStatusForm extends FormBase {
    */
   public static function parseProject(Extension $extension, &$context) {
     $context['message'] = t('Completed @project.', ['@project' => $extension->getName()]);
-    \Drupal::service('upgrade_status.deprecation_analyser')->analyse($extension);
+    $error = $file_name = FALSE;
+
+    // Prepare for a POST request to scan this project. The separate HTTP
+    // request is used to separate any PHP errors found from this batch process.
+    // We can store any errors and gracefully continue if there was any PHP
+    // errors in parsing.
+    $url = Url::fromRoute(
+      'upgrade_status.analyse',
+      [
+        'type' => $extension->getType(),
+        'project_machine_name' => $extension->getName()
+      ]
+    );
+
+    // Pass over authentication information because access to this functionality
+    // requires administrator privileges.
+    /** @var \Drupal\Core\Session\SessionConfigurationInterface $session_config */
+    $session_config = \Drupal::service('session_configuration');
+    $request = \Drupal::request();
+    $session_options = $session_config->getOptions($request);
+    // Unfortunately DrupalCI testbot does not have a domain that would normally
+    // be considered valid for cookie setting, so we need to work around that
+    // by manually setting the cookie domain in case there was none. What we
+    // care about is we get actual results, and cookie on the host level should
+    // suffice for that.
+    $cookie_domain = empty($session_options['cookie_domain']) ? '.' . $request->getHost() : $session_options['cookie_domain'];
+    $cookie_jar = new CookieJar();
+    $cookie = new SetCookie([
+      'Name' => $session_options['name'],
+      'Value' => $request->cookies->get($session_options['name']),
+      'Domain' => $cookie_domain,
+      'Secure' => $session_options['cookie_secure'],
+    ]);
+    $cookie_jar->setCookie($cookie);
+    $options = [
+      'cookies' => $cookie_jar,
+      'timeout' => 0,
+    ];
+
+    // Try a POST request with the session cookie included. We expect valid JSON
+    // back. In case there was a PHP error before that, we log that.
+    try {
+      $response = \Drupal::httpClient()->post($url->setAbsolute()->toString(), $options);
+      $data = json_decode((string) $response->getBody(), TRUE);
+      if (!$data) {
+        $error = (string) $response->getBody();
+        $file_name = 'PHP Fatal Error';
+      }
+    }
+    catch (\Exception $e) {
+      $error = $e->getMessage();
+      $file_name = 'Scanning exception';
+    }
+
+    if ($error !== FALSE) {
+      /** @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface $key_value */
+      $key_value = \Drupal::service('keyvalue')->get('upgrade_status_scan_results');
+
+      $result = [];
+      $result['date'] = REQUEST_TIME;
+      $result['data'] = [
+        'totals' => [
+          'errors' => 1,
+          'file_errors' => 1,
+          'upgrade_status_split' => [
+            'warning' => 1,
+          ]
+        ],
+        'files' => [],
+      ];
+      $result['data']['files'][$file_name] = [
+        'errors' => 1,
+        'messages' => [
+          [
+            'message' => $error,
+            'line' => 0,
+          ],
+        ],
+      ];
+
+      $key_value->set($extension->getName(), json_encode($result));
+    }
+
   }
 
 }

@@ -7,6 +7,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\upgrade_status\ProjectCollectorInterface;
 use Drupal\upgrade_status\ScanResultFormatter;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class ScanResultController extends ControllerBase {
@@ -67,7 +68,7 @@ class ScanResultController extends ControllerBase {
    * Builds content for the error list page/popup.
    *
    * @param string $type
-   *   Type of the extension, it can be either 'module' or 'theme.
+   *   Type of the extension, it can be either 'module' or 'theme' or 'profile'.
    * @param string $project_machine_name
    *   The machine name of the project.
    *
@@ -83,7 +84,7 @@ class ScanResultController extends ControllerBase {
    * Generates single project export.
    *
    * @param string $type
-   *   Type of the extension, it can be either 'module' or 'theme.
+   *   Type of the extension, it can be either 'module' or 'theme' or 'profile'.
    * @param string $project_machine_name
    *   The machine name of the project.
    *
@@ -105,6 +106,25 @@ class ScanResultController extends ControllerBase {
     $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
     return $response;
+  }
+
+  /**
+   * Analyze a specific project in its own HTTP request.
+   *
+   * @param string $type
+   *   Type of the extension, it can be either 'module' or 'theme' or 'profile'.
+   * @param string $project_machine_name
+   *   The machine name of the project.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   Response object.
+   */
+  public function analyse(string $type, string $project_machine_name) {
+    $extension = $this->projectCollector->loadProject($type, $project_machine_name);
+    \Drupal::service('upgrade_status.deprecation_analyser')->analyse($extension);
+    return new JsonResponse(
+      ['message' => $this->t('Scanned @project', ['@project' => $extension->getName()])]
+    );
   }
 
 }
