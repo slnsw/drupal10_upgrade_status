@@ -417,12 +417,22 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     // Make the error more readable in case it has the deprecation text.
     $error = preg_replace('!:\s+(in|as of)!', '. Deprecated \1', $error);
 
+    // TestBase and WebTestBase replacements are available at least from Drupal
+    // 8.6.0, so use that version number. Otherwise use the number from the
+    // message.
+    $version = '';
+    if (preg_match('!\\\\(Web|)TestBase. Deprecated in [Dd]rupal[ :]8.8.0 !', $error)) {
+      $version = '8.6.0';
+      $error .= " Replacement available from drupal:8.6.0.";
+    }
+    elseif (preg_match('!Deprecated (in|as of) [Dd]rupal[ :](8.\d)!', $error, $version_found)) {
+      $version = $version_found[2];
+    }
+
     // Set a default category for the messages we can't categorize.
     $category = 'uncategorized';
 
-    // Match a few variants of the deprecation message including the
-    // current standard: 'Deprecated in drupal:8.5.0'.
-    if (preg_match('!Deprecated (in|as of) [Dd]rupal[ :](8.\d)!', $error, $version_found)) {
+    if (!empty($version)) {
 
       // Categorize deprecations for contributed projects based on
       // community rules.
@@ -430,7 +440,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
         // If the found deprecation is older or equal to the oldest
         // supported core version, it should be old enough to update
         // either way.
-        if (version_compare($version_found[2], self::CORE_MINOR_OLDEST_SUPPORTED) <= 0) {
+        if (version_compare($version, self::CORE_MINOR_OLDEST_SUPPORTED) <= 0) {
           $category = 'old';
         }
         // If the deprecation is not old and we are dealing with a contrib
@@ -443,7 +453,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       else {
         // If the found deprecation is older or equal to the current
         // Drupal version on this site, it should be safe to update.
-        if (version_compare($version_found[2], \Drupal::VERSION) <= 0) {
+        if (version_compare($version, \Drupal::VERSION) <= 0) {
           $category = 'safe';
         }
         else {
