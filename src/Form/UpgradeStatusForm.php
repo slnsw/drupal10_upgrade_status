@@ -114,7 +114,7 @@ class UpgradeStatusForm extends FormBase {
     }
     $form['custom'] = [
       '#type' => 'details',
-      '#title' => $this->t('Custom modules and themes'),
+      '#title' => $this->t('Custom projects'),
       '#description' => $this->t('Custom code is specific to your site, and must be upgraded manually. <a href=":upgrade">Read more about how developers can upgrade their code to Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/docs/9/how-drupal-9-is-made-and-what-is-included/how-and-why-we-deprecate-on-the-way-to-drupal-9']),
       '#open' => TRUE,
       '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-custom']],
@@ -129,7 +129,7 @@ class UpgradeStatusForm extends FormBase {
     }
     $form['contrib'] = [
       '#type' => 'details',
-      '#title' => $this->t('Contributed modules and themes'),
+      '#title' => $this->t('Contributed projects'),
       '#description' => $this->t('Contributed code is available from drupal.org. Problems here may be partially resolved by updating to the latest version. <a href=":update">Read more about how to update contributed projects</a>.', [':update' => 'https://www.drupal.org/docs/8/update/update-modules']),
       '#open' => TRUE,
       '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-contrib']],
@@ -145,9 +145,15 @@ class UpgradeStatusForm extends FormBase {
     ];
     $form['drupal_upgrade_status_form']['action']['export'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Export selected'),
+      '#value' => $this->t('Export as HTML'),
       '#weight' => 5,
-      '#submit' => [[$this, 'exportReport']],
+      '#submit' => [[$this, 'exportReportHTML']],
+    ];
+    $form['drupal_upgrade_status_form']['action']['export_ascii'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Export as ASCII'),
+      '#weight' => 6,
+      '#submit' => [[$this, 'exportReportASCII']],
     ];
 
     return $form;
@@ -410,30 +416,63 @@ class UpgradeStatusForm extends FormBase {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    */
-  public function exportReport(array &$form, FormStateInterface $form_state) {
+  public function exportReportHTML(array &$form, FormStateInterface $form_state) {
+    $selected = $form_state->getValues();
+    $form_state->setResponse($this->exportReport($selected, 'html'));
+  }
+
+  /**
+   * Form submission handler.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   */
+  public function exportReportASCII(array &$form, FormStateInterface $form_state) {
+    $selected = $form_state->getValues();
+    $form_state->setResponse($this->exportReport($selected, 'ascii'));
+  }
+
+  /**
+   * Export generator.
+   *
+   * @param array $selected
+   *   Selected projects from the form.
+   * @param string $format
+   *   The format of export to do: html or ascii.
+   *
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   Response object for this export.
+   */
+  public function exportReport(array $selected, string $format) {
     $extensions = [];
     $projects = $this->projectCollector->collectProjects();
-    $submitted = $form_state->getValues();
 
     foreach (['custom', 'contrib'] as $type) {
-      foreach($submitted[$type]['data']['data'] as $project => $checked) {
+      foreach($selected[$type]['data']['data'] as $project => $checked) {
         if ($checked !== 0) {
           // If the checkbox was checked, add it to the list.
-          $extensions[$type][$project] = $this->resultFormatter->formatResult($projects[$type][$project]);
+          $extensions[$type][$project] =
+            $format == 'html' ?
+              $this->resultFormatter->formatResult($projects[$type][$project]) :
+              $this->resultFormatter->formatAsciiResult($projects[$type][$project]);
         }
       }
     }
 
     $build = [
-      '#theme' => 'upgrade_status_html_export',
+      '#theme' => 'upgrade_status_'. $format . '_export',
       '#projects' => $extensions
     ];
 
     $fileDate = $this->resultFormatter->formatDateTime(0, 'html_datetime');
-    $filename = 'upgrade-status-export-' . $fileDate . '.html';
+    $extension = $format == 'html' ? '.html' : '.txt';
+    $filename = 'upgrade-status-export-' . $fileDate . $extension;
+
     $response = new Response($this->renderer->renderRoot($build));
     $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-    $form_state->setResponse($response);
+    return $response;
   }
 
   /**

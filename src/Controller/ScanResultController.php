@@ -87,21 +87,32 @@ class ScanResultController extends ControllerBase {
    *   Type of the extension, it can be either 'module' or 'theme' or 'profile'.
    * @param string $project_machine_name
    *   The machine name of the project.
+   * @param string $format
+   *   The format to use when exporting the data: html or ascii.
    *
    * @return \Symfony\Component\HttpFoundation\Response
    *   Response object.
    */
-  public function resultExport(string $type, string $project_machine_name) {
+  public function resultExport(string $type, string $project_machine_name, string $format) {
     $extension = $this->projectCollector->loadProject($type, $project_machine_name);
     $result = $this->resultFormatter->getRawResult($extension);
 
-    $build = ['#theme' => 'upgrade_status_html_export'];
+    // Sanitize user input.
+    if (!in_array($format, ['html', 'ascii'])) {
+      $format = 'html';
+    }
+
+    $build = ['#theme' =>  'upgrade_status_' . $format . '_export' ];
     $build['#projects'][empty($extension->info['project']) ? 'custom' : 'contrib'] = [
-      $project_machine_name =>  $this->resultFormatter->formatResult($extension),
+      $project_machine_name =>
+        $format == 'html' ?
+          $this->resultFormatter->formatResult($extension) :
+          $this->resultFormatter->formatAsciiResult($extension) ,
     ];
 
     $fileDate = $this->resultFormatter->formatDateTime($result['date'], 'html_datetime');
-    $filename = 'single-export-' . $project_machine_name . '-' . $fileDate . '.html';
+    $extension = $format == 'html' ? '.html' : '.txt';
+    $filename = 'single-export-' . $project_machine_name . '-' . $fileDate . $extension;
     $response = new Response($this->renderer->renderRoot($build));
     $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
@@ -126,5 +137,4 @@ class ScanResultController extends ControllerBase {
       ['message' => $this->t('Scanned @project', ['@project' => $extension->getName()])]
     );
   }
-
 }

@@ -27,7 +27,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $assert_session = $this->assertSession();
 
     $assert_session->buttonExists('Scan selected');
-    $assert_session->buttonExists('Export selected');
+    $assert_session->buttonExists('Export as HTML');
 
     // Status for every project should be 'Not scanned'.
     $status = $this->getSession()->getPage()->findAll('css', 'td.status-info');
@@ -46,7 +46,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $assert_session = $this->assertSession();
 
     $assert_session->buttonExists('Scan selected');
-    $assert_session->buttonExists('Export selected');
+    $assert_session->buttonExists('Export as HTML');
 
     // Custom projects have 3 columns of information.
     $upgrade_status_test_error = $page->find('css', '.upgrade-status-summary-custom .project-upgrade_status_test_error');
@@ -71,7 +71,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $this->assertCount(4, $upgrade_status_test_contrib_no_error->findAll('css', 'td'));
     $this->assertSame('No known errors', $upgrade_status_test_contrib_no_error->find('css', 'td.status-info')->getHtml());
 
-    // Click the '2 errors' link. Should be the custom module.
+    // Click the '2 errors' link. Should be the custom project.
     $this->clickLink('1 error, 1 warning');
     $this->assertText('Upgrade status test error ' . \Drupal::VERSION);
     $this->assertText('1 error found. 1 warning found.');
@@ -79,11 +79,21 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
 
     // Go forward to the export page and assert that still contains the results
     // as well as an export specific title.
-    $this->clickLink('Export report');
+    $this->clickLink('Export as HTML');
     $this->assertText('Upgrade Status report');
     $this->assertText('Upgrade status test error ' . \Drupal::VERSION);
-    $this->assertText('Custom modules and themes');
-    $this->assertNoText('Contributed modules and themes');
+    $this->assertText('Custom projects');
+    $this->assertNoText('Contributed projects');
+    $this->assertText('1 error found. 1 warning found.');
+    $this->assertText('Syntax error, unexpected T_STRING on line 3');
+
+    // Go back to the listing page and click over to exporting in single ASCII.
+    $this->drupalGet(Url::fromRoute('upgrade_status.report'));
+    $this->clickLink('1 error, 1 warning');
+    $this->clickLink('Export as ASCII');
+    $this->assertText('Upgrade status test error ' . \Drupal::VERSION);
+    $this->assertText('CUSTOM PROJECTS');
+    $this->assertNoText('CONTRIBUTED PROJECTS');
     $this->assertText('1 error found. 1 warning found.');
     $this->assertText('Syntax error, unexpected T_STRING on line 3');
 
@@ -93,17 +103,22 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
       'custom[data][data][upgrade_status_test_no_error]' => TRUE,
       'contrib[data][data][upgrade_status_test_contrib_error]' => TRUE,
     ];
-    $this->drupalPostForm('admin/reports/upgrade', $edit, 'Export selected');
-    $this->assertText('Upgrade Status report');
-    $this->assertText('Upgrade status test contrib error ' . \Drupal::VERSION);
-    $this->assertText('Upgrade status test no error ' . \Drupal::VERSION);
-    $this->assertText('Upgrade status test error ' . \Drupal::VERSION);
-    $this->assertNoText('Upgrade status test root module');
-    $this->assertNoText('Upgrade status test contrib no error');
-    $this->assertText('Contributed modules and themes');
-    $this->assertText('Custom modules and themes');
-    $this->assertText('1 error found. 1 warning found.');
-    $this->assertText('Syntax error, unexpected T_STRING on line 3');
+    $expected = [
+      'Export as HTML' => ['Contributed projects', 'Custom projects'],
+      'Export as ASCII' => ['CONTRIBUTED PROJECTS', 'CUSTOM PROJECTS'],
+    ];
+    foreach ($expected as $button => $assert) {
+      $this->drupalPostForm('admin/reports/upgrade', $edit, $button);
+      $this->assertText($assert[0]);
+      $this->assertText($assert[1]);
+      $this->assertText('Upgrade status test contrib error ' . \Drupal::VERSION);
+      $this->assertText('Upgrade status test no error ' . \Drupal::VERSION);
+      $this->assertText('Upgrade status test error ' . \Drupal::VERSION);
+      $this->assertNoText('Upgrade status test root module');
+      $this->assertNoText('Upgrade status test contrib no error');
+      $this->assertText('1 error found. 1 warning found.');
+      $this->assertText('Syntax error, unexpected T_STRING on line 3');
+    }
   }
 
   /**

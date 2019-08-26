@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Upgrade status report - {{ date }}</title>
+  <title>Upgrade status report</title>
   <style>
     body {
       font-family: Helvetia, Arial, sans-serif;
@@ -27,7 +27,7 @@
 <h1>Upgrade Status report</h1>
 
 {% if projects.custom %}
-  <h2>Custom modules and themes</h2>
+  <h2>Custom projects</h2>
   {% for project in projects.custom %}
     <h3>{{ project.name }}</h3>
     {{ project.date }}
@@ -38,7 +38,7 @@
 {% endif %}
 
 {% if projects.contrib %}
-  <h2>Contributed modules and themes</h2>
+  <h2>Contributed projects</h2>
   {% for project in projects.contrib %}
     <h3>{{ project.name }}</h3>
     {{ project.date }}
