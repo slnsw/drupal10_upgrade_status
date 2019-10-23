@@ -57,7 +57,7 @@ class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
     $this->assertCount(1, $report['data']['files']);
     $file = reset($report['data']['files']);
     $message = $file['messages'][0];
-    $this->assertEquals("Call to deprecated function format_string(). Deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.\nUse \Drupal\Component\Render\FormattableMarkup.", $message['message']);
+    $this->assertEquals("Call to deprecated function format_string(). Deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.\nUse \Drupal\Component\Render\FormattableMarkup instead.", $message['message']);
     $this->assertEquals(15, $message['line']);
   }
 
