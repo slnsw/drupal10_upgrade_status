@@ -2,6 +2,7 @@
 
 namespace Drupal\upgrade_status;
 
+use Composer\Semver\Semver;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
@@ -172,6 +173,29 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       ],
       'files' => [],
     ];
+
+    // Manually add on info file incompatibility to phpstan results.
+    $info = $extension->info;
+    if (!isset($info['core_version_requirement'])) {
+      $result['data']['files'][$extension->getFilename()]['messages'] = [
+        [
+          'message' => 'Add <code>core_version_requirement: ^8 || ^9</code> to ' . $extension->getFilename() . ' to designate that the module is compatible with Drupal 9. See https://www.drupal.org/node/3070687.',
+          'line' => 0,
+        ],
+      ];
+      $result['data']['totals']['errors']++;
+      $result['data']['totals']['file_errors']++;
+    }
+    elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
+      $result['data']['files'][$extension->getFilename()]['messages'] = [
+        [
+          'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$extension->getFilename()} is not compatible with Drupal 9.0.0. See https://www.drupal.org/node/3070687.",
+          'line' => 0,
+        ],
+      ];
+      $result['data']['totals']['errors']++;
+      $result['data']['totals']['file_errors']++;
+    }
 
     if (!empty($paths)) {
       $num_of_files = $this->config->get('paths_per_scan');

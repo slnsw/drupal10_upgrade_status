@@ -33,9 +33,11 @@ class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
     $project = $key_value->get('upgrade_status_test_error');
     $this->assertNotEmpty($project);
     $report = json_decode($project, TRUE);
-    $this->assertEquals(3, $report['data']['totals']['file_errors']);
-    $this->assertCount(3, $report['data']['files']);
+    $this->assertEquals(4, $report['data']['totals']['file_errors']);
+    $this->assertCount(4, $report['data']['files']);
     $file = reset($report['data']['files']);
+    // Skip info file warning for this test.
+    $file = next($report['data']['files']);
     $message = $file['messages'][0];
     $this->assertEquals("Syntax error, unexpected T_STRING on line 3", $message['message']);
     $this->assertEquals(3, $message['line']);
@@ -53,9 +55,11 @@ class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
     $project = $key_value->get('upgrade_status_test_contrib_error');
     $this->assertNotEmpty($project);
     $report = json_decode($project, TRUE);
-    $this->assertEquals(1, $report['data']['totals']['file_errors']);
-    $this->assertCount(1, $report['data']['files']);
+    $this->assertEquals(2, $report['data']['totals']['file_errors']);
+    $this->assertCount(2, $report['data']['files']);
     $file = reset($report['data']['files']);
+    // Skip info file warning for this test.
+    $file = next($report['data']['files']);
     $message = $file['messages'][0];
     $this->assertEquals("Call to deprecated function format_string(). Deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.\nUse \Drupal\Component\Render\FormattableMarkup instead.", $message['message']);
     $this->assertEquals(15, $message['line']);

@@ -3,5 +3,5 @@ type: module
 description: 'Support module for upgrade status module testing.'
 package: Testing
 version: VERSION
-core: 8.x
+core_version_requirement: ^8 || ^9
 project: 'upgrade_status'
