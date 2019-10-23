@@ -280,7 +280,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
         NULL,
         NULL,
         $this->phpstanNeonPath,
-        NULL
+        NULL,
+        FALSE
       );
     }
     catch (Exception $e) {
@@ -304,8 +305,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
           $errorFormatter,
           $result->isDefaultLevelUsed(),
           FALSE,
-          NULL,
-          FALSE
+          NULL
         )
       );
 
