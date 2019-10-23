@@ -304,7 +304,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
           $errorFormatter,
           $result->isDefaultLevelUsed(),
           FALSE,
-          NULL
+          NULL,
+          FALSE
         )
       );
 
