@@ -392,10 +392,15 @@ class UpgradeStatusForm extends FormBase {
     $submitted = $form_state->getValues();
 
     foreach (['custom', 'contrib'] as $type) {
-      foreach($submitted[$type]['data']['data'] as $project => $checked) {
-        if ($checked !== 0) {
-          // If the checkbox was checked, add a batch operation.
-          $operations[] = [static::class . '::parseProject', [$projects[$type][$project]]];
+      if (!empty($submitted[$type])) {
+        foreach($submitted[$type]['data']['data'] as $project => $checked) {
+          if ($checked !== 0) {
+            // If the checkbox was checked, add a batch operation.
+            $operations[] = [
+              static::class . '::parseProject', 
+              [$projects[$type][$project]]
+            ];
+          }
         }
       }
     }
