@@ -33,8 +33,8 @@ class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
     $project = $key_value->get('upgrade_status_test_error');
     $this->assertNotEmpty($project);
     $report = json_decode($project, TRUE);
-    $this->assertEquals(2, $report['data']['totals']['file_errors']);
-    $this->assertCount(2, $report['data']['files']);
+    $this->assertEquals(3, $report['data']['totals']['file_errors']);
+    $this->assertCount(3, $report['data']['files']);
     $file = reset($report['data']['files']);
     $message = $file['messages'][0];
     $this->assertEquals("Syntax error, unexpected T_STRING on line 3", $message['message']);
