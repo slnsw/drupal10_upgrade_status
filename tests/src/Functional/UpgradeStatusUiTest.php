@@ -49,6 +49,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $assert_session->buttonExists('Export as HTML');
 
     // Custom projects have 3 columns of information.
+    $this->drupalGet(Url::fromRoute('upgrade_status.project', ['type' => 'module', 'project_machine_name' => 'upgrade_status_test_error']));
     $upgrade_status_test_error = $page->find('css', '.upgrade-status-summary-custom .project-upgrade_status_test_error');
     $this->assertCount(3, $upgrade_status_test_error->findAll('css', 'td'));
     $this->assertSame('1 error, 1 warning', strip_tags($upgrade_status_test_error->find('css', 'td.status-info')->getHtml()));
