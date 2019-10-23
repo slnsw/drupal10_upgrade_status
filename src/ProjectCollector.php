@@ -135,7 +135,7 @@ class ProjectCollector implements ProjectCollectorInterface {
    */
   protected function collateCustomExtensionsIntoProjects(array $projects) {
     foreach ($projects as $name_a => $data_a) {
-      $subpath_a = $data_a->subpath;
+      $subpath_a = $data_a->subpath . '/';
       $subpath_a_length = strlen($subpath_a);
 
       foreach ($projects as $name_b => $data_b) {
