@@ -198,7 +198,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     }
 
     if (!empty($paths)) {
-      $num_of_files = $this->config->get('paths_per_scan');
+      $num_of_files = $this->config->get('paths_per_scan') ?: 30;
       // @todo: refactor and validate.
       for ($offset = 0; $offset <= count($paths); $offset += $num_of_files) {
         $files = array_slice($paths, $offset, $num_of_files);
