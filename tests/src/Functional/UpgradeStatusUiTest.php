@@ -108,7 +108,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
       'Export as ASCII' => ['CONTRIBUTED PROJECTS', 'CUSTOM PROJECTS'],
     ];
     foreach ($expected as $button => $assert) {
-      $this->drupalPostForm('admin/reports/upgrade', $edit, $button);
+      $this->drupalPostForm('admin/reports/upgrade-status', $edit, $button);
       $this->assertText($assert[0]);
       $this->assertText($assert[1]);
       $this->assertText('Upgrade status test contrib error ' . \Drupal::VERSION);

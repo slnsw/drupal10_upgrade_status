@@ -43,7 +43,7 @@ class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
     $this->assertEquals(3, $message['line']);
     $file = next($report['data']['files']);
     $message = $file['messages'][0];
-    $this->assertEquals("Call to deprecated function menu_cache_clear_all(). Deprecated in Drupal 8.6.0, will be removed before Drupal 9.0.0. Use\n\Drupal::cache('menu')->invalidateAll() instead.", $message['message']);
+    $this->assertEquals("Call to deprecated function menu_cache_clear_all(). Deprecated in drupal:8.6.0 and is removed from drupal:9.0.0. Use\n\Drupal::cache('menu')->invalidateAll() instead.", $message['message']);
     $this->assertEquals(10, $message['line']);
 
     $project = $key_value->get('upgrade_status_test_no_error');

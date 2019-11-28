@@ -35,7 +35,7 @@ abstract class UpgradeStatusTestBase extends BrowserTestBase {
       'contrib[data][data][upgrade_status_test_contrib_error]' => TRUE,
       'contrib[data][data][upgrade_status_test_contrib_no_error]' => TRUE,
     ];
-    $this->drupalPostForm('admin/reports/upgrade', $edit, 'Scan selected');
+    $this->drupalPostForm('admin/reports/upgrade-status', $edit, 'Scan selected');
   }
 
 }
