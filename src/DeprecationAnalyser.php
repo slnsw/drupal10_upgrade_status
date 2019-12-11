@@ -134,7 +134,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
 
     $this->populateAutoLoader();
 
-    $this->upgradeStatusTemporaryDirectory = $this->fileSystem->getTempDirectory() . '/upgrade_status';
+    $this->upgradeStatusTemporaryDirectory = file_directory_temp() . '/upgrade_status';
     $this->phpstanNeonPath = $this->upgradeStatusTemporaryDirectory . '/deprecation_testing.neon';
     if (!file_exists($this->phpstanNeonPath)) {
       $this->prepareTempDirectory();
