@@ -8,3 +8,4 @@ php: '7.1'
 dependencies:
   - drupal:update
   - drupal:git_deploy
+  - drupal:system (>=8.7.0)
