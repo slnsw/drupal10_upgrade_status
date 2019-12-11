@@ -1,35 +1,51 @@
-# @todo document the sources (and the versions of sources) of parts of this
-# file and why each thing is done
 parameters:
-		# Ignore tests and api
-	excludes_analyse:
-		- *.api.php
-		- */tests/Drupal/Tests/Listeners/Legacy/*
-		- */tests/fixtures/*.php
+
+	# FROM mglaman/drupal-check/phpstan/deprecation_testing.neon
 	customRulesetUsed: true
-	fileExtensions:
-		- module
-		- theme
-		- inc
-	# Ignore phpstan-drupal extension's rules.
 	ignoreErrors:
 		- '#\Drupal calls should be avoided in classes, use dependency injection instead#'
 		- '#Plugin definitions cannot be altered.#'
 		- '#Missing cache backend declaration for performance.#'
 		- '#Plugin manager has cache backend specified but does not declare cache tags.#'
+
+	# FROM mglaman/drupal-check/phpstan/base_config.neon
+	# AND FROM mglaman/phpstan-drupal/extension.neon
 	reportUnmatchedIgnoredErrors: false
+	excludes_analyse:
+		- *.api.php
+		- */tests/Drupal/Tests/Listeners/Legacy/*
+		- */tests/fixtures/*.php
+		- */settings*.php
+
+	# FROM mglaman/phpstan-drupal/extension.neon
+	fileExtensions:
+		- module
+		- theme
+		- inc
+		- install
+		- profile
+		- engine
+
 extensions:
+	# FROM mglaman/phpstan-drupal/extension.neon
 	drupal: PHPStan\DependencyInjection\DrupalExtension
+
 drupal:
+	# FROM mglaman/phpstan-drupal/extension.neon
 	entityTypeStorageMapping:
 		node: Drupal\node\NodeStorage
 		taxonomy_term: Drupal\taxonomy\TermStorage
 		user: Drupal\user\UserStorage
+
 rules:
+	# FROM mglaman/phpstan-drupal/extension.neon
 	- PHPStan\Rules\Classes\PluginManagerInspectionRule
 	- PHPStan\Rules\Drupal\Coder\DiscouragedFunctionsRule
 	- PHPStan\Rules\Drupal\GlobalDrupalDependencyInjectionRule
 	- PHPStan\Rules\Drupal\PluginManager\PluginManagerSetsCacheBackendRule
+	- PHPStan\Rules\Deprecations\AccessDeprecatedConstant
+
+	# FROM phpstan/phpstan-deprecation-rules/rules.neon
 	- PHPStan\Rules\Deprecations\AccessDeprecatedPropertyRule
 	- PHPStan\Rules\Deprecations\AccessDeprecatedStaticPropertyRule
 	- PHPStan\Rules\Deprecations\CallToDeprecatedFunctionRule
@@ -41,9 +57,11 @@ rules:
 	- PHPStan\Rules\Deprecations\InheritanceOfDeprecatedInterfaceRule
 	- PHPStan\Rules\Deprecations\InstantiationOfDeprecatedClassRule
 	- PHPStan\Rules\Deprecations\UsageOfDeprecatedTraitRule
+
 services:
+	# FROM mglaman/phpstan-drupal/extension.neon
 	drupal.serviceMapFactory:
-		class: PHPStan\Drupal\ServiceMapFactoryInterface
+		class: PHPStan\Drupal\ServiceMapFactory
 		factory: PHPStan\Drupal\ServiceMapFactory(%drupalServiceMap%)
 	-
 		class: @drupal.serviceMapFactory::create()
@@ -55,3 +73,6 @@ services:
 	-
 		class: PHPStan\Type\ServiceDynamicReturnTypeExtension
 		tags: [phpstan.broker.dynamicMethodReturnTypeExtension]
+	-
+		class: PHPStan\Reflection\EntityFieldsViaMagicReflectionExtension
+		tags: [phpstan.broker.propertiesClassReflectionExtension]
