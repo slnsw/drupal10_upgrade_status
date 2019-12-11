@@ -5,6 +5,7 @@ namespace Drupal\upgrade_status;
 use Composer\Semver\Semver;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\Extension;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Exception;
@@ -89,6 +90,13 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $httpClient;
 
   /**
+   * File system service.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected $fileSystem;
+
+  /**
    * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -103,6 +111,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    *   The config factory.
    * @param \GuzzleHttp\Client $http_client
    *   HTTP client.
+   * @param \Drupal\Core\File\FileSystemInterface $file_system
+   *   File system service.
    */
   public function __construct(
     KeyValueFactoryInterface $key_value_factory,
@@ -110,7 +120,8 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     StringInput $input,
     BufferedOutput $output,
     ConfigFactoryInterface $config_factory,
-    Client $http_client
+    Client $http_client,
+    FileSystemInterface $file_system
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     // Log errors to an upgrade status logger channel.
@@ -119,10 +130,11 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     $this->outputInterface = $output;
     $this->config = $config_factory->get('upgrade_status.settings');
     $this->httpClient = $http_client;
+    $this->fileSystem = $file_system;
 
     $this->populateAutoLoader();
 
-    $this->upgradeStatusTemporaryDirectory = file_directory_temp() . '/upgrade_status';
+    $this->upgradeStatusTemporaryDirectory = $this->fileSystem->getTempDirectory() . '/upgrade_status';
     $this->phpstanNeonPath = $this->upgradeStatusTemporaryDirectory . '/deprecation_testing.neon';
     if (!file_exists($this->phpstanNeonPath)) {
       $this->prepareTempDirectory();
@@ -348,7 +360,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    *   True if the temporary directory is created, false if not.
    */
   protected function prepareTempDirectory() {
-    $success = file_prepare_directory($this->upgradeStatusTemporaryDirectory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    $success = $this->fileSystem->prepareDirectory($this->upgradeStatusTemporaryDirectory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     if (!$success) {
       $this->logger->error($this->t("Unable to create temporary directory for Upgrade Status: @directory.", ['@directory' => $this->upgradeStatusTemporaryDirectory]));
@@ -356,7 +368,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     }
 
     $phpstan_cache_directory = $this->upgradeStatusTemporaryDirectory . '/phpstan';
-    $success = file_prepare_directory($phpstan_cache_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    $success = $this->fileSystem->prepareDirectory($phpstan_cache_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     if (!$success) {
       $this->logger->error($this->t("Unable to create temporary directory for PHPStan: @directory.", ['@directory' => $phpstan_cache_directory]));
