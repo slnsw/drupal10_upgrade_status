@@ -26,7 +26,7 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    *
    * @var string
    */
-  const CORE_MINOR_OLDEST_SUPPORTED = '8.6';
+  const CORE_MINOR_OLDEST_SUPPORTED = '8.7';
 
   /**
    * The error format to use to retrieve the report from PHPStan.
