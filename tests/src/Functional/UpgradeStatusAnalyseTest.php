@@ -2,8 +2,6 @@
 
 namespace Drupal\Tests\upgrade_status\Functional;
 
-use Drupal\Core\Url;
-
 /**
  * Tests analysing sample projects.
  *

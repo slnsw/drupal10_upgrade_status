@@ -10,6 +10,11 @@ use Drupal\Tests\BrowserTestBase;
 abstract class UpgradeStatusTestBase extends BrowserTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Modules to install.
    *
    * @var array

@@ -20,6 +20,11 @@ class UpgradeStatusAccessTest extends BrowserTestBase {
   public static $modules = ['upgrade_status'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests access without permission.
    */
   public function testDeprecationDashboardAccessUnprivileged() {
