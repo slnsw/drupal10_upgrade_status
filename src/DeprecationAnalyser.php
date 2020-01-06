@@ -10,7 +10,6 @@ use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Exception;
 use GuzzleHttp\Client;
-use Nette\Neon\Neon;
 use PHPStan\Command\AnalyseApplication;
 use PHPStan\Command\CommandHelper;
 use Psr\Log\LoggerInterface;
@@ -383,15 +382,18 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    * @return bool
    */
   protected function createModifiedNeonFile() {
-    $module_path = drupal_get_path('module', 'upgrade_status');
-    $unmodified_neon_file = DRUPAL_ROOT . "/$module_path/deprecation_testing.neon";
-    $config = file_get_contents($unmodified_neon_file);
-    $neon = Neon::decode($config);
-    $neon['parameters']['tmpDir'] = $this->upgradeStatusTemporaryDirectory . '/phpstan';
-    $success = file_put_contents($this->phpstanNeonPath, Neon::encode($neon), Neon::BLOCK);
-
+    $module_path = DRUPAL_ROOT . '/' . drupal_get_path('module', 'upgrade_status');
+    $config = file_get_contents($module_path . 'deprecation_testing.neon');
+    $config = str_replace('parameters:', "parameters:\n\ttmpDir: '" . $this->upgradeStatusTemporaryDirectory . '/phpstan' . "'");
+    $success = file_put_contents($this->phpstanNeonPath, $config);
     if (!$success) {
-      $this->logger->error($this->t("Couldn't write configuration for PHPStan: @file.", ['@file' => $this->phpstanNeonPath]));
+      $this->logger->error($this->t("Couldn't write static configuration for PHPStan: @file.", ['@file' => $this->phpstanNeonPath]));
+    }
+    $php = file_get_contents($module_path . 'deprecation_testing.php');
+    $php_destination = dirname($this->phpstanNeonPath) . '/deprecation_testing.php';
+    $success = file_put_contents($php_destination, $php);
+    if (!$success) {
+      $this->logger->error($this->t("Couldn't write dynamic configuration for PHPStan: @file.", ['@file' => $php_destination]));
     }
 
     return $success ? TRUE : FALSE;
