@@ -13,6 +13,3 @@ parameters:
 		- */tests/Drupal/Tests/Listeners/Legacy/*
 		- */tests/fixtures/*.php
 		- */settings*.php
-
-includes:
-	- deprecation_testing.php

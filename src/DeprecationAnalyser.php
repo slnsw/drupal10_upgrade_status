@@ -3,18 +3,12 @@
 namespace Drupal\upgrade_status;
 
 use Composer\Semver\Semver;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Exception;
 use GuzzleHttp\Client;
-use PHPStan\Command\AnalyseApplication;
-use PHPStan\Command\CommandHelper;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Console\Input\StringInput;
-use Symfony\Component\Console\Output\BufferedOutput;
 
 class DeprecationAnalyser implements DeprecationAnalyserInterface {
 
@@ -49,20 +43,6 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $logger;
 
   /**
-   * Symfony Console input interface.
-   *
-   * @var \Symfony\Component\Console\Input\StringInput
-   */
-  protected $inputInterface;
-
-  /**
-   * Symfony Console output interface.
-   *
-   * @var \Symfony\Component\Console\Output\BufferedOutput
-   */
-  protected $outputInterface;
-
-  /**
    * Path to the PHPStan neon configuration.
    *
    * @var string
@@ -70,16 +50,16 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $phpstanNeonPath;
 
   /**
+   * Path to the vendor directory.
+   *
+   * @var string
+   */
+  protected $vendorPath;
+
+  /**
    * @var string
    */
   protected $upgradeStatusTemporaryDirectory;
-
-  /**
-   * A configuration object containing upgrade_status settings.
-   *
-   * @var \Drupal\Core\Config\ImmutableConfig
-   */
-  protected $config;
 
   /**
    * HTTP Client for drupal.org API calls.
@@ -102,12 +82,6 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    *   The key/value factory.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
-   * @param \Symfony\Component\Console\Input\StringInput $input
-   *   The Symfony Console input interface.
-   * @param \Symfony\Component\Console\Output\BufferedOutput $output
-   *   The Symfony Console output interface.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The config factory.
    * @param \GuzzleHttp\Client $http_client
    *   HTTP client.
    * @param \Drupal\Core\File\FileSystemInterface $file_system
@@ -116,74 +90,54 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   public function __construct(
     KeyValueFactoryInterface $key_value_factory,
     LoggerInterface $logger,
-    StringInput $input,
-    BufferedOutput $output,
-    ConfigFactoryInterface $config_factory,
     Client $http_client,
     FileSystemInterface $file_system
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     // Log errors to an upgrade status logger channel.
     $this->logger = $logger;
-    $this->inputInterface = $input;
-    $this->outputInterface = $output;
-    $this->config = $config_factory->get('upgrade_status.settings');
     $this->httpClient = $http_client;
     $this->fileSystem = $file_system;
 
-    $this->populateAutoLoader();
+    $this->vendorPath = $this->findVendorPath();
 
     $this->upgradeStatusTemporaryDirectory = file_directory_temp() . '/upgrade_status';
-    $this->phpstanNeonPath = $this->upgradeStatusTemporaryDirectory . '/deprecation_testing.neon';
-    if (!file_exists($this->phpstanNeonPath)) {
+    if (!file_exists($this->upgradeStatusTemporaryDirectory)) {
       $this->prepareTempDirectory();
-      $this->createModifiedNeonFile();
     }
+
+    $this->phpstanNeonPath = $this->upgradeStatusTemporaryDirectory . '/deprecation_testing.neon';
+    $this->createModifiedNeonFile();
   }
 
   /**
-   * Populate the class loader for PHPStan.
+   * Finds vendor location.
+   *
+   * @return string|null
+   *   Vendor directory path if found, null otherwise.
    */
-  protected function populateAutoLoader() {
-    require_once DRUPAL_ROOT . '/core/tests/bootstrap.php';
-    drupal_phpunit_populate_class_loader();
+  protected function findVendorPath() {
+    // The vendor directory may be found inside the webroot (unlikely).
+    if (file_exists(DRUPAL_ROOT . '/vendor/bin/phpstan')) {
+      return DRUPAL_ROOT . '/vendor';
+    }
+    // Most likely the vendor directory is found alongside the webroot.
+    elseif (file_exists(dirname(DRUPAL_ROOT) . '/vendor/bin/phpstan')) {
+      return dirname(DRUPAL_ROOT) . '/vendor';
+    }
+    // One of the above should have worked.
+    $this->logger->error('PHPStan executable not found.');
   }
 
   /**
    * {@inheritdoc}
    */
   public function analyse(Extension $extension) {
-    // Prepare for possible fatal errors while autoloading or due to issues with
-    // dependencies.
-    drupal_register_shutdown_function([$this, 'logFatalError'], $extension);
-
-    // Set the autoloader for PHPStan.
-    if (!isset($GLOBALS['autoloaderInWorkingDirectory'])) {
-      $GLOBALS['autoloaderInWorkingDirectory'] = DRUPAL_ROOT . '/autoload.php';
-    }
-
     $project_dir = DRUPAL_ROOT . '/' . $extension->subpath;
-    $paths = $this->getDirContents($project_dir);
-    foreach ($paths as $key => $file_path) {
-      if (substr($file_path, -3) !== 'php'
-        && substr($file_path, -7) !== '.module'
-        && substr($file_path, -8) !== '.install'
-        && substr($file_path, -3) !== 'inc') {
-        unset($paths[$key]);
-      }
-    }
-
-    $this->logger->notice($this->t("Extension @project_machine_name contains @number files to process.", ['@project_machine_name' => $extension->getName(), '@number' => count($paths)]));
-
-    $result = [];
-    $result['date'] = REQUEST_TIME;
-    $result['data'] = [
-      'totals' => [
-        'errors' => 0,
-        'file_errors' => 0,
-      ],
-      'files' => [],
-    ];
+    $output = [];
+    exec($this->vendorPath . '/bin/phpstan analyse --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir, $output);
+    $json = json_decode(join('', $output), TRUE);
+    $result = ['date' => REQUEST_TIME, 'data' => $json];
 
     // Manually add on info file incompatibility to phpstan results.
     $info = $extension->info;
@@ -206,24 +160,6 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
       ];
       $result['data']['totals']['errors']++;
       $result['data']['totals']['file_errors']++;
-    }
-
-    if (!empty($paths)) {
-      $num_of_files = $this->config->get('paths_per_scan') ?: 30;
-      // @todo: refactor and validate.
-      for ($offset = 0; $offset <= count($paths); $offset += $num_of_files) {
-        $files = array_slice($paths, $offset, $num_of_files);
-        if (!empty($files)) {
-          $raw_errors = $this->runPhpStan($files);
-          $errors = json_decode($raw_errors, TRUE);
-          if (!is_array($errors)) {
-            continue;
-          }
-          $result['data']['totals']['errors'] += $errors['totals']['errors'];
-          $result['data']['totals']['file_errors'] += $errors['totals']['file_errors'];
-          $result['data']['files'] = array_merge($result['data']['files'], $errors['files']);
-        }
-      }
     }
 
     foreach($result['data']['files'] as $path => &$errors) {
@@ -270,85 +206,6 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   }
 
   /**
-   * Get directory contents recursively.
-   *
-   * @param string $dir
-   *   Path to directory.
-   * @return array
-   *   The list of files found.
-   */
-  public function getDirContents(string $dir) {
-    $results = [];
-    $files = scandir($dir);
-    foreach ($files as $value) {
-      $path = realpath($dir . '/' . $value);
-      if (!is_dir($path)) {
-        $results[] = $path;
-        continue;
-      }
-      if ($value != '.' && $value != '..') {
-        $results = array_merge($results, $this->getDirContents($path, $results));
-      }
-    }
-    return $results;
-  }
-
-  /**
-   * Run PHPStan on the given paths.
-   *
-   * @param array $paths
-   *   List of paths.
-   * @return mixed
-   *   Results in self::ERROR_FORMAT.
-   */
-  public function runPhpStan(array $paths) {
-    // Analyse code in the given directory with PHPStan. The most sensible way
-    // we could find was to pretend we have Symfony console inputs and outputs
-    // and take the result from there. PHPStan as-is is highly tied to the
-    // console and we could not identify an independent PHP API to use.
-    try {
-      $result = CommandHelper::begin(
-        $this->inputInterface,
-        $this->outputInterface,
-        $paths,
-        NULL,
-        NULL,
-        NULL,
-        $this->phpstanNeonPath,
-        NULL,
-        FALSE
-      );
-    }
-    catch (Exception $e) {
-      $this->logger->error($e);
-    }
-
-    $container = $result->getContainer();
-    $error_formatter_service = sprintf('errorFormatter.%s', self::ERROR_FORMAT);
-    if (!$container->hasService($error_formatter_service)) {
-      $this->logger->error('Error formatter @formatter not found.', ['@formatter' => self::ERROR_FORMAT]);
-    }
-    else {
-      $errorFormatter = $container->getService($error_formatter_service);
-      $application = $container->getByType(AnalyseApplication::class);
-
-      $result->handleReturn(
-        $application->analyse(
-          $result->getFiles(),
-          $result->isOnlyFiles(),
-          $result->getConsoleStyle(),
-          $errorFormatter,
-          $result->isDefaultLevelUsed(),
-          FALSE,
-          NULL
-        )
-      );
-
-      return $this->outputInterface->fetch();
-    }
-  }
-
-  /**
    * Prepare temporary directories for Upgrade Status.
    *
    * The created directories in Drupal's temporary directory are needed to
@@ -383,62 +240,21 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    */
   protected function createModifiedNeonFile() {
     $module_path = DRUPAL_ROOT . '/' . drupal_get_path('module', 'upgrade_status');
-    $config = file_get_contents($module_path . 'deprecation_testing.neon');
-    $config = str_replace('parameters:', "parameters:\n\ttmpDir: '" . $this->upgradeStatusTemporaryDirectory . '/phpstan' . "'");
+    $config = file_get_contents($module_path . '/deprecation_testing.neon');
+    $config = str_replace(
+      'parameters:',
+      "parameters:\n\ttmpDir: '" . $this->upgradeStatusTemporaryDirectory . '/phpstan' . "'\n" .
+        "\tdrupal:\n\t\tdrupal_root: '" . DRUPAL_ROOT . "'",
+      $config
+    );
+    $config .= "\nincludes:\n\t- '" .
+      $this->vendorPath . "/mglaman/phpstan-drupal/extension.neon'\n\t- '" .
+      $this->vendorPath . "/phpstan/phpstan-deprecation-rules/rules.neon'\n";
     $success = file_put_contents($this->phpstanNeonPath, $config);
     if (!$success) {
-      $this->logger->error($this->t("Couldn't write static configuration for PHPStan: @file.", ['@file' => $this->phpstanNeonPath]));
+      $this->logger->error($this->t("Couldn't write configuration for PHPStan: @file.", ['@file' => $this->phpstanNeonPath]));
     }
-    $php = file_get_contents($module_path . 'deprecation_testing.php');
-    $php_destination = dirname($this->phpstanNeonPath) . '/deprecation_testing.php';
-    $success = file_put_contents($php_destination, $php);
-    if (!$success) {
-      $this->logger->error($this->t("Couldn't write dynamic configuration for PHPStan: @file.", ['@file' => $php_destination]));
-    }
-
     return $success ? TRUE : FALSE;
-  }
-
-  /**
-   * Shutdown function to handle fatal errors in the parsing process.
-   *
-   * @param \Drupal\Core\Extension\Extension $extension
-   *   Failed extension.
-   */
-  public function logFatalError(Extension $extension) {
-    $project_name = $extension->getName();
-    $result = $this->scanResultStorage->get($project_name);
-    $message = error_get_last();
-
-    if (empty($result)) {
-
-      $this->logger->error($this->t("Fatal error occurred for @project_machine_name.", ['@project_machine_name' => $project_name]));
-
-      $result = [];
-      $result['date'] = REQUEST_TIME;
-      $result['data'] = [
-        'totals' => [
-          'errors' => 0,
-          'file_errors' => 1,
-        ],
-        'files' => [],
-      ];
-
-      $file_name = $message['file'];
-
-      $result['data']['files'][$file_name] = [
-        'errors' => 1,
-        'messages' => [
-          [
-            'message' => $message['message'],
-            'line' => $message['line'],
-          ],
-        ],
-      ];
-
-      $this->scanResultStorage->set($project_name, json_encode($result));
-    }
-
   }
 
   /**
