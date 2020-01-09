@@ -54,6 +54,8 @@ class ProjectCollector implements ProjectCollectorInterface {
    *   The module extension list service.
    * @param \Drupal\Core\Extension\ThemeHandler $theme_handler
    *   The theme extension handler service.
+   * @param \Drupal\Core\Extension\ProfileExtensionList $profile_extension_list
+   *   The profile extension handler service.
    */
   public function __construct(
     ModuleExtensionList $module_extension_list,
