@@ -22,6 +22,7 @@ class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
     $this->assertTrue($key_value->has('upgrade_status_test_submodules'));
     $this->assertTrue($key_value->has('upgrade_status_test_contrib_error'));
     $this->assertTrue($key_value->has('upgrade_status_test_contrib_no_error'));
+    $this->assertTrue($key_value->has('upgrade_status_test_twig'));
 
     // The project upgrade_status_test_submodules_a shouldn't have scan result,
     // because it's a submodule of 'upgrade_status_test_submodules',
@@ -57,6 +58,16 @@ class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
     $message = $file['messages'][0];
     $this->assertEquals("Call to deprecated function format_string(). Deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.\nUse \Drupal\Component\Render\FormattableMarkup instead.", $message['message']);
     $this->assertEquals(15, $message['line']);
+
+    $project = $key_value->get('upgrade_status_test_twig');
+    $this->assertNotEmpty($project);
+    $report = json_decode($project, TRUE);
+    $this->assertEquals(1, $report['data']['totals']['file_errors']);
+    $this->assertCount(1, $report['data']['files']);
+    $file = reset($report['data']['files']);
+    $message = $file['messages'][0];
+    $this->assertContains('Twig Tag "raw" is deprecated since version 1.21. Use "verbatim" instead in', $message['message']);
+    $this->assertEquals(1, $message['line']);
   }
 
 }

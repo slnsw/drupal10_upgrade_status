@@ -7,6 +7,7 @@ use Drupal\Core\Extension\Extension;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Template\TwigEnvironment;
 use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
 
@@ -76,6 +77,13 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   protected $fileSystem;
 
   /**
+   * The Twig environment.
+   *
+   * @var \Drupal\Core\Template\TwigEnvironment
+   */
+  protected $twigEnvironment;
+
+  /**
    * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -86,18 +94,22 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
    *   HTTP client.
    * @param \Drupal\Core\File\FileSystemInterface $file_system
    *   File system service.
+   * @param \Drupal\Core\Template\TwigEnvironment $twig_environment
+   *   The Twig environment.
    */
   public function __construct(
     KeyValueFactoryInterface $key_value_factory,
     LoggerInterface $logger,
     Client $http_client,
-    FileSystemInterface $file_system
+    FileSystemInterface $file_system,
+    TwigEnvironment $twig_environment
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     // Log errors to an upgrade status logger channel.
     $this->logger = $logger;
     $this->httpClient = $http_client;
     $this->fileSystem = $file_system;
+    $this->twigEnvironment = $twig_environment;
 
     $this->vendorPath = $this->findVendorPath();
 
@@ -138,6 +150,20 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
     exec($this->vendorPath . '/bin/phpstan analyse --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir, $output);
     $json = json_decode(join('', $output), TRUE);
     $result = ['date' => REQUEST_TIME, 'data' => $json];
+
+    $twig_deprecations = $this->analyzeTwigTemplates($extension->subpath);
+    foreach ($twig_deprecations as $twig_deprecation) {
+      preg_match('/\s([a-zA-Z0-9\_\-\/]+.html\.twig)\s/', $twig_deprecation, $file_matches);
+      preg_match('/\s(\d).?$/', $twig_deprecation, $line_matches);
+      $result['data']['files'][$file_matches[1]]['messages'] = [
+        [
+          'message' => $twig_deprecation,
+          'line' => $line_matches[1] ?: 0,
+        ],
+      ];
+      $result['data']['totals']['errors']++;
+      $result['data']['totals']['file_errors']++;
+    }
 
     // Manually add on info file incompatibility to phpstan results.
     $info = $extension->info;
@@ -203,6 +229,18 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
 
     // Store the analysis results in our storage bin.
     $this->scanResultStorage->set($extension->getName(), json_encode($result));
+  }
+
+  /**
+   * Analyzes twig templates for calls of deprecated code.
+   *
+   * @param $directory
+   *   The directory which Twig templates should be analyzed.
+   *
+   * @return array
+   */
+  protected function analyzeTwigTemplates($directory) {
+    return (new \Twig_Util_DeprecationCollector($this->twigEnvironment))->collectDir($directory);
   }
 
   /**

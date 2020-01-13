@@ -1,7 +1,7 @@
 services:
   upgrade_status.deprecation_analyser:
     class: Drupal\upgrade_status\DeprecationAnalyser
-    arguments: ['@keyvalue', '@logger.channel.upgrade_status', '@http_client', '@file_system']
+    arguments: ['@keyvalue', '@logger.channel.upgrade_status', '@http_client', '@file_system', '@twig']
   upgrade_status.project_collector:
     class: Drupal\upgrade_status\ProjectCollector
     arguments: ['@extension.list.module', '@theme_handler', '@extension.list.profile']
