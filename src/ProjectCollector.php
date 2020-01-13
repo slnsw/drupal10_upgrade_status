@@ -4,7 +4,7 @@ namespace Drupal\upgrade_status;
 
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ProfileExtensionList;
-use Drupal\Core\Extension\ThemeHandler;
+use Drupal\Core\Extension\ThemeExtensionList;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use http\Exception\InvalidArgumentException;
 
@@ -23,11 +23,11 @@ class ProjectCollector implements ProjectCollectorInterface {
   protected $moduleExtensionList;
 
   /**
-   * The theme handler.
+   * The list of available themes.
    *
-   * @var \Drupal\Core\Extension\ThemeHandler
+   * @var \Drupal\Core\Extension\ThemeExtensionList
    */
-  protected $themeHandler;
+  protected $themeExtensionList;
 
   /**
    * The list of available profiles.
@@ -52,18 +52,18 @@ class ProjectCollector implements ProjectCollectorInterface {
    *
    * @param \Drupal\Core\Extension\ModuleExtensionList $module_extension_list
    *   The module extension list service.
-   * @param \Drupal\Core\Extension\ThemeHandler $theme_handler
+   * @param \Drupal\Core\Extension\ThemeExtensionList $theme_handler
    *   The theme extension handler service.
    * @param \Drupal\Core\Extension\ProfileExtensionList $profile_extension_list
    *   The profile extension handler service.
    */
   public function __construct(
     ModuleExtensionList $module_extension_list,
-    ThemeHandler $theme_handler,
+    ThemeExtensionList $theme_extension_list,
     ProfileExtensionList $profile_extension_list
   ) {
     $this->moduleExtensionList = $module_extension_list;
-    $this->themeHandler = $theme_handler;
+    $this->themeExtensionList = $theme_extension_list;
     $this->profileExtensionList = $profile_extension_list;
   }
 
@@ -73,8 +73,8 @@ class ProjectCollector implements ProjectCollectorInterface {
   public function collectProjects() {
     $projects = ['custom' => [], 'contrib' => []];
     $modules = $this->moduleExtensionList->reset()->getList();
-    $themes = $this->themeHandler->rebuildThemeData();
-    $profiles = $this->profileExtensionList->getList();
+    $themes = $this->themeExtensionList->reset()->getList();
+    $profiles = $this->profileExtensionList->reset()->getList();
     $extensions = array_merge($modules, $themes, $profiles);
     unset($modules, $themes, $profiles);
 
@@ -102,16 +102,12 @@ class ProjectCollector implements ProjectCollectorInterface {
         continue;
       }
 
-      // For extensions that are not in core and no project was specified,
-      // they are assumed to be custom code. Drupal.org packages contrib
-      // extensions with a project key and composer packages also include it.
-      if (empty($project)) {
+      // At this point extensions that don't have a project should be considered
+      // custom. Extensions that have the 'drupal' project but did not have the
+      // 'core' origin assigned are custom extensions that are running in a
+      // Drupal core git checkout, so also categorize them as custom.
+      if (empty($project) || $project === 'drupal') {
         $projects['custom'][$key] = $extension;
-        continue;
-      }
-
-      if ($project === 'drupal') {
-        // Ensure to omit all core related extension from the list.
         continue;
       }
 

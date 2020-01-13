@@ -4,7 +4,7 @@ services:
     arguments: ['@keyvalue', '@logger.channel.upgrade_status', '@http_client', '@file_system', '@twig']
   upgrade_status.project_collector:
     class: Drupal\upgrade_status\ProjectCollector
-    arguments: ['@extension.list.module', '@theme_handler', '@extension.list.profile']
+    arguments: ['@extension.list.module', '@extension.list.theme', '@extension.list.profile']
   upgrade_status.result_formatter:
     class: Drupal\upgrade_status\ScanResultFormatter
     arguments: ['@keyvalue', '@date.formatter', '@datetime.time']
