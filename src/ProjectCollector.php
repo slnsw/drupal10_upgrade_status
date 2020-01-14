@@ -5,15 +5,12 @@ namespace Drupal\upgrade_status;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ProfileExtensionList;
 use Drupal\Core\Extension\ThemeExtensionList;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
 use http\Exception\InvalidArgumentException;
 
 /**
  * Collects projects collated for the purposes of upgrade status.
  */
 class ProjectCollector implements ProjectCollectorInterface {
-
-  use StringTranslationTrait;
 
   /**
    * The list of available modules.
@@ -153,7 +150,7 @@ class ProjectCollector implements ProjectCollectorInterface {
    */
   public function loadProject(string $type, string $project_machine_name) {
     if (!in_array($type, $this->allowedTypes)) {
-      throw new InvalidArgumentException($this->t('Type must be either module or theme.'));
+      throw new InvalidArgumentException(sprintf('"%s" is not a valid type. Valid types are module, profile and theme.', $type));
     }
 
     if ($type === 'module') {
@@ -164,7 +161,7 @@ class ProjectCollector implements ProjectCollectorInterface {
       return $this->profileExtensionList->get($project_machine_name);
     }
 
-    return $this->themeHandler->getTheme($project_machine_name);
+    return $this->themeExtensionList->get($project_machine_name);
   }
 
 }

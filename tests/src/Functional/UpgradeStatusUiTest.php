@@ -128,7 +128,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $this->drupalGet(Url::fromRoute('upgrade_status.report'));
     $page = $this->getSession()->getPage();
 
-    $this->assertCount(4, $page->findAll('css', '.upgrade-status-summary-custom tr[class*=\'project-\']'));
+    $this->assertCount(5, $page->findAll('css', '.upgrade-status-summary-custom tr[class*=\'project-\']'));
     $this->assertCount(4, $page->findAll('css', '.upgrade-status-summary-contrib tr[class*=\'project-\']'));
   }
 

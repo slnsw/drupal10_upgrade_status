@@ -1,0 +1,6 @@
+name: 'Upgrade status test theme'
+type: theme
+description: 'Theme for testing the deprecations in themes'
+version: VERSION
+base theme: false
+core_version_requirement: ^8 || ^9
