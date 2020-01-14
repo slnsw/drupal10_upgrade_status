@@ -397,7 +397,7 @@ class UpgradeStatusForm extends FormBase {
           if ($checked !== 0) {
             // If the checkbox was checked, add a batch operation.
             $operations[] = [
-              static::class . '::parseProject', 
+              static::class . '::parseProject',
               [$projects[$type][$project]]
             ];
           }
@@ -490,6 +490,15 @@ class UpgradeStatusForm extends FormBase {
    */
   public static function parseProject(Extension $extension, &$context) {
     $context['message'] = t('Completed @project.', ['@project' => $extension->getName()]);
+
+    // It is not possible to make an HTTP request to this same webserver
+    // if the host server is PHP itself, because it is single-threaded.
+    // See https://www.php.net/manual/en/features.commandline.webserver.php
+    if (php_sapi_name() == 'cli-server') {
+      \Drupal::service('upgrade_status.deprecation_analyser')->analyse($extension);
+      return;
+    }
+
     $error = $file_name = FALSE;
 
     // Prepare for a POST request to scan this project. The separate HTTP
