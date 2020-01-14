@@ -72,9 +72,9 @@ class ProjectCollector implements ProjectCollectorInterface {
    */
   public function collectProjects() {
     $projects = ['custom' => [], 'contrib' => []];
-    $modules = $this->moduleExtensionList->reset()->getList();
-    $themes = $this->themeExtensionList->reset()->getList();
-    $profiles = $this->profileExtensionList->reset()->getList();
+    $modules = $this->moduleExtensionList->getList();
+    $themes = $this->themeExtensionList->getList();
+    $profiles = $this->profileExtensionList->getList();
     $extensions = array_merge($modules, $themes, $profiles);
     unset($modules, $themes, $profiles);
 
