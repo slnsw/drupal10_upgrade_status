@@ -23,13 +23,6 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   const CORE_MINOR_OLDEST_SUPPORTED = '8.7';
 
   /**
-   * The error format to use to retrieve the report from PHPStan.
-   *
-   * @var string
-   */
-  const ERROR_FORMAT = 'json';
-
-  /**
    * Upgrade status scan result storage.
    *
    * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
