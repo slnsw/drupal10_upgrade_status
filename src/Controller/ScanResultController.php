@@ -130,9 +130,9 @@ class ScanResultController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   Response object.
    */
-  public function analyse(string $type, string $project_machine_name) {
+  public function analyze(string $type, string $project_machine_name) {
     $extension = $this->projectCollector->loadProject($type, $project_machine_name);
-    \Drupal::service('upgrade_status.deprecation_analyser')->analyse($extension);
+    \Drupal::service('upgrade_status.deprecation_analyzer')->analyze($extension);
     return new JsonResponse(
       ['message' => $this->t('Scanned @project', ['@project' => $extension->getName()])]
     );

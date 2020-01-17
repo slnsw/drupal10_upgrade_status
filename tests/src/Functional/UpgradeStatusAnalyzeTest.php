@@ -7,9 +7,9 @@ namespace Drupal\Tests\upgrade_status\Functional;
  *
  * @group upgrade_status
  */
-class UpgradeStatusAnalyseTest extends UpgradeStatusTestBase {
+class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
 
-  public function testAnalyser() {
+  public function testAnalyzer() {
     $this->drupalLogin($this->drupalCreateUser(['administer software updates']));
     $this->runFullScan();
 

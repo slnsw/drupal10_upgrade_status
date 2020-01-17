@@ -481,10 +481,10 @@ class UpgradeStatusForm extends FormBase {
   }
 
   /**
-   * Batch callback to analyse a project.
+   * Batch callback to analyze a project.
    *
    * @param \Drupal\Core\Extension\Extension $extension
-   *   The extension to analyse.
+   *   The extension to analyze.
    * @param array $context
    *   Batch context.
    */
@@ -495,7 +495,7 @@ class UpgradeStatusForm extends FormBase {
     // if the host server is PHP itself, because it is single-threaded.
     // See https://www.php.net/manual/en/features.commandline.webserver.php
     if (php_sapi_name() == 'cli-server') {
-      \Drupal::service('upgrade_status.deprecation_analyser')->analyse($extension);
+      \Drupal::service('upgrade_status.deprecation_analyzer')->analyze($extension);
       return;
     }
 
@@ -506,7 +506,7 @@ class UpgradeStatusForm extends FormBase {
     // We can store any errors and gracefully continue if there was any PHP
     // errors in parsing.
     $url = Url::fromRoute(
-      'upgrade_status.analyse',
+      'upgrade_status.analyze',
       [
         'type' => $extension->getType(),
         'project_machine_name' => $extension->getName()

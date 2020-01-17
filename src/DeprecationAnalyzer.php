@@ -11,7 +11,7 @@ use Drupal\Core\Template\TwigEnvironment;
 use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
 
-final class DeprecationAnalyser {
+final class DeprecationAnalyzer {
 
   use StringTranslationTrait;
 
@@ -77,7 +77,7 @@ final class DeprecationAnalyser {
   protected $twigEnvironment;
 
   /**
-   * Constructs a \Drupal\upgrade_status\DeprecationAnalyser.
+   * Constructs a deprecation analyzer.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The key/value factory.
@@ -135,15 +135,15 @@ final class DeprecationAnalyser {
   }
 
   /**
-   * Analyse the codebase of an extension including all its sub-components.
+   * Analyze the codebase of an extension including all its sub-components.
    *
    * @param \Drupal\Core\Extension\Extension $extension
-   *   The extension to analyse.
+   *   The extension to analyze.
    *
    * @return null
    *   Errors are logged to the logger, data is stored to keyvalue storage.
    */
-  public function analyse(Extension $extension) {
+  public function analyze(Extension $extension) {
     $project_dir = DRUPAL_ROOT . '/' . $extension->subpath;
     $output = [];
     exec($this->vendorPath . '/bin/phpstan analyse --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir, $output);
