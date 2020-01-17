@@ -4,7 +4,7 @@ namespace Drupal\upgrade_status\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
-use Drupal\upgrade_status\ProjectCollectorInterface;
+use Drupal\upgrade_status\ProjectCollector;
 use Drupal\upgrade_status\ScanResultFormatter;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,7 +22,7 @@ class ScanResultController extends ControllerBase {
   /**
    * The project collector service.
    *
-   * @var \Drupal\upgrade_status\ProjectCollectorInterface
+   * @var \Drupal\upgrade_status\ProjectCollector
    */
   protected $projectCollector;
 
@@ -38,14 +38,14 @@ class ScanResultController extends ControllerBase {
    *
    * @param \Drupal\upgrade_status\ScanResultFormatter $result_formatter
    *   The scan result formatter service.
-   * @param \Drupal\upgrade_status\ProjectCollectorInterface $project_collector
+   * @param \Drupal\upgrade_status\ProjectCollector $project_collector
    *   The project collector service.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
    */
   public function __construct(
     ScanResultFormatter $result_formatter,
-    ProjectCollectorInterface $project_collector,
+    ProjectCollector $project_collector,
     RendererInterface $renderer
   ) {
     $this->resultFormatter = $result_formatter;
