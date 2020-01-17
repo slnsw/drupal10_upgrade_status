@@ -11,7 +11,7 @@ use Drupal\Core\Template\TwigEnvironment;
 use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
 
-class DeprecationAnalyser implements DeprecationAnalyserInterface {
+final class DeprecationAnalyser {
 
   use StringTranslationTrait;
 
@@ -135,7 +135,13 @@ class DeprecationAnalyser implements DeprecationAnalyserInterface {
   }
 
   /**
-   * {@inheritdoc}
+   * Analyse the codebase of an extension including all its sub-components.
+   *
+   * @param \Drupal\Core\Extension\Extension $extension
+   *   The extension to analyse.
+   *
+   * @return null
+   *   Errors are logged to the logger, data is stored to keyvalue storage.
    */
   public function analyse(Extension $extension) {
     $project_dir = DRUPAL_ROOT . '/' . $extension->subpath;
