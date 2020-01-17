@@ -49,7 +49,7 @@ class ProjectCollector {
    *
    * @param \Drupal\Core\Extension\ModuleExtensionList $module_extension_list
    *   The module extension list service.
-   * @param \Drupal\Core\Extension\ThemeExtensionList $theme_handler
+   * @param \Drupal\Core\Extension\ThemeExtensionList $theme_extension_list
    *   The theme extension handler service.
    * @param \Drupal\Core\Extension\ProfileExtensionList $profile_extension_list
    *   The profile extension handler service.

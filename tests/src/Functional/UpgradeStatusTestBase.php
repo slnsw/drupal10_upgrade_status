@@ -27,6 +27,7 @@ abstract class UpgradeStatusTestBase extends BrowserTestBase {
     'upgrade_status_test_contrib_error',
     'upgrade_status_test_contrib_no_error',
     'upgrade_status_test_twig',
+    'upgrade_status_test_library',
   ];
 
   /**
@@ -49,6 +50,7 @@ abstract class UpgradeStatusTestBase extends BrowserTestBase {
       'custom[data][data][upgrade_status_test_submodules]' => TRUE,
       'custom[data][data][upgrade_status_test_twig]' => TRUE,
       'custom[data][data][upgrade_status_test_theme]' => TRUE,
+      'custom[data][data][upgrade_status_test_library]' => TRUE,
       'contrib[data][data][upgrade_status_test_contrib_error]' => TRUE,
       'contrib[data][data][upgrade_status_test_contrib_no_error]' => TRUE,
     ];

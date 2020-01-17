@@ -77,6 +77,13 @@ final class DeprecationAnalyzer {
   protected $twigEnvironment;
 
   /**
+   * The library deprecation analyzer.
+   *
+   * @var \Drupal\upgrade_status\LibraryDeprecationAnalyzer
+   */
+  protected $libraryDeprecationAnalyzer;
+
+  /**
    * Constructs a deprecation analyzer.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -89,13 +96,16 @@ final class DeprecationAnalyzer {
    *   File system service.
    * @param \Drupal\Core\Template\TwigEnvironment $twig_environment
    *   The Twig environment.
+   * @param \Drupal\upgrade_status\LibraryDeprecationAnalyzer
+   *   The library deprecation analyzer.
    */
   public function __construct(
     KeyValueFactoryInterface $key_value_factory,
     LoggerInterface $logger,
     Client $http_client,
     FileSystemInterface $file_system,
-    TwigEnvironment $twig_environment
+    TwigEnvironment $twig_environment,
+    LibraryDeprecationAnalyzer $library_deprecation_analyzer
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     // Log errors to an upgrade status logger channel.
@@ -103,6 +113,7 @@ final class DeprecationAnalyzer {
     $this->httpClient = $http_client;
     $this->fileSystem = $file_system;
     $this->twigEnvironment = $twig_environment;
+    $this->libraryDeprecationAnalyzer = $library_deprecation_analyzer;
 
     $this->vendorPath = $this->findVendorPath();
 
@@ -164,24 +175,30 @@ final class DeprecationAnalyzer {
       $result['data']['totals']['file_errors']++;
     }
 
+    $deprecation_messages = $this->libraryDeprecationAnalyzer->analyze($extension);
+    foreach ($deprecation_messages as $deprecation_message) {
+      $result['data']['files'][$deprecation_message->getFile()]['messages'][] = [
+        'message' => $deprecation_message->getMessage(),
+        'line' => $deprecation_message->getLine(),
+      ];
+      $result['data']['totals']['errors']++;
+      $result['data']['totals']['file_errors']++;
+    }
+
     // Manually add on info file incompatibility to phpstan results.
     $info = $extension->info;
     if (!isset($info['core_version_requirement'])) {
-      $result['data']['files'][$extension->getFilename()]['messages'] = [
-        [
-          'message' => 'Add <code>core_version_requirement: ^8 || ^9</code> to ' . $extension->getFilename() . ' to designate that the module is compatible with Drupal 9. See https://www.drupal.org/node/3070687.',
-          'line' => 0,
-        ],
+      $result['data']['files'][$extension->getFilename()]['messages'][] = [
+        'message' => 'Add <code>core_version_requirement: ^8 || ^9</code> to ' . $extension->getFilename() . ' to designate that the module is compatible with Drupal 9. See https://www.drupal.org/node/3070687.',
+        'line' => 0,
       ];
       $result['data']['totals']['errors']++;
       $result['data']['totals']['file_errors']++;
     }
     elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
-      $result['data']['files'][$extension->getFilename()]['messages'] = [
-        [
-          'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$extension->getFilename()} is not compatible with Drupal 9.0.0. See https://www.drupal.org/node/3070687.",
-          'line' => 0,
-        ],
+      $result['data']['files'][$extension->getFilename()]['messages'][] = [
+        'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$extension->getFilename()} is not compatible with Drupal 9.0.0. See https://www.drupal.org/node/3070687.",
+        'line' => 0,
       ];
       $result['data']['totals']['errors']++;
       $result['data']['totals']['file_errors']++;
@@ -239,7 +256,7 @@ final class DeprecationAnalyzer {
    * @return array
    */
   protected function analyzeTwigTemplates($directory) {
-    return (new \Twig_Util_DeprecationCollector($this->twigEnvironment))->collectDir($directory);
+    return (new \Twig_Util_DeprecationCollector($this->twigEnvironment))->collectDir($directory, '.html.twig');
   }
 
   /**
