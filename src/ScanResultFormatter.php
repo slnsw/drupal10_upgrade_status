@@ -162,10 +162,10 @@ class ScanResultFormatter {
         // Remove the Drupal root directory and allow paths and namespaces to wrap.
         // Emphasize filename as it may show up in the middle of the info.
         $short_path = str_replace(DRUPAL_ROOT . '/', '', $filepath);
-        $short_path = str_replace('/', '&#8203;/&#8203;', $short_path);
+        $short_path = str_replace('/', '/<wbr>', $short_path);
         if (strpos($short_path, 'in context of')) {
           $short_path = preg_replace('!/([^/]+)( \(in context of)!', '/<strong>\1</strong>\2', $short_path);
-          $short_path = str_replace('\\', '&#8203;\\&#8203;', $short_path);
+          $short_path = str_replace('\\', '\\<wbr>', $short_path);
         }
         else {
           $short_path = preg_replace('!/([^/]+)$!', '/<strong>\1</strong>', $short_path);
@@ -208,7 +208,7 @@ class ScanResultFormatter {
         }
 
         // Allow error messages to wrap.
-        $formatted_error = str_replace('\\', '&#8203;\\&#8203;', $formatted_error);
+        $formatted_error = str_replace('\\', '\\<wbr>', $formatted_error);
 
         $error_class = 'known-warnings';
         $level_label = $this->t('Check manually');
