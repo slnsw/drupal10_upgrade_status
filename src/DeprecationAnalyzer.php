@@ -156,6 +156,8 @@ final class DeprecationAnalyzer {
    */
   public function analyze(Extension $extension) {
     $project_dir = DRUPAL_ROOT . '/' . $extension->subpath;
+    $this->logger->notice('Processing %path.', ['%path' => $project_dir]);
+
     $output = [];
     exec($this->vendorPath . '/bin/phpstan analyse --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir, $output);
     $json = json_decode(join('', $output), TRUE);
@@ -273,7 +275,7 @@ final class DeprecationAnalyzer {
     $success = $this->fileSystem->prepareDirectory($this->upgradeStatusTemporaryDirectory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     if (!$success) {
-      $this->logger->error($this->t("Unable to create temporary directory for Upgrade Status: @directory.", ['@directory' => $this->upgradeStatusTemporaryDirectory]));
+      $this->logger->error('Unable to create temporary directory for Upgrade Status: %directory.', ['%directory' => $this->upgradeStatusTemporaryDirectory]);
       return $success;
     }
 
@@ -281,7 +283,7 @@ final class DeprecationAnalyzer {
     $success = $this->fileSystem->prepareDirectory($phpstan_cache_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     if (!$success) {
-      $this->logger->error($this->t("Unable to create temporary directory for PHPStan: @directory.", ['@directory' => $phpstan_cache_directory]));
+      $this->logger->error('Unable to create temporary directory for PHPStan: %directory.', ['%directory' => $phpstan_cache_directory]);
     }
 
     return $success;
@@ -306,7 +308,7 @@ final class DeprecationAnalyzer {
       $this->vendorPath . "/phpstan/phpstan-deprecation-rules/rules.neon'\n";
     $success = file_put_contents($this->phpstanNeonPath, $config);
     if (!$success) {
-      $this->logger->error($this->t("Couldn't write configuration for PHPStan: @file.", ['@file' => $this->phpstanNeonPath]));
+      $this->logger->error('Unable to write configuration for PHPStan: %file.', ['%file' => $this->phpstanNeonPath]);
     }
     return $success ? TRUE : FALSE;
   }
