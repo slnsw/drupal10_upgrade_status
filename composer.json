@@ -11,5 +11,12 @@
         "drupal/git_deploy": "2.x-dev",
         "mathieuviossat/arraytotexttable": "~1.0.0"
     },
-    "minimum-stability": "dev"
+    "minimum-stability": "dev",
+    "extra": {
+        "drush": {
+            "services": {
+                 "drush.services.yml": "^9 || ^10"
+            }
+        }
+    }
 }
