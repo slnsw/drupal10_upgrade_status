@@ -460,7 +460,7 @@ class UpgradeStatusForm extends FormBase {
     }
     if (!empty($operations)) {
       // Allow other modules to alter the operations to be run.
-      $this->moduleHandler->alter('upgrade_status_operations', $operations);
+      $this->moduleHandler->alter('upgrade_status_operations', $operations, $form_state);
     }
     if (!empty($operations)) {
       $batch = [
