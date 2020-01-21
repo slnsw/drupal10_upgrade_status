@@ -190,7 +190,7 @@ final class DeprecationAnalyzer {
     // Manually add on info file incompatibility to phpstan results.
     $info = $extension->info;
     if (!isset($info['core_version_requirement'])) {
-      $result['data']['files'][$extension->getFilename()]['messages'][] = [
+      $result['data']['files'][$extension->subpath . '/' . $extension->getFilename()]['messages'][] = [
         'message' => 'Add <code>core_version_requirement: ^8 || ^9</code> to ' . $extension->getFilename() . ' to designate that the module is compatible with Drupal 9. See https://www.drupal.org/node/3070687.',
         'line' => 0,
       ];
@@ -198,7 +198,7 @@ final class DeprecationAnalyzer {
       $result['data']['totals']['file_errors']++;
     }
     elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
-      $result['data']['files'][$extension->getFilename()]['messages'][] = [
+      $result['data']['files'][$extension->subpath . '/' . $extension->getFilename()]['messages'][] = [
         'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$extension->getFilename()} is not compatible with Drupal 9.0.0. See https://www.drupal.org/node/3070687.",
         'line' => 0,
       ];
