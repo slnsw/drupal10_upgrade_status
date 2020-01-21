@@ -6,14 +6,11 @@ use Composer\Semver\Semver;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Template\TwigEnvironment;
 use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
 
 final class DeprecationAnalyzer {
-
-  use StringTranslationTrait;
 
   /**
    * The oldest supported core minor version.
