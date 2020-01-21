@@ -159,9 +159,15 @@ class ScanResultFormatter {
     foreach ($result['data']['files'] as $filepath => $errors) {
       foreach ($errors['messages'] as $error) {
 
-        // Remove the Drupal root directory and allow paths and namespaces to wrap.
-        // Emphasize filename as it may show up in the middle of the info.
+        // Remove the Drupal root directory. If this is a composer setup, then
+        // the webroot is in a web/ directory, add that back in for easy path
+        // copy-pasting.
         $short_path = str_replace(DRUPAL_ROOT . '/', '', $filepath);
+        if (preg_match('!/web$!', DRUPAL_ROOT)) {
+          $short_path = 'web/' . $short_path;
+        }
+        // Allow paths and namespaces to wrap. Emphasize filename as it may
+        // show up in the middle of the info
         $short_path = str_replace('/', '/<wbr>', $short_path);
         if (strpos($short_path, 'in context of')) {
           $short_path = preg_replace('!/([^/]+)( \(in context of)!', '/<strong>\1</strong>\2', $short_path);
@@ -383,7 +389,14 @@ class ScanResultFormatter {
 
     $hasFixNow = FALSE;
     foreach ($result['data']['files'] as $filepath => $errors) {
-      $short_path = wordwrap(str_replace(DRUPAL_ROOT . '/', '', $filepath), 80, "\n", true);
+      // Remove the Drupal root directory name. If this is a composer setup,
+      // then the webroot is in a web/ directory, add that back in for easy
+      // path copy-pasting.
+      $short_path = str_replace(DRUPAL_ROOT . '/', '', $filepath);
+      if (preg_match('!/web$!', DRUPAL_ROOT)) {
+        $short_path = 'web/' . $short_path;
+      }
+      $short_path = wordwrap($short_path, 80, "\n", TRUE);
       $tables .= $short_path . ":\n";
 
       $table = [];

@@ -190,7 +190,15 @@ class UpgradeStatusCommands extends DrushCommands {
     }
 
     foreach ($result['data']['files'] as $filepath => $errors) {
-      $short_path = wordwrap(dt('FILE: ') . str_replace(DRUPAL_ROOT . '/', '', $filepath), 80, "\n", TRUE);
+      // Remove the Drupal root directory name. If this is a composer setup,
+      // then the webroot is in a web/ directory, add that back in for easy
+      // path copy-pasting.
+      $short_path = str_replace(DRUPAL_ROOT . '/', '', $filepath);
+      if (preg_match('!/web$!', DRUPAL_ROOT)) {
+        $short_path = 'web/' . $short_path;
+      }
+      $short_path = wordwrap(dt('FILE: ') . $short_path, 80, "\n", TRUE);
+
       $table[] = '';
       $table[] = $short_path;
       $table[] = '';
