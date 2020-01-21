@@ -51,9 +51,11 @@ final class DeprecationAnalyzer {
   protected $vendorPath;
 
   /**
+   * Temporary directory to use for running phpstan.
+   * 
    * @var string
    */
-  protected $upgradeStatusTemporaryDirectory;
+  protected $temporaryDirectory;
 
   /**
    * HTTP Client for drupal.org API calls.
@@ -117,12 +119,12 @@ final class DeprecationAnalyzer {
 
     $this->vendorPath = $this->findVendorPath();
 
-    $this->upgradeStatusTemporaryDirectory = file_directory_temp() . '/upgrade_status';
-    if (!file_exists($this->upgradeStatusTemporaryDirectory)) {
+    $this->temporaryDirectory = file_directory_temp() . '/upgrade_status';
+    if (!file_exists($this->temporaryDirectory)) {
       $this->prepareTempDirectory();
     }
 
-    $this->phpstanNeonPath = $this->upgradeStatusTemporaryDirectory . '/deprecation_testing.neon';
+    $this->phpstanNeonPath = $this->temporaryDirectory . '/deprecation_testing.neon';
     $this->createModifiedNeonFile();
   }
 
@@ -272,14 +274,14 @@ final class DeprecationAnalyzer {
    *   True if the temporary directory is created, false if not.
    */
   protected function prepareTempDirectory() {
-    $success = $this->fileSystem->prepareDirectory($this->upgradeStatusTemporaryDirectory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+    $success = $this->fileSystem->prepareDirectory($this->temporaryDirectory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     if (!$success) {
-      $this->logger->error('Unable to create temporary directory for Upgrade Status: %directory.', ['%directory' => $this->upgradeStatusTemporaryDirectory]);
+      $this->logger->error('Unable to create temporary directory for Upgrade Status: %directory.', ['%directory' => $this->temporaryDirectory]);
       return $success;
     }
 
-    $phpstan_cache_directory = $this->upgradeStatusTemporaryDirectory . '/phpstan';
+    $phpstan_cache_directory = $this->temporaryDirectory . '/phpstan';
     $success = $this->fileSystem->prepareDirectory($phpstan_cache_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     if (!$success) {
@@ -299,7 +301,7 @@ final class DeprecationAnalyzer {
     $config = file_get_contents($module_path . '/deprecation_testing.neon');
     $config = str_replace(
       'parameters:',
-      "parameters:\n\ttmpDir: '" . $this->upgradeStatusTemporaryDirectory . '/phpstan' . "'\n" .
+      "parameters:\n\ttmpDir: '" . $this->temporaryDirectory . '/phpstan' . "'\n" .
         "\tdrupal:\n\t\tdrupal_root: '" . DRUPAL_ROOT . "'",
       $config
     );
