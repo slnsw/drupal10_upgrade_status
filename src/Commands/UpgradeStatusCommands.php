@@ -205,6 +205,7 @@ class UpgradeStatusCommands extends DrushCommands {
         $error['message'] = str_replace('  ', ' ', $error['message']);
         $error['message'] = trim($error['message']);
 
+        $level_label = dt('Check manually');
         if ($error['upgrade_status_category'] == 'ignore') {
           $level_label = dt('Ignore');
         }
