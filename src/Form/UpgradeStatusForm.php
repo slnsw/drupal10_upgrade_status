@@ -4,6 +4,7 @@ namespace Drupal\upgrade_status\Form;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\Extension;
+use Drupal\Core\Extension\ModuleHandler;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
@@ -55,6 +56,13 @@ class UpgradeStatusForm extends FormBase {
   protected $logger;
 
   /**
+   * The module handler service.
+   * 
+   * @var \Drupal\Core\Extension\ModuleHandler
+   */
+  protected $moduleHandler;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -63,7 +71,8 @@ class UpgradeStatusForm extends FormBase {
       $container->get('keyvalue.expirable'),
       $container->get('upgrade_status.result_formatter'),
       $container->get('renderer'),
-      $container->get('logger.channel.upgrade_status')
+      $container->get('logger.channel.upgrade_status'),
+      $container->get('module_handler')
     );
   }
 
@@ -80,19 +89,23 @@ class UpgradeStatusForm extends FormBase {
    *   The renderer service.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
+   * @param \Drupal\Core\Extension\ModuleHandler $module_handler
+   *   The module handler.
    */
   public function __construct(
     ProjectCollector $project_collector,
     KeyValueExpirableFactory $key_value_expirable,
     ScanResultFormatter $result_formatter,
     RendererInterface $renderer,
-    LoggerInterface $logger
+    LoggerInterface $logger,
+    ModuleHandler $module_handler
   ) {
     $this->projectCollector = $project_collector;
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
     $this->resultFormatter = $result_formatter;
     $this->renderer = $renderer;
     $this->logger = $logger;
+    $this->moduleHandler = $module_handler;
   }
 
   /**
@@ -444,6 +457,10 @@ class UpgradeStatusForm extends FormBase {
           }
         }
       }
+    }
+    if (!empty($operations)) {
+      // Allow other modules to alter the operations to be run.
+      $this->moduleHandler->alter('upgrade_status_operations', $operations);
     }
     if (!empty($operations)) {
       $batch = [
