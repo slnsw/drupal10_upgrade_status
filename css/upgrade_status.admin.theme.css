@@ -212,3 +212,17 @@
     margin-left: 20px;
   }
 }
+
+.upgrade-status-ok-label,
+.upgrade-status-error-label {
+  margin-left: 1em;
+  padding: 3px;
+  border-radius: 3px;
+  background-color: #fb8800;
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.upgrade-status-ok-label {
+  background-color: #7bae4a;
+}
