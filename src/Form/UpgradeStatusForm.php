@@ -534,7 +534,7 @@ class UpgradeStatusForm extends FormBase {
    *   Batch context.
    */
   public static function parseProject(Extension $extension, $use_http, &$context) {
-    $context['message'] = t('Completed @project.', ['@project' => $extension->getName()]);
+    $context['message'] = t('Analysis complete for @project.', ['@project' => $extension->getName()]);
 
     if (!$use_http) {
       \Drupal::service('upgrade_status.deprecation_analyzer')->analyze($extension);
