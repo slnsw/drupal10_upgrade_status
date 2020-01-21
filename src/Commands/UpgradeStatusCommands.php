@@ -202,7 +202,7 @@ class UpgradeStatusCommands extends DrushCommands {
       $table[] = '';
       $table[] = $short_path;
       $table[] = '';
-      $title_level = str_pad(dt('STATUS'), 14, ' ');
+      $title_level = str_pad(dt('STATUS'), 15, ' ');
       $title_line = str_pad(dt('LINE'), 5, ' ');
       $title_msg = str_pad(dt('MESSAGE'), 60, ' ', STR_PAD_BOTH);
       $table[] = $title_level . $title_line . $title_msg;
@@ -230,11 +230,11 @@ class UpgradeStatusCommands extends DrushCommands {
         foreach ($msg_parts as $msg_part) {
           $msg_part = str_pad($msg_part, 60, ' ');
           if (!$linecount++) {
-            $level_label = str_pad(substr($level_label, 0, 14), '14', ' ');
+            $level_label = str_pad(substr($level_label, 0, 15), '15', ' ');
             $line = str_pad($error['line'], 5, ' ');
           }
           else {
-            $level_label = str_pad(substr('', 0, 14), '14', ' ');
+            $level_label = str_pad(substr('', 0, 15), '15', ' ');
             $line = str_pad('', 5, ' ');
           }
           $table[] = $level_label . $line . $msg_part;
