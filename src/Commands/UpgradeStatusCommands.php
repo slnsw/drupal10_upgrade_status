@@ -120,12 +120,12 @@ class UpgradeStatusCommands extends DrushCommands {
       throw new InvalidArgumentException($message);
     }
     else {
-      $this->output()
-        ->writeln(dt('Starting the analysis. This may take a while.'));
+      $this->logger()->info(dt('Starting the analysis. This may take a while.'));
     }
 
     foreach ($extensions as $type => $list) {
-      foreach ($list as $extension) {
+      foreach ($list as $name => $extension) {
+        $this->logger()->info(dt('Processing @name.', ['@name' => $name]));
         $this->deprecationAnalyzer->analyze($extension);
       }
     }
