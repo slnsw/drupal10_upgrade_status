@@ -21,7 +21,8 @@
   margin-top: 1.2em;
 }
 
-.upgrade-status-summary th.project-label {
+.upgrade-status-summary th.project-label,
+.upgrade-status-summary th.requirement-label {
   width: 60%;
 }
 
@@ -35,6 +36,13 @@
 
 .upgrade-status-summary-custom th.project-label {
   width: 80%;
+}
+
+.upgrade-status-summary td.requirement-label {
+  font-weight: bold;
+}
+.upgrade-status-summary-environment th.status-info {
+  width: 40%;
 }
 
 .upgrade-status-summary tr > td.status-info {

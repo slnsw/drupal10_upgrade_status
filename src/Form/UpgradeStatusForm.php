@@ -129,6 +129,16 @@ class UpgradeStatusForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['#attached']['library'][] = 'upgrade_status/upgrade_status.admin';
 
+    $form['environment'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Drupal core and hosting environment'),
+      '#description' => $this->t('<a href=":upgrade">Upgrades to Drupal 9 are supported from Drupal 8.8.x and Drupal 8.9.x</a>. It is suggested to update to the latest Drupal 8 version available. <a href=":platform">Several hosting platform requirements have been raised</a> for Drupal 9. If you are using Apache, the minimum required version is 2.4.7. If you are <a href=":drush">using Drush</a>, only version 10 supports Drupal 9.', [':upgrade' => 'https://www.drupal.org/docs/9/how-to-prepare-your-drupal-7-or-8-site-for-drupal-9/upgrading-a-drupal-8-site-to-drupal-9', ':platform' => 'https://www.drupal.org/docs/9/how-drupal-9-is-made-and-what-is-included/environment-requirements-of-drupal-9', ':drush' => 'https://www.drush.org/']),
+      '#open' => TRUE,
+      '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-environment']],
+      'data' => $this->buildEnvironmentChecks(),
+      '#tree' => TRUE,
+    ];
+
     // Gather project list grouped by custom and contrib projects.
     $projects = $this->projectCollector->collectProjects();
 
@@ -402,6 +412,123 @@ class UpgradeStatusForm extends FormBase {
 
     return $build;
   }
+
+  /**
+   * Builds a list of environment checks.
+   *
+   * @return array
+   *   Build array.
+   */
+  protected function buildEnvironmentChecks() {
+    $header = [
+      'requirement' => ['data' => $this->t('Requirement'), 'class' => 'requirement-label'],
+      'status' => ['data' => $this->t('Status'), 'class' => 'status-info'],
+    ];
+    $build['data'] = [
+      '#type' => 'table',
+      '#header' => $header,
+      '#rows' => [],
+    ];
+
+    // Check Drupal version.
+    $version = \Drupal::VERSION;
+    $build['data']['#rows'][] = [
+      'class' => [(version_compare($version, '8.8.0') >= 0) ? 'no-known-error' : 'known-errors'],
+      'data' => [
+        'requirement' => [
+          'class' => 'requirement-label',
+          'data' => $this->t('Drupal core should be 8.8.x or 8.9.x.'),
+        ],
+        'status' => [
+          'data' => $this->t('Version @version', ['@version' => $version]),
+          'class' => 'status-info',
+        ],
+      ]
+    ];
+
+    // Check PHP version.
+    $version = PHP_VERSION;
+    $build['data']['#rows'][] = [
+      'class' => [(version_compare($version, '7.3.0') >= 0) ? 'no-known-error' : 'known-errors'],
+      'data' => [
+        'requirement' => [
+          'class' => 'requirement-label',
+          'data' => $this->t('PHP version should be at least 7.3.0.'),
+        ],
+        'status' => [
+          'data' => $this->t('Version @version', ['@version' => $version]),
+          'class' => 'status-info',
+        ],
+      ]
+    ];
+
+    // Check database version.
+    $database = \Drupal::database();
+    $type = $database->databaseType();
+    $version = $database->version();
+
+    // MariaDB databases report as MySQL. Detect MariaDB separately based on code from
+    // https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Database%21Driver%21mysql%21Connection.php/function/Connection%3A%3AgetMariaDbVersionMatch/9.0.x
+    // See also https://www.drupal.org/files/issues/2020-03-06/3109534-94.patch for test values.
+    if ($type == 'mysql') {
+      // MariaDB may prefix its version string with '5.5.5-', which should be
+      // ignored.
+      // @see https://github.com/MariaDB/server/blob/f6633bf058802ad7da8196d01fd19d75c53f7274/include/mysql_com.h#L42.
+      $regex = '/^(?:5\\.5\\.5-)?(\\d+\\.\\d+\\.\\d+.*-mariadb.*)/i';
+      preg_match($regex, $version, $matches);
+      if (!empty($matches[1])) {
+        $type = 'MariaDB';
+        $version = $matches[1];
+        $requirement = $this->t('When using MariaDB, minimum version is 10.2.7.');
+        $class = (version_compare($version, '10.2.7') >= 0) ? 'no-known-error' : 'known-errors';
+      }
+      else {
+        $type = 'MySQL or Percona Server';
+        $requirement = $this->t('When using MySQL/Percona, minimum version is 5.7.8.');
+        if (version_compare($version, '5.7.8') >= 0) {
+          $class = 'no-known-error';
+        }
+        elseif (version_compare($version, '5.6.0') >= 0) {
+          $class = 'known-warnings';
+          $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
+        }
+        else {
+          $class = 'known-errors';
+          $requirement .= ' ' . $this->t('Once updated to at least 5.6, you can also <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
+        }
+      }
+    }
+    elseif ($type == 'pgsql') {
+      $type = 'PostgreSQL';
+      $requirement = $this->t('When using PostgreSQL, minimum version is 10 <a href=":trgm">with the pg_trgm extension</a>. (The extension is not checked here).', [':trgm' => 'https://www.postgresql.org/docs/10/pgtrgm.html']);
+      $class = (version_compare($version, '10') >= 0) ? 'no-known-error' : 'known-errors';
+    }
+    elseif ($type == 'sqlite') {
+      $type = 'SQLite';
+      $requirement = $this->t('When using SQLite, minimum version is 3.26.');
+      $class = (version_compare($version, '3.26') >= 0) ? 'no-known-error' : 'known-errors';
+    }
+
+    $build['data']['#rows'][] = [
+      'class' => [$class],
+      'data' => [
+        'requirement' => [
+          'class' => 'requirement-label',
+          'data' => [
+            '#type' => 'markup',
+            '#markup' => $requirement
+          ],
+        ],
+        'status' => [
+          'data' => $type . ' ' . $version,
+          'class' => 'status-info',
+        ],
+      ]
+    ];
+
+    return $build;
+  }
+
 
   /**
    * Form submission handler.
