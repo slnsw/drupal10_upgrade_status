@@ -3,7 +3,6 @@ name: 'Upgrade Status'
 description: 'Review current status of known Drupal 9 incompatibilities on the site.'
 configure: upgrade_status.report
 package: Administration
-project: upgrade_status
 core: 8.x
 php: '7.1'
 dependencies:
