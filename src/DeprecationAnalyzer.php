@@ -186,7 +186,7 @@ final class DeprecationAnalyzer {
       $result['data']['totals']['file_errors']++;
     }
 
-    // Manually add on info file incompatibility to phpstan results.
+    // Manually add on info file incompatibility to results.
     $info = $extension->info;
     if (!isset($info['core_version_requirement'])) {
       $result['data']['files'][$extension->subpath . '/' . $extension->getFilename()]['messages'][] = [
@@ -203,6 +203,35 @@ final class DeprecationAnalyzer {
       ];
       $result['data']['totals']['errors']++;
       $result['data']['totals']['file_errors']++;
+    }
+
+    // Manually add on composer.json file incompatibility to results.
+    if (file_exists($project_dir . '/composer.json')) {
+      $composer_json = json_decode(file_get_contents($project_dir . '/composer.json'));
+      if (empty($composer_json) || !is_object($composer_json)) {
+        $result['data']['files'][$extension->subpath . '/composer.json']['messages'][] = [
+          'message' => "Parse error in composer.json. Having a composer.json is not a requirement for Drupal 9 compatibility but if there is one, it should be valid.",
+          'line' => 0,
+        ];
+        $result['data']['totals']['errors']++;
+        $result['data']['totals']['file_errors']++;
+      }
+      elseif (!isset($composer_json->require->{'drupal/core'})) {
+        $result['data']['files'][$extension->subpath . '/composer.json']['messages'][] = [
+          'message' => "A drupal/core requirement is not present in composer.json. Having a composer.json is not a requirement for Drupal 9 compatibility but if there is one, it should include a drupal/core requirement.",
+          'line' => 0,
+        ];
+        $result['data']['totals']['errors']++;
+        $result['data']['totals']['file_errors']++;
+      }
+      elseif (!Semver::satisfies('9.0.0', $composer_json->require->{'drupal/core'})) {
+        $result['data']['files'][$extension->subpath . '/composer.json']['messages'][] = [
+          'message' => "The drupal/core requirement is not Drupal 9 compatible. Having a composer.json is not a requirement for Drupal 9 compatibility but if there is one, it should include a drupal/core requirement compatible with Drupal 9.",
+          'line' => 0,
+        ];
+        $result['data']['totals']['errors']++;
+        $result['data']['totals']['file_errors']++;
+      }
     }
 
     foreach($result['data']['files'] as $path => &$errors) {
