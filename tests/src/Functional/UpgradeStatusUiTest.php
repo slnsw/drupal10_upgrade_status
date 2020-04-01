@@ -30,7 +30,11 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $assert_session->buttonExists('Export as HTML');
 
     // Status for every project should be 'Not scanned'.
-    $status = $this->getSession()->getPage()->findAll('css', 'td.status-info');
+    $status = $this->getSession()->getPage()->findAll('css', '.upgrade-status-summary-custom td.status-info');
+    foreach ($status as $project_status) {
+      $this->assertSame('Not scanned', $project_status->getHtml());
+    }
+    $status = $this->getSession()->getPage()->findAll('css', '.upgrade-status-summary-contrib td.status-info');
     foreach ($status as $project_status) {
       $this->assertSame('Not scanned', $project_status->getHtml());
     }
