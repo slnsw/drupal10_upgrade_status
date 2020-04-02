@@ -44,6 +44,13 @@ class UpgradeStatusCommands extends DrushCommands {
   protected $dateFormatter;
 
   /**
+   * Output mode (format).
+   * 
+   * @var string
+   */
+  protected $mode = 'ascii';
+
+  /**
    * Constructs a new UpgradeStatusCommands object.
    *
    * @param \Drupal\upgrade_status\ScanResultFormatter $result_formatter
@@ -67,7 +74,24 @@ class UpgradeStatusCommands extends DrushCommands {
   }
 
   /**
-   * Analyze installed projects for use of deprecated APIs in code and templates.
+   * Analyze installed projects output as XML.
+   *
+   * @param array $projects
+   *   List of projects to analyze. Only installed projects are supported.
+   *
+   * @command upgrade_status:checkstyle
+   * @aliases us-cs
+   *
+   * @throws \InvalidArgumentException
+   *   Thrown when one of the passed arguments is invalid or no arguments were provided.
+   */
+  public function checkstyle(array $projects) {
+    $this->mode = 'checkstyle';
+    $this->analyze($projects);
+  }
+
+  /**
+   * Analyze installed projects output as ASCII.
    *
    * @param array $projects
    *   List of projects to analyze. Only installed projects are supported.
@@ -130,9 +154,15 @@ class UpgradeStatusCommands extends DrushCommands {
       }
     }
 
+    if ($this->mode !== 'ascii') {
+      $xml = new \SimpleXMLElement("<?xml version='1.0'?><checkstyle/>");
+    }
+
     foreach ($extensions as $type => $list) {
-      $this->output()->writeln('');
-      $this->output()->writeln(str_pad('', 80, '='));
+      if ($this->mode === 'ascii') {
+        $this->output()->writeln('');
+        $this->output()->writeln(str_pad('', 80, '='));
+      }
 
       $track = 0;
       foreach ($list as $name => $extension) {
@@ -145,12 +175,35 @@ class UpgradeStatusCommands extends DrushCommands {
           continue;
         }
 
-        $output = $this->formatDrushStdoutResult($extension);
-        foreach ($output as $line) {
-          $this->output()->writeln($line);
+        if ($this->mode === 'ascii') {
+          $output = $this->formatDrushStdoutResult($extension);
+          foreach ($output as $line) {
+            $this->output()->writeln($line);
+          }
+          if (++$track < count($list)) {
+            $this->output()->writeln(str_pad('', 80, '='));
+          }
         }
-        if (++$track < count($list)) {
-          $this->output()->writeln(str_pad('', 80, '='));
+        else {
+          foreach ($result['data']['files'] as $filepath => $errors) {
+            $short_path = str_replace(DRUPAL_ROOT . '/', '', $filepath);
+            $file_xml = $xml->addChild('file');
+            $file_xml->addAttribute('name', $short_path);
+            foreach ($errors['messages'] as $error) {
+              $severity = 'error';
+              if ($error['upgrade_status_category'] == 'ignore') {
+                $severity = 'info';
+              }
+              elseif ($error['upgrade_status_category'] == 'later') {
+                $severity = 'warning';
+              }
+              $error_xml = $file_xml->addChild('error');
+              $error_xml->addAttribute('line', $error['line']);
+              $error_xml->addAttribute('message', $error['message']);
+              $error_xml->addAttribute('severity', $severity);
+            }
+          }
+          $this->output()->writeln($xml->asXML());
         }
       }
     }
@@ -223,7 +276,6 @@ class UpgradeStatusCommands extends DrushCommands {
         elseif (in_array($error['upgrade_status_category'], ['safe', 'old'])) {
           $level_label = dt('Fix now');
         }
-        // Remove the Drupal root directory and allow paths to wrap.
         $linecount = 0;
 
         $msg_parts = explode("\n", wordwrap($error['message'], 60, "\n", TRUE));
