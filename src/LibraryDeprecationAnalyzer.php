@@ -153,6 +153,7 @@ final class LibraryDeprecationAnalyzer {
         $message = "Theme is overriding a deprecated library. $deprecation_message";
         $deprecated_libraries[] = new DeprecationMessage($message, $extension->getFilename(), 0);
       }
+      return $deprecated_libraries;
     }, []);
   }
 
@@ -164,7 +165,7 @@ final class LibraryDeprecationAnalyzer {
    * @return \Drupal\upgrade_status\DeprecationMessage[]
    * @throws \Exception
    */
-  private function analyzeThemeLibraryExtends(Extension $extension) {
+  private function analyzeThemeLibraryExtends(Extension $extension): array {
     if ($extension->getType() !== 'theme') {
       throw new \Exception('Library extends are only available in themes.');
     }
@@ -178,6 +179,7 @@ final class LibraryDeprecationAnalyzer {
         $message = "Theme is extending a deprecated library. $deprecation_message";
         $deprecated_libraries[] = new DeprecationMessage($message, $extension->getFilename(), 0);
       }
+      return $deprecated_libraries;
     }, []);
   }
 

@@ -77,12 +77,17 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $project = $key_value->get('upgrade_status_test_theme');
     $this->assertNotEmpty($project);
     $report = json_decode($project, TRUE);
-    $this->assertEquals(1, $report['data']['totals']['file_errors']);
-    $this->assertCount(1, $report['data']['files']);
+    $this->assertEquals(3, $report['data']['totals']['file_errors']);
+    $this->assertCount(2, $report['data']['files']);
     $file = reset($report['data']['files']);
     $message = $file['messages'][0];
     $this->assertContains('Twig Tag "raw" is deprecated since version 1.21. Use "verbatim" instead in', $message['message']);
     $this->assertEquals(1, $message['line']);
+    $file = next($report['data']['files']);
+    $this->assertEquals('Theme is overriding a deprecated library. The "upgrade_status_test_library/deprecated_library" asset library is deprecated for testing.', $file['messages'][0]['message']);
+    $this->assertEquals(0, $file['messages'][0]['line']);
+    $this->assertEquals('Theme is extending a deprecated library. The "upgrade_status_test_twig/deprecated_library" asset library is deprecated for testing.', $file['messages'][1]['message']);
+    $this->assertEquals(0, $file['messages'][1]['line']);
 
     $project = $key_value->get('upgrade_status_test_library');
     $this->assertNotEmpty($project);

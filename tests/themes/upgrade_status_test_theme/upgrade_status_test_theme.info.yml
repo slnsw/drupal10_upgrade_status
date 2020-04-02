@@ -4,3 +4,11 @@ description: 'Theme for testing the deprecations in themes'
 version: VERSION
 base theme: false
 core_version_requirement: ^8 || ^9
+libraries-override:
+  upgrade_status_test_library/deprecated_library:
+    css:
+      component:
+        assets/test.css: assets/test.css
+libraries-extend:
+  upgrade_status_test_twig/deprecated_library:
+    - upgrade_status_test_theme/library
