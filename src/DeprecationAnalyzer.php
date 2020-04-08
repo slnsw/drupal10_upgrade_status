@@ -49,7 +49,7 @@ final class DeprecationAnalyzer {
 
   /**
    * Temporary directory to use for running phpstan.
-   * 
+   *
    * @var string
    */
   protected $temporaryDirectory;
@@ -83,6 +83,13 @@ final class DeprecationAnalyzer {
   protected $libraryDeprecationAnalyzer;
 
   /**
+   * The theme function deprecation analyzer.
+   *
+   * @var \Drupal\upgrade_status\ThemeFunctionDeprecationAnalyzer
+   */
+  protected $themeFunctionDeprecationAnalyzer;
+
+  /**
    * Constructs a deprecation analyzer.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -97,6 +104,8 @@ final class DeprecationAnalyzer {
    *   The Twig environment.
    * @param \Drupal\upgrade_status\LibraryDeprecationAnalyzer
    *   The library deprecation analyzer.
+   * @param \Drupal\upgrade_status\ThemeFunctionDeprecationAnalyzer
+   *   The theme function deprecation analyzer.
    */
   public function __construct(
     KeyValueFactoryInterface $key_value_factory,
@@ -104,7 +113,8 @@ final class DeprecationAnalyzer {
     Client $http_client,
     FileSystemInterface $file_system,
     TwigEnvironment $twig_environment,
-    LibraryDeprecationAnalyzer $library_deprecation_analyzer
+    LibraryDeprecationAnalyzer $library_deprecation_analyzer,
+    ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
     // Log errors to an upgrade status logger channel.
@@ -113,6 +123,7 @@ final class DeprecationAnalyzer {
     $this->fileSystem = $file_system;
     $this->twigEnvironment = $twig_environment;
     $this->libraryDeprecationAnalyzer = $library_deprecation_analyzer;
+    $this->themeFunctionDeprecationAnalyzer = $theme_function_deprecation_analyzer;
 
     $this->vendorPath = $this->findVendorPath();
 
@@ -186,6 +197,16 @@ final class DeprecationAnalyzer {
       $result['data']['totals']['file_errors']++;
     }
 
+    $theme_function_deprecations = $this->themeFunctionDeprecationAnalyzer->analyze($extension);
+    foreach ($theme_function_deprecations as $deprecation_message) {
+      $result['data']['files'][$deprecation_message->getFile()]['messages'][] = [
+        'message' => $deprecation_message->getMessage(),
+        'line' => $deprecation_message->getLine(),
+      ];
+      $result['data']['totals']['errors']++;
+      $result['data']['totals']['file_errors']++;
+    }
+
     // Manually add on info file incompatibility to results.
     $info = $extension->info;
     if (!isset($info['core_version_requirement'])) {
@@ -239,7 +260,7 @@ final class DeprecationAnalyzer {
         foreach($errors['messages'] as &$error) {
 
           // Overwrite message with processed text. Save category.
-          list($message, $category) = $this->categorizeMessage($error['message'], $extension);
+          [$message, $category] = $this->categorizeMessage($error['message'], $extension);
           $error['message'] = $message;
           $error['upgrade_status_category'] = $category;
 

@@ -77,8 +77,8 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $project = $key_value->get('upgrade_status_test_theme');
     $this->assertNotEmpty($project);
     $report = json_decode($project, TRUE);
-    $this->assertEquals(3, $report['data']['totals']['file_errors']);
-    $this->assertCount(2, $report['data']['files']);
+    $this->assertEquals(4, $report['data']['totals']['file_errors']);
+    $this->assertCount(3, $report['data']['files']);
     $file = reset($report['data']['files']);
     $message = $file['messages'][0];
     $this->assertContains('Twig Tag "raw" is deprecated since version 1.21. Use "verbatim" instead in', $message['message']);
@@ -88,6 +88,22 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $this->assertEquals(0, $file['messages'][0]['line']);
     $this->assertEquals('Theme is extending a deprecated library. The "upgrade_status_test_twig/deprecated_library" asset library is deprecated for testing.', $file['messages'][1]['message']);
     $this->assertEquals(0, $file['messages'][1]['line']);
+    $file = next($report['data']['files']);
+    $this->assertEquals('The theme is overriding the "upgrade_status_test_theme_function_theme_function_override" theme function. Theme functions are deprecated. For more info, see https://www.drupal.org/node/2575445.', $file['messages'][0]['message']);
+    $this->assertEquals(6, $file['messages'][0]['line']);
+
+    $project = $key_value->get('upgrade_status_test_theme_functions');
+    $this->assertNotEmpty($project);
+    $report = json_decode($project, TRUE);
+    $this->assertEquals(3, $report['data']['totals']['file_errors']);
+    $this->assertCount(1, $report['data']['files']);
+    $file = reset($report['data']['files']);
+    $this->assertEquals('The module is defining "upgrade_status_test_theme_function" theme function. Theme functions are deprecated. For more info, see https://www.drupal.org/node/2575445.', $file['messages'][0]['message']);
+    $this->assertEquals(9, $file['messages'][0]['line']);
+    $this->assertEquals('The module is defining "upgrade_status_test_theme_function" theme function. Theme functions are deprecated. For more info, see https://www.drupal.org/node/2575445.', $file['messages'][1]['message']);
+    $this->assertEquals(20, $file['messages'][1]['line']);
+    $this->assertEquals('The module is defining an unknown theme function. Theme functions are deprecated. For more info, see https://www.drupal.org/node/2575445.', $file['messages'][2]['message']);
+    $this->assertEquals(21, $file['messages'][2]['line']);
 
     $project = $key_value->get('upgrade_status_test_library');
     $this->assertNotEmpty($project);
