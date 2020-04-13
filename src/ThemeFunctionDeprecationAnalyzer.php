@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\upgrade_status;
 
 use Drupal\Core\Cache\NullBackend;
-use Drupal\Core\DependencyInjection\Container;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Theme\Registry;
 use PhpParser\Error;
@@ -17,6 +16,7 @@ use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\Assign;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Function_;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * A theme function deprecation analyzer.
@@ -26,17 +26,17 @@ final class ThemeFunctionDeprecationAnalyzer {
   /**
    * The service container.
    *
-   * @var \Drupal\Core\DependencyInjection\Container
+   * @var \Symfony\Component\DependencyInjection\ContainerInterface
    */
   private $container;
 
   /**
    * Constructs a new theme function deprecation analyzer.
    *
-   * @param \Drupal\Core\DependencyInjection\Container $this->container
+   * @param \Symfony\Component\DependencyInjection\ContainerInterface $this->container
    *   The service container.
    */
-  public function __construct(Container $container) {
+  public function __construct(ContainerInterface $container) {
     $this->container = $container;
   }
 
