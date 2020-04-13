@@ -231,15 +231,7 @@ final class DeprecationAnalyzer {
       $composer_json = json_decode(file_get_contents($project_dir . '/composer.json'));
       if (empty($composer_json) || !is_object($composer_json)) {
         $result['data']['files'][$extension->subpath . '/composer.json']['messages'][] = [
-          'message' => "Parse error in composer.json. Having a composer.json is not a requirement for Drupal 9 compatibility but if there is one, it should be valid.",
-          'line' => 0,
-        ];
-        $result['data']['totals']['errors']++;
-        $result['data']['totals']['file_errors']++;
-      }
-      elseif (!isset($composer_json->require->{'drupal/core'})) {
-        $result['data']['files'][$extension->subpath . '/composer.json']['messages'][] = [
-          'message' => "A drupal/core requirement is not present in composer.json. Having a composer.json is not a requirement for Drupal 9 compatibility but if there is one, it should include a drupal/core requirement.",
+          'message' => "Parse error in composer.json. Having a composer.json is not a requirement for Drupal 9 compatibility but if there is one, it should be valid. See https://www.drupal.org/docs/8/creating-custom-modules/add-a-composerjson-file.",
           'line' => 0,
         ];
         $result['data']['totals']['errors']++;
@@ -247,7 +239,7 @@ final class DeprecationAnalyzer {
       }
       elseif (!Semver::satisfies('9.0.0', $composer_json->require->{'drupal/core'})) {
         $result['data']['files'][$extension->subpath . '/composer.json']['messages'][] = [
-          'message' => "The drupal/core requirement is not Drupal 9 compatible. Having a composer.json is not a requirement for Drupal 9 compatibility but if there is one, it should include a drupal/core requirement compatible with Drupal 9.",
+          'message' => "The drupal/core requirement is not Drupal 9 compatible. Either remove it or update it to be compatible with Drupal 9. See https://www.drupal.org/docs/8/creating-custom-modules/add-a-composerjson-file#s-drupal-9-compatibility.",
           'line' => 0,
         ];
         $result['data']['totals']['errors']++;
