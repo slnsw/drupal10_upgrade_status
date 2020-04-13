@@ -597,29 +597,36 @@ class UpgradeStatusForm extends FormBase {
     // if the host server is PHP itself, because it is single-threaded.
     // See https://www.php.net/manual/en/features.commandline.webserver.php
     $use_http = php_sapi_name() != 'cli-server';
-    // Log the selected processing method for project support purposes.
-    $this->logger->notice('Processing projects without HTTP sandboxing because the built-in PHP webserver does not allow for that.');
     $php_server = !$use_http;
-
-    // Attempt to do an HTTP request to the frontpage of this Drupal instance.
-    // If that does not work then we'll not be able to process projects over
-    // HTTP. Processing projects directly is less safe (in case of PHP fatal
-    // errors the batch process may halt), but we have no other choice here
-    // but to take a chance.
-    try {
-      $front = Url::fromRoute('<front>');
-      $response = \Drupal::httpClient()->get($front->setAbsolute()->toString());
-      if ($response->getStatusCode() != 200) {
+    if ($php_server) {
+      // Log the selected processing method for project support purposes.
+      $this->logger->notice('Processing projects without HTTP sandboxing because the built-in PHP webserver does not allow for that.');
+    }
+    else {
+      // Attempt to do an HTTP request to the frontpage of this Drupal instance.
+      // If that does not work then we'll not be able to process projects over
+      // HTTP. Processing projects directly is less safe (in case of PHP fatal
+      // errors the batch process may halt), but we have no other choice here
+      // but to take a chance.
+      try {
+        $front = Url::fromRoute('<front>');
+        $response = \Drupal::httpClient()->get($front->setAbsolute()->toString());
+        if ($response->getStatusCode() != 200) {
+          $use_http = FALSE;
+        }
+      }
+      catch (\Exception $e) {
         $use_http = FALSE;
       }
-    }
-    catch (\Exception $e) {
-      $use_http = FALSE;
+      // Log the selected processing method for project support purposes.
+      if (!$use_http) {
+        $this->logger->notice('Processing projects without HTTP sandboxing because a sample HTTP request to the server failed.');
+      }
     }
 
-    // Log the selected processing method for project support purposes.
-    if (!$use_http && !$php_server) {
-      $this->logger->notice('Processing projects without HTTP sandboxing because a sample HTTP request to the server failed.');
+    if ($use_http) {
+      // Log the selected processing method for project support purposes.
+      $this->logger->notice('Processing projects with HTTP sandboxing.');
     }
 
     foreach (['custom', 'contrib'] as $type) {
