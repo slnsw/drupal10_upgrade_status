@@ -131,10 +131,20 @@ class ScanResultController extends ControllerBase {
    *   Response object.
    */
   public function analyze(string $type, string $project_machine_name) {
-    $extension = $this->projectCollector->loadProject($type, $project_machine_name);
-    \Drupal::service('upgrade_status.deprecation_analyzer')->analyze($extension);
-    return new JsonResponse(
-      ['message' => $this->t('Scanned @project', ['@project' => $extension->getName()])]
-    );
+    if ($type == 'upgrade_status_request_test' && $project_machine_name == 'upgrade_status_request_test') {
+      // Handle the special case of a request test which is testing the
+      // HTTP sandboxing capability.
+      return new JsonResponse(
+        ['message' => 'Request test success']
+      );
+    }
+    else {
+      // Dealing with a real project.
+      $extension = $this->projectCollector->loadProject($type, $project_machine_name);
+      \Drupal::service('upgrade_status.deprecation_analyzer')->analyze($extension);
+      return new JsonResponse(
+        ['message' => $this->t('Scanned @project', ['@project' => $extension->getName()])]
+      );
+    }
   }
 }

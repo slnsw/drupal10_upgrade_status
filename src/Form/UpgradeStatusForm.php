@@ -608,19 +608,10 @@ class UpgradeStatusForm extends FormBase {
       // HTTP. Processing projects directly is less safe (in case of PHP fatal
       // errors the batch process may halt), but we have no other choice here
       // but to take a chance.
-      try {
-        $front = Url::fromRoute('<front>');
-        $response = \Drupal::httpClient()->get($front->setAbsolute()->toString());
-        if ($response->getStatusCode() != 200) {
-          $use_http = FALSE;
-        }
-      }
-      catch (\Exception $e) {
+      list($error, $message, $data) = static::doHttpRequest('upgrade_status_request_test', 'upgrade_status_request_test');
+      if (empty($data) || !is_array($data) || ($data['message'] != 'Request test success')) {
         $use_http = FALSE;
-      }
-      // Log the selected processing method for project support purposes.
-      if (!$use_http) {
-        $this->logger->notice('Processing projects without HTTP sandboxing because a sample HTTP request to the server failed.');
+        $this->logger->notice('Processing projects without HTTP sandboxing. @error', ['@error' => $message]);
       }
     }
 
@@ -742,7 +733,55 @@ class UpgradeStatusForm extends FormBase {
       return;
     }
 
-    $error = $file_name = FALSE;
+    // Do the HTTP request to run processing.
+    list($error, $message, $data) = static::doHttpRequest($extension->getType(), $extension->getName());
+
+    if ($error !== FALSE) {
+      /** @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface $key_value */
+      $key_value = \Drupal::service('keyvalue')->get('upgrade_status_scan_results');
+
+      $result = [];
+      $result['date'] = REQUEST_TIME;
+      $result['data'] = [
+        'totals' => [
+          'errors' => 1,
+          'file_errors' => 1,
+          'upgrade_status_split' => [
+            'warning' => 1,
+          ]
+        ],
+        'files' => [],
+      ];
+      $result['data']['files'][$error] = [
+        'errors' => 1,
+        'messages' => [
+          [
+            'message' => $message,
+            'line' => 0,
+          ],
+        ],
+      ];
+
+      $key_value->set($extension->getName(), json_encode($result));
+    }
+
+  }
+
+  /**
+   * Do an HTTP request with the type and machine name.
+   * 
+   * @param string $type
+   *   Type of the extension, it can be either 'module' or 'theme' or 'profile'.
+   * @param string $project_machine_name
+   *   The machine name of the project.
+   * 
+   * @return array
+   *   A three item array with any potential errors, the error message and the
+   *   returned data as the third item. Either of them will be FALSE if they are
+   *   not applicable. Data may also be NULL if response JSON decoding failed.
+   */
+  public static function doHttpRequest(string $type, string $project_machine_name) {
+    $error = $message = $data = FALSE;
 
     // Prepare for a POST request to scan this project. The separate HTTP
     // request is used to separate any PHP errors found from this batch process.
@@ -751,8 +790,8 @@ class UpgradeStatusForm extends FormBase {
     $url = Url::fromRoute(
       'upgrade_status.analyze',
       [
-        'type' => $extension->getType(),
-        'project_machine_name' => $extension->getName()
+        'type' => $type,
+        'project_machine_name' => $project_machine_name
       ]
     );
 
@@ -787,44 +826,16 @@ class UpgradeStatusForm extends FormBase {
       $response = \Drupal::httpClient()->post($url->setAbsolute()->toString(), $options);
       $data = json_decode((string) $response->getBody(), TRUE);
       if (!$data) {
-        $error = (string) $response->getBody();
-        $file_name = 'PHP Fatal Error';
+        $error = 'PHP Fatal Error';
+        $message = (string) $response->getBody();
       }
     }
     catch (\Exception $e) {
-      $error = $e->getMessage();
-      $file_name = 'Scanning exception';
+      $error = 'Scanning exception';
+      $message = $e->getMessage();
     }
 
-    if ($error !== FALSE) {
-      /** @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface $key_value */
-      $key_value = \Drupal::service('keyvalue')->get('upgrade_status_scan_results');
-
-      $result = [];
-      $result['date'] = REQUEST_TIME;
-      $result['data'] = [
-        'totals' => [
-          'errors' => 1,
-          'file_errors' => 1,
-          'upgrade_status_split' => [
-            'warning' => 1,
-          ]
-        ],
-        'files' => [],
-      ];
-      $result['data']['files'][$file_name] = [
-        'errors' => 1,
-        'messages' => [
-          [
-            'message' => $error,
-            'line' => 0,
-          ],
-        ],
-      ];
-
-      $key_value->set($extension->getName(), json_encode($result));
-    }
-
+    return [$error, $message, $data];
   }
 
 }
