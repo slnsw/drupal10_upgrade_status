@@ -237,7 +237,7 @@ final class DeprecationAnalyzer {
         $result['data']['totals']['errors']++;
         $result['data']['totals']['file_errors']++;
       }
-      elseif (!Semver::satisfies('9.0.0', $composer_json->require->{'drupal/core'})) {
+      elseif (!empty($composer_json->require->{'drupal/core'}) && !Semver::satisfies('9.0.0', $composer_json->require->{'drupal/core'})) {
         $result['data']['files'][$extension->subpath . '/composer.json']['messages'][] = [
           'message' => "The drupal/core requirement is not Drupal 9 compatible. Either remove it or update it to be compatible with Drupal 9. See https://www.drupal.org/docs/8/creating-custom-modules/add-a-composerjson-file#s-drupal-9-compatibility.",
           'line' => 0,
