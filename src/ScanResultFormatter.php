@@ -216,6 +216,9 @@ class ScanResultFormatter {
         // Allow error messages to wrap.
         $formatted_error = str_replace('\\', '\\<wbr>', $formatted_error);
 
+        // Make drupal.org documentation links clickable.
+        $formatted_error = preg_replace('!See (https://drupal.org(.\S+)).$!', 'See <a href="\1">\1<a>.', $formatted_error);
+
         $error_class = 'known-warnings';
         $level_label = $this->t('Check manually');
         if (!empty($error['upgrade_status_category'])) {
