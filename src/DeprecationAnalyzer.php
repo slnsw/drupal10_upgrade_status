@@ -177,6 +177,7 @@ final class DeprecationAnalyzer {
     foreach ($twig_deprecations as $twig_deprecation) {
       preg_match('/\s([a-zA-Z0-9\_\-\/]+.html\.twig)\s/', $twig_deprecation, $file_matches);
       preg_match('/\s(\d).?$/', $twig_deprecation, $line_matches);
+      $twig_deprecation = preg_replace('! in (.+)\.twig at line \d+\.!', '.', $twig_deprecation);
       $result['data']['files'][$file_matches[1]]['messages'] = [
         [
           'message' => $twig_deprecation,
