@@ -197,7 +197,7 @@ final class LibraryDeprecationAnalyzer {
   private function analyzeTwigLibraryDependencies(Extension $extension): array {
     $iterator = new TemplateDirIterator(new \RegexIterator(
       new \RecursiveIteratorIterator(
-        new \RecursiveDirectoryIterator($extension->subpath), \RecursiveIteratorIterator::LEAVES_ONLY
+        new \RecursiveDirectoryIterator($extension->getPath()), \RecursiveIteratorIterator::LEAVES_ONLY
       ), '{'.preg_quote('.html.twig').'$}'
     ));
 
@@ -267,7 +267,7 @@ final class LibraryDeprecationAnalyzer {
   private function analyzePhpLibraryReferences(Extension $extension): array {
     $iterator = new \RegexIterator(
       new \RecursiveIteratorIterator(
-        new \RecursiveDirectoryIterator($extension->subpath), \RecursiveIteratorIterator::LEAVES_ONLY
+        new \RecursiveDirectoryIterator($extension->getPath()), \RecursiveIteratorIterator::LEAVES_ONLY
       ), '/\.(php|module|theme|profile|inc)$/'
     );
 

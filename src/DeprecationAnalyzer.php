@@ -165,7 +165,7 @@ final class DeprecationAnalyzer {
    *   Errors are logged to the logger, data is stored to keyvalue storage.
    */
   public function analyze(Extension $extension) {
-    $project_dir = DRUPAL_ROOT . '/' . $extension->subpath;
+    $project_dir = DRUPAL_ROOT . '/' . $extension->getPath();
     $this->logger->notice('Processing %path.', ['%path' => $project_dir]);
 
     $output = [];
@@ -173,7 +173,7 @@ final class DeprecationAnalyzer {
     $json = json_decode(join('', $output), TRUE);
     $result = ['date' => REQUEST_TIME, 'data' => $json];
 
-    $twig_deprecations = $this->analyzeTwigTemplates($extension->subpath);
+    $twig_deprecations = $this->analyzeTwigTemplates($extension->getPath());
     foreach ($twig_deprecations as $twig_deprecation) {
       preg_match('/\s([a-zA-Z0-9\_\-\/]+.html\.twig)\s/', $twig_deprecation, $file_matches);
       preg_match('/\s(\d).?$/', $twig_deprecation, $line_matches);
@@ -212,7 +212,7 @@ final class DeprecationAnalyzer {
     // Manually add on info file incompatibility to results.
     $info = $extension->info;
     if (!isset($info['core_version_requirement'])) {
-      $result['data']['files'][$extension->subpath . '/' . $extension->getFilename()]['messages'][] = [
+      $result['data']['files'][$extension->getPathname()]['messages'][] = [
         'message' => 'Add <code>core_version_requirement: ^8 || ^9</code> to ' . $extension->getFilename() . ' to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.',
         'line' => 0,
       ];
@@ -220,7 +220,7 @@ final class DeprecationAnalyzer {
       $result['data']['totals']['file_errors']++;
     }
     elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
-      $result['data']['files'][$extension->subpath . '/' . $extension->getFilename()]['messages'][] = [
+      $result['data']['files'][$extension->getPathname()]['messages'][] = [
         'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$extension->getFilename()} is not compatible with Drupal 9.0.0. See https://drupal.org/node/3070687.",
         'line' => 0,
       ];
@@ -232,7 +232,7 @@ final class DeprecationAnalyzer {
     if (file_exists($project_dir . '/composer.json')) {
       $composer_json = json_decode(file_get_contents($project_dir . '/composer.json'));
       if (empty($composer_json) || !is_object($composer_json)) {
-        $result['data']['files'][$extension->subpath . '/composer.json']['messages'][] = [
+        $result['data']['files'][$extension->getPath() . '/composer.json']['messages'][] = [
           'message' => "Parse error in composer.json. Having a composer.json is not a requirement for Drupal 9 compatibility but if there is one, it should be valid. See https://drupal.org/node/2514612.",
           'line' => 0,
         ];
@@ -240,7 +240,7 @@ final class DeprecationAnalyzer {
         $result['data']['totals']['file_errors']++;
       }
       elseif (!empty($composer_json->require->{'drupal/core'}) && !Semver::satisfies('9.0.0', $composer_json->require->{'drupal/core'})) {
-        $result['data']['files'][$extension->subpath . '/composer.json']['messages'][] = [
+        $result['data']['files'][$extension->getPath() . '/composer.json']['messages'][] = [
           'message' => "The drupal/core requirement is not Drupal 9 compatible. Either remove it or update it to be compatible with Drupal 9. See https://drupal.org/node/2514612#s-drupal-9-compatibility.",
           'line' => 0,
         ];

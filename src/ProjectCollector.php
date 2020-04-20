@@ -128,28 +128,28 @@ class ProjectCollector {
   /**
    * Finds topmost custom extension for each extension and keeps only that.
    *
-   * @param \Drupal\Core\Extension\Extension[] $projects
+   * @param \Drupal\Core\Extension\Extension[] $extensions
    *   List of all enabled custom extensions.
    *
    * @return \Drupal\Core\Extension\Extension[]
    *   List of custom extensions, with only the topmost custom extension left
    *   for each extension that has a parent extension.
    */
-  protected function collateCustomExtensionsIntoProjects(array $projects) {
-    foreach ($projects as $name_a => $data_a) {
-      $subpath_a = $data_a->subpath . '/';
-      $subpath_a_length = strlen($subpath_a);
+  protected function collateCustomExtensionsIntoProjects(array $extensions) {
+    foreach ($extensions as $name_a => $extension_a) {
+      $path_a = $extension_a->getPath() . '/';
+      $path_a_length = strlen($path_a);
 
-      foreach ($projects as $name_b => $data_b) {
-        $subpath_b = $data_b->subpath;
+      foreach ($extensions as $name_b => $extension_b) {
+        $path_b = $extension_b->getPath();
         // If the extension is not the same but the beginning of paths match,
         // remove this extension from the list as it is part of another one.
-        if ($name_b != $name_a && substr($subpath_b, 0, $subpath_a_length) === $subpath_a) {
-          unset($projects[$name_b]);
+        if ($name_b != $name_a && substr($path_b, 0, $path_a_length) === $path_a) {
+          unset($extensions[$name_b]);
         }
       }
     }
-    return $projects;
+    return $extensions;
   }
 
   /**

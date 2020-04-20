@@ -66,10 +66,10 @@ function template_preprocess_upgrade_status_ascii_export(&$variables) {
 /**
  * Implements hook_system_info_alter().
  */
-function upgrade_status_system_info_alter(array &$info, Extension $file, $type) {
+function upgrade_status_system_info_alter(array &$info, Extension $extension, $type) {
   // Always mark git_deploy and upgrade_status as a contrib project regardless of how
   // it was obtained. This makes testing the module results reliably consistent.
-  if (in_array(basename($file->subpath), ['git_deploy', 'upgrade_status'])) {
-    $info['project'] = basename($file->subpath);
+  if (in_array($extension->getName(), ['git_deploy', 'upgrade_status'])) {
+    $info['project'] = $extension->getName();
   }
 }
