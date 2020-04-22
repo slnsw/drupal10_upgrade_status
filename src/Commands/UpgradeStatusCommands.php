@@ -141,7 +141,7 @@ class UpgradeStatusCommands extends DrushCommands {
           '@invalid_names' => implode(', ', $invalid_names),
         ]);
       }
-      throw new InvalidArgumentException($message);
+      throw new \InvalidArgumentException($message);
     }
     else {
       $this->logger()->info(dt('Starting the analysis. This may take a while.'));
