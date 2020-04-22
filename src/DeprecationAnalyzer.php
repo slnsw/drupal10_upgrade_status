@@ -3,6 +3,8 @@
 namespace Drupal\upgrade_status;
 
 use Composer\Semver\Semver;
+use Drupal\Component\Serialization\Yaml;
+use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
@@ -209,19 +211,29 @@ final class DeprecationAnalyzer {
       $result['data']['totals']['file_errors']++;
     }
 
-    // Manually add on info file incompatibility to results.
-    $info = $extension->info;
-    if (!isset($info['core_version_requirement'])) {
+    // Manually add on info file incompatibility to results. Not using
+    // $extension->info because that is cached in the extension cache.
+    try {
+      $info = Yaml::decode(file_get_contents($extension->getPathname())) ?: [];
+      if (!isset($info['core_version_requirement'])) {
+        $result['data']['files'][$extension->getPathname()]['messages'][] = [
+          'message' => 'Add <code>core_version_requirement: ^8 || ^9</code> to ' . $extension->getFilename() . ' to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.',
+          'line' => 0,
+        ];
+        $result['data']['totals']['errors']++;
+        $result['data']['totals']['file_errors']++;
+      }
+      elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
+        $result['data']['files'][$extension->getPathname()]['messages'][] = [
+          'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$extension->getFilename()} is not compatible with Drupal 9.0.0. See https://drupal.org/node/3070687.",
+          'line' => 0,
+        ];
+        $result['data']['totals']['errors']++;
+        $result['data']['totals']['file_errors']++;
+      }
+    } catch (InvalidDataTypeException $e) {
       $result['data']['files'][$extension->getPathname()]['messages'][] = [
-        'message' => 'Add <code>core_version_requirement: ^8 || ^9</code> to ' . $extension->getFilename() . ' to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.',
-        'line' => 0,
-      ];
-      $result['data']['totals']['errors']++;
-      $result['data']['totals']['file_errors']++;
-    }
-    elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
-      $result['data']['files'][$extension->getPathname()]['messages'][] = [
-        'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$extension->getFilename()} is not compatible with Drupal 9.0.0. See https://drupal.org/node/3070687.",
+        'message' => 'Parse error. ' . $e->getMessage(),
         'line' => 0,
       ];
       $result['data']['totals']['errors']++;
