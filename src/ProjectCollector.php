@@ -106,41 +106,69 @@ class ProjectCollector {
         continue;
       }
 
-      // At this point extensions that don't have a project should be considered
-      // custom. Extensions that have the 'drupal' project but did not have the
-      // 'core' origin assigned are custom extensions that are running in a
-      // Drupal core git checkout, so also categorize them as custom.
-      if (empty($project) || $project === 'drupal') {
-        $projects['custom'][$key] = $extension;
-        continue;
+      // Attempt to identfy if the project was contrib based on the directory
+      // structure it is in. Extension placement is not a mandatory requirement
+      // and theoretically this could lead to false positives, but if
+      // composer_deploy or git_deploy is not available (and/or did not
+      // identify the project for us), this is all we can do. Ignore our test
+      // modules for this scenario.
+      if (empty($project)) {
+        $type = 'custom';
+        if (strpos($extension->getPath(), '/contrib/') && (strpos($key, 'upgrade_status_test_') !== 0)) {
+          $type = 'contrib';
+        }
       }
-
-      // @todo should this use $project as the key?
-      $projects['contrib'][$key] = $extension;
+      // Extensions that have the 'drupal' project but did not have the 'core'
+      // origin assigned are custom extensions that are running in a Drupal
+      // core git checkout, so also categorize them as custom.
+      elseif ($project === 'drupal') {
+        $type = 'custom';
+      }
+      else {
+        $type = 'contrib';
+      }
+      $projects[$type][$key] = $extension;
     }
 
     // Collate custom extensions to projects, removing sub-extensions.
-    $projects['custom'] = $this->collateCustomExtensionsIntoProjects($projects['custom']);
+    $projects['custom'] = $this->collateExtensionsIntoProjects($projects['custom']);
+
+    // Also collate contrib extensions. This is only needed if there were
+    // contrib extensions with projects not identified, and they had
+    // sub-extensions. After the collation is done, assign project names
+    // based on the topmost extension. While this is not always right for
+    // drupal.org projects, this is the best guess we have.
+    $projects['contrib'] = $this->collateExtensionsIntoProjects($projects['contrib']);
+    foreach ($projects['contrib'] as $name => $extension) {
+      if (!isset($extension->info['project'])) {
+        $projects['contrib'][$name]->info['project'] = $name;
+      }
+    }
 
     return $projects;
   }
 
   /**
-   * Finds topmost custom extension for each extension and keeps only that.
+   * Finds topmost extension for each extension and keeps only that.
    *
    * @param \Drupal\Core\Extension\Extension[] $extensions
-   *   List of all enabled custom extensions.
+   *   List of all enabled extensions in a category.
    *
    * @return \Drupal\Core\Extension\Extension[]
-   *   List of custom extensions, with only the topmost custom extension left
-   *   for each extension that has a parent extension.
+   *   List of extensions, with only the topmost extension left for each
+   *   extension that has a parent extension.
    */
-  protected function collateCustomExtensionsIntoProjects(array $extensions) {
+  protected function collateExtensionsIntoProjects(array $extensions) {
     foreach ($extensions as $name_a => $extension_a) {
       $path_a = $extension_a->getPath() . '/';
       $path_a_length = strlen($path_a);
 
       foreach ($extensions as $name_b => $extension_b) {
+        // Skip collation for test modules except where we test that.
+        if ((strpos($name_b, 'upgrade_status_test_') === 0) && (strpos($name_b, 'upgrade_status_test_submodules_') !== 0)) {
+          continue;
+        }
+
         $path_b = $extension_b->getPath();
         // If the extension is not the same but the beginning of paths match,
         // remove this extension from the list as it is part of another one.

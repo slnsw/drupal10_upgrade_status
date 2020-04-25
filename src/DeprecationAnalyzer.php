@@ -172,8 +172,11 @@ final class DeprecationAnalyzer {
 
     $output = [];
     exec($this->vendorPath . '/bin/phpstan analyse --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir, $output);
-    $json = json_decode(join('', $output), TRUE);
-    $result = ['date' => REQUEST_TIME, 'data' => $json];
+    $json = json_decode(implode('', $output), TRUE);
+    $result = [
+      'date' => REQUEST_TIME,
+      'data' => $json ?? ['files' => [], 'totals' => ['file_errors' => 0]],
+    ];
 
     $twig_deprecations = $this->analyzeTwigTemplates($extension->getPath());
     foreach ($twig_deprecations as $twig_deprecation) {

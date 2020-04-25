@@ -4,4 +4,4 @@ description: 'Support module for upgrade status module testing.'
 package: Testing
 version: VERSION
 core_version_requirement: ^8 || ^9
-project: 'upgrade_status'
+project: 'upgrade_status_test_contrib_no_error'

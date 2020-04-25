@@ -133,7 +133,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $page = $this->getSession()->getPage();
 
     $this->assertCount(7, $page->findAll('css', '.upgrade-status-summary-custom tr[class*=\'project-\']'));
-    $this->assertCount(4, $page->findAll('css', '.upgrade-status-summary-contrib tr[class*=\'project-\']'));
+    $this->assertCount(3, $page->findAll('css', '.upgrade-status-summary-contrib tr[class*=\'project-\']'));
   }
 
 }
