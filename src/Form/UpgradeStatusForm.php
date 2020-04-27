@@ -2,6 +2,7 @@
 
 namespace Drupal\upgrade_status\Form;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ModuleHandler;
@@ -63,6 +64,13 @@ class UpgradeStatusForm extends FormBase {
   protected $moduleHandler;
 
   /**
+   * The time service.
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
+  protected $time;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -72,7 +80,8 @@ class UpgradeStatusForm extends FormBase {
       $container->get('upgrade_status.result_formatter'),
       $container->get('renderer'),
       $container->get('logger.channel.upgrade_status'),
-      $container->get('module_handler')
+      $container->get('module_handler'),
+      $container->get('datetime.time')
     );
   }
 
@@ -91,6 +100,8 @@ class UpgradeStatusForm extends FormBase {
    *   The logger.
    * @param \Drupal\Core\Extension\ModuleHandler $module_handler
    *   The module handler.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
    */
   public function __construct(
     ProjectCollector $project_collector,
@@ -98,7 +109,8 @@ class UpgradeStatusForm extends FormBase {
     ScanResultFormatter $result_formatter,
     RendererInterface $renderer,
     LoggerInterface $logger,
-    ModuleHandler $module_handler
+    ModuleHandler $module_handler,
+    TimeInterface $time
   ) {
     $this->projectCollector = $project_collector;
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
@@ -106,6 +118,7 @@ class UpgradeStatusForm extends FormBase {
     $this->renderer = $renderer;
     $this->logger = $logger;
     $this->moduleHandler = $module_handler;
+    $this->time = $time;
   }
 
   /**
@@ -741,7 +754,7 @@ class UpgradeStatusForm extends FormBase {
       $key_value = \Drupal::service('keyvalue')->get('upgrade_status_scan_results');
 
       $result = [];
-      $result['date'] = REQUEST_TIME;
+      $result['date'] = $this->time->getRequestTime();
       $result['data'] = [
         'totals' => [
           'errors' => 1,

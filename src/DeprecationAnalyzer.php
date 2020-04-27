@@ -3,6 +3,7 @@
 namespace Drupal\upgrade_status;
 
 use Composer\Semver\Semver;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\Core\Extension\Extension;
@@ -92,6 +93,13 @@ final class DeprecationAnalyzer {
   protected $themeFunctionDeprecationAnalyzer;
 
   /**
+   * The time service.
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
+  protected $time;
+
+  /**
    * Constructs a deprecation analyzer.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -104,10 +112,12 @@ final class DeprecationAnalyzer {
    *   File system service.
    * @param \Drupal\Core\Template\TwigEnvironment $twig_environment
    *   The Twig environment.
-   * @param \Drupal\upgrade_status\LibraryDeprecationAnalyzer
+   * @param \Drupal\upgrade_status\LibraryDeprecationAnalyzer $library_deprecation_analyzer
    *   The library deprecation analyzer.
-   * @param \Drupal\upgrade_status\ThemeFunctionDeprecationAnalyzer
+   * @param \Drupal\upgrade_status\ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer
    *   The theme function deprecation analyzer.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
    */
   public function __construct(
     KeyValueFactoryInterface $key_value_factory,
@@ -116,16 +126,17 @@ final class DeprecationAnalyzer {
     FileSystemInterface $file_system,
     TwigEnvironment $twig_environment,
     LibraryDeprecationAnalyzer $library_deprecation_analyzer,
-    ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer
+    ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer,
+    TimeInterface $time
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
-    // Log errors to an upgrade status logger channel.
     $this->logger = $logger;
     $this->httpClient = $http_client;
     $this->fileSystem = $file_system;
     $this->twigEnvironment = $twig_environment;
     $this->libraryDeprecationAnalyzer = $library_deprecation_analyzer;
     $this->themeFunctionDeprecationAnalyzer = $theme_function_deprecation_analyzer;
+    $this->time = $time;
 
     $this->vendorPath = $this->findVendorPath();
 
@@ -174,7 +185,7 @@ final class DeprecationAnalyzer {
     exec($this->vendorPath . '/bin/phpstan analyse --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir, $output);
     $json = json_decode(implode('', $output), TRUE);
     $result = [
-      'date' => REQUEST_TIME,
+      'date' => $this->time->getRequestTime(),
       'data' => $json ?? ['files' => [], 'totals' => ['file_errors' => 0]],
     ];
 
