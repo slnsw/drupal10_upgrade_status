@@ -482,7 +482,7 @@ class UpgradeStatusForm extends FormBase {
 
     // MariaDB databases report as MySQL. Detect MariaDB separately based on code from
     // https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Database%21Driver%21mysql%21Connection.php/function/Connection%3A%3AgetMariaDbVersionMatch/9.0.x
-    // See also https://www.drupal.org/files/issues/2020-03-06/3109534-94.patch for test values.
+    // See also https://www.drupal.org/node/3119156 for test values.
     if ($type == 'mysql') {
       // MariaDB may prefix its version string with '5.5.5-', which should be
       // ignored.
@@ -492,8 +492,8 @@ class UpgradeStatusForm extends FormBase {
       if (!empty($matches[1])) {
         $type = 'MariaDB';
         $version = $matches[1];
-        $requirement = $this->t('When using MariaDB, minimum version is 10.2.7');
-        $class = (version_compare($version, '10.2.7') >= 0) ? 'no-known-error' : 'known-errors';
+        $requirement = $this->t('When using MariaDB, minimum version is 10.3.7');
+        $class = (version_compare($version, '10.3.7') >= 0) ? 'no-known-error' : 'known-errors';
       }
       else {
         $type = 'MySQL or Percona Server';
