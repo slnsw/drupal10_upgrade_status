@@ -343,6 +343,12 @@ class UpgradeStatusForm extends FormBase {
           '@count warnings'
         );
       }
+      // If the project was declared Drupal 9 compatible (info and composer
+      // files), than use that to visually display it as such. We still list
+      // errors but they may be false positives or results of workaround code.
+      if ($report['data']['totals']['upgrade_status_split']['declared_ready']) {
+        $error_class = 'no-known-error';
+      }
       $build['data']['#options'][$name] = [
         '#attributes' => ['class' => [$error_class, 'project-' . $name]],
         'project' => $label_cell,

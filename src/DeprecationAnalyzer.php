@@ -235,6 +235,9 @@ final class DeprecationAnalyzer {
       $result['data']['totals']['file_errors']++;
     }
 
+    // Assume this project is Drupal 9 ready unless proven otherwise.
+    $result['data']['totals']['upgrade_status_split']['declared_ready'] = TRUE;
+
     // Manually add on info file incompatibility to results. Not using
     // $extension->info because that is cached in the extension cache.
     try {
@@ -246,6 +249,7 @@ final class DeprecationAnalyzer {
         ];
         $result['data']['totals']['errors']++;
         $result['data']['totals']['file_errors']++;
+        $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
       }
       elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
         $result['data']['files'][$extension->getPathname()]['messages'][] = [
@@ -254,6 +258,7 @@ final class DeprecationAnalyzer {
         ];
         $result['data']['totals']['errors']++;
         $result['data']['totals']['file_errors']++;
+        $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
       }
     } catch (InvalidDataTypeException $e) {
       $result['data']['files'][$extension->getPathname()]['messages'][] = [
@@ -262,6 +267,7 @@ final class DeprecationAnalyzer {
       ];
       $result['data']['totals']['errors']++;
       $result['data']['totals']['file_errors']++;
+      $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
     }
 
     // Manually add on composer.json file incompatibility to results.
@@ -274,6 +280,7 @@ final class DeprecationAnalyzer {
         ];
         $result['data']['totals']['errors']++;
         $result['data']['totals']['file_errors']++;
+        $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
       }
       elseif (!empty($composer_json->require->{'drupal/core'}) && !Semver::satisfies('9.0.0', $composer_json->require->{'drupal/core'})) {
         $result['data']['files'][$extension->getPath() . '/composer.json']['messages'][] = [
@@ -282,6 +289,7 @@ final class DeprecationAnalyzer {
         ];
         $result['data']['totals']['errors']++;
         $result['data']['totals']['file_errors']++;
+        $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
       }
     }
 
