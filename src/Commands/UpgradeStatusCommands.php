@@ -78,16 +78,20 @@ class UpgradeStatusCommands extends DrushCommands {
    *
    * @param array $projects
    *   List of projects to analyze. Only installed projects are supported.
+   * @param array $options
+   *   Additional options for the command.
    *
    * @command upgrade_status:checkstyle
+   * @option all Analyze all enabled projects.
+   * @option skip-existing Return results from a previous scan of a project if available, otherwise start a new one.
    * @aliases us-cs
    *
    * @throws \InvalidArgumentException
    *   Thrown when one of the passed arguments is invalid or no arguments were provided.
    */
-  public function checkstyle(array $projects) {
+  public function checkstyle(array $projects, array $options = ['all' => FALSE, 'skip-existing' => FALSE]) {
     $this->mode = 'checkstyle';
-    $this->analyze($projects);
+    $this->analyze($projects, $options);
   }
 
   /**
@@ -95,20 +99,24 @@ class UpgradeStatusCommands extends DrushCommands {
    *
    * @param array $projects
    *   List of projects to analyze. Only installed projects are supported.
+   * @param array $options
+   *   Additional options for the command.
    *
    * @command upgrade_status:analyze
+   * @option all Analyze all enabled projects.
+   * @option skip-existing Return results from a previous scan of a project if available, otherwise start a new one.
    * @aliases us-a
    *
    * @throws \InvalidArgumentException
    *   Thrown when one of the passed arguments is invalid or no arguments were provided.
    */
-  public function analyze(array $projects) {
+  public function analyze(array $projects, array $options = ['all' => FALSE, 'skip-existing' => FALSE]) {
     // Group by type here so we can tell loader what is type of each one of
     // these.
     $extensions = [];
     $invalid_names = [];
 
-    if (empty($projects)) {
+    if (empty($projects) && !$options['all']) {
       $message = dt('You need to provide at least one installed project\'s machine_name.');
       throw new \InvalidArgumentException($message);
     }
@@ -116,17 +124,26 @@ class UpgradeStatusCommands extends DrushCommands {
     // Gather project list grouped by custom and contrib projects.
     $available_projects = $this->projectCollector->collectProjects();
 
-    foreach ($projects as $name) {
-      if (array_key_exists($name, $available_projects['custom'])) {
-        $type = $available_projects['custom'][$name]->getType();
-        $extensions[$type][$name] = $available_projects['custom'][$name];
+    if ($options['all']) {
+      foreach ($available_projects as $projects) {
+        foreach ($projects as $name => $project) {
+          $extensions[$project->getType()][$name] = $project;
+        }
       }
-      elseif (array_key_exists($name, $available_projects['contrib'])) {
-        $type = $available_projects['contrib'][$name]->getType();
-        $extensions[$type][$name] = $available_projects['contrib'][$name];
-      }
-      else {
-        $invalid_names[] = $name;
+    }
+    else {
+      foreach ($projects as $name) {
+        if (array_key_exists($name, $available_projects['custom'])) {
+          $type = $available_projects['custom'][$name]->getType();
+          $extensions[$type][$name] = $available_projects['custom'][$name];
+        }
+        elseif (array_key_exists($name, $available_projects['contrib'])) {
+          $type = $available_projects['contrib'][$name]->getType();
+          $extensions[$type][$name] = $available_projects['contrib'][$name];
+        }
+        else {
+          $invalid_names[] = $name;
+        }
       }
     }
 
@@ -149,6 +166,13 @@ class UpgradeStatusCommands extends DrushCommands {
 
     foreach ($extensions as $type => $list) {
       foreach ($list as $name => $extension) {
+        if ($options['skip-existing']) {
+          $scan_result = \Drupal::service('keyvalue')->get('upgrade_status_scan_results')->get($name);
+          if (!empty($scan_result)) {
+            $this->logger()->info(dt('Using previous results for @name.', ['@name' => $name]));
+            continue;
+          }
+        }
         $this->logger()->info(dt('Processing @name.', ['@name' => $name]));
         $this->deprecationAnalyzer->analyze($extension);
       }
