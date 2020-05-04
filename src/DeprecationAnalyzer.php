@@ -275,9 +275,9 @@ final class DeprecationAnalyzer {
       }
     }
 
-    foreach($result['data']['files'] as $path => &$errors) {
+    foreach ($result['data']['files'] as $path => &$errors) {
       if (!empty($errors['messages'])) {
-        foreach($errors['messages'] as &$error) {
+        foreach ($errors['messages'] as &$error) {
 
           // Overwrite message with processed text. Save category.
           [$message, $category] = $this->categorizeMessage($error['message'], $extension);
@@ -300,17 +300,22 @@ final class DeprecationAnalyzer {
 
     // For contributed projects, attempt to grab Drupal 9 plan information.
     if (!empty($extension->info['project'])) {
-      /** @var \Psr\Http\Message\ResponseInterface $response */
-      $response = $this->httpClient->request('GET', 'https://www.drupal.org/api-d7/node.json?field_project_machine_name=' . $extension->getName());
-      if ($response->getStatusCode()) {
-        $data = json_decode($response->getBody(), TRUE);
-        if (!empty($data['list'][0]['field_next_major_version_info']['value'])) {
-          $result['plans'] = str_replace('href="/', 'href="https://drupal.org/', $data['list'][0]['field_next_major_version_info']['value']);
-          // @todo implement "replaced by" collection once drupal.org exposes
-          // that in an accessible way
-          // @todo once/if drupal.org deprecation testing is in place, grab
-          // the status from there so we know if it improves by updating
+      try {
+        /** @var \Psr\Http\Message\ResponseInterface $response */
+        $response = $this->httpClient->request('GET', 'https://www.drupal.org/api-d7/node.json?field_project_machine_name=' . $extension->getName());
+        if ($response->getStatusCode()) {
+          $data = json_decode($response->getBody(), TRUE);
+          if (!empty($data['list'][0]['field_next_major_version_info']['value'])) {
+            $result['plans'] = str_replace('href="/', 'href="https://drupal.org/', $data['list'][0]['field_next_major_version_info']['value']);
+            // @todo implement "replaced by" collection once drupal.org exposes
+            // that in an accessible way
+            // @todo once/if drupal.org deprecation testing is in place, grab
+            // the status from there so we know if it improves by updating
+          }
         }
+      }
+      catch (\Exception $e) {
+        $this->logger->error($e->getMessage());
       }
     }
 
