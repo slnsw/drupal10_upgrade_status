@@ -241,7 +241,7 @@ final class DeprecationAnalyzer {
     }
 
     // Bail here as continuing makes no sense.
-    throw new \Exception('Vendor binary path not correct or phpstan is not installed there. Checked: ' . join(',', $attempted_paths));
+    throw new \Exception('Vendor binary path not correct or phpstan is not installed there. Did you install Upgrade Status with composer? Checked: ' . join(',', $attempted_paths));
   }
 
   /**
