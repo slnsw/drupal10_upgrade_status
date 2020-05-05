@@ -10,6 +10,7 @@ use Drupal\Core\Extension\Extension;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Template\TwigEnvironment;
+use DrupalFinder\DrupalFinder;
 use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
 
@@ -49,6 +50,13 @@ final class DeprecationAnalyzer {
    * @var string
    */
   protected $vendorPath;
+
+  /**
+   * Path to the binaries.
+   *
+   * @var string
+   */
+  protected $binPath;
 
   /**
    * Temporary directory to use for running phpstan.
@@ -100,6 +108,20 @@ final class DeprecationAnalyzer {
   protected $time;
 
   /**
+   * Drupal project finder.
+   *
+   * @var \DrupalFinder\DrupalFinder
+   */
+  protected $finder;
+
+  /**
+   * Whether the analyzer environment is initialized.
+   * 
+   * @var bool
+   */
+  protected $environmentInitialized = FALSE;
+
+  /**
    * Constructs a deprecation analyzer.
    *
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
@@ -137,8 +159,25 @@ final class DeprecationAnalyzer {
     $this->libraryDeprecationAnalyzer = $library_deprecation_analyzer;
     $this->themeFunctionDeprecationAnalyzer = $theme_function_deprecation_analyzer;
     $this->time = $time;
+  }
 
-    $this->vendorPath = $this->findVendorPath();
+  /**
+   * Initialize the external environment.
+   * 
+   * @throws \Exception 
+   *   In case initialization failed. The analyzer will not work in this case.
+   */
+  public function initEnvironment() {
+    if (!empty($this->environmentInitialized)) {
+      // Already successfully initialized, no need to do it again.
+      return;
+    }
+
+    $this->finder = new DrupalFinder();
+    $this->finder->locateRoot(DRUPAL_ROOT);
+
+    $this->vendorPath = $this->finder->getVendorDir();
+    $this->binPath = $this->findBinPath();
 
     if (function_exists('file_directory_temp')) {
       // This is fallback code for 8.7.x and below. It's not called on later
@@ -157,25 +196,52 @@ final class DeprecationAnalyzer {
 
     $this->phpstanNeonPath = $this->temporaryDirectory . '/deprecation_testing.neon';
     $this->createModifiedNeonFile();
+
+    $this->environmentInitialized = TRUE;
   }
 
   /**
-   * Finds vendor location.
+   * Finds bin-dir location.
    *
-   * @return string|null
-   *   Vendor directory path if found, null otherwise.
+   * This can be set in composer.json via `bin-dir` config and may not be inside
+   * vendor directory.
+   *
+   * @return string
+   *   Bin directory path if found.
+   *
+   * @throws \Exception
    */
-  protected function findVendorPath() {
-    // The vendor directory may be found inside the webroot (unlikely).
-    if (file_exists(DRUPAL_ROOT . '/vendor/bin/phpstan')) {
-      return DRUPAL_ROOT . '/vendor';
+  protected function findBinPath() {
+    // The bin directory may be found inside the vendor directory.
+    if (file_exists($this->vendorPath . '/bin/phpstan')) {
+      return $this->vendorPath . '/bin';
     }
-    // Most likely the vendor directory is found alongside the webroot.
-    elseif (file_exists(dirname(DRUPAL_ROOT) . '/vendor/bin/phpstan')) {
-      return dirname(DRUPAL_ROOT) . '/vendor';
+    else {
+      $attempted_paths = [$this->vendorPath . '/bin/phpstan'];
     }
-    // One of the above should have worked.
-    $this->logger->error('PHPStan executable not found.');
+
+    // See if we can locate a custom bin directory based on composer.json
+    // settings.
+    $composerFileName = trim(getenv('COMPOSER')) ?: 'composer.json';
+    $rootComposer = $this->finder->getComposerRoot() . '/' . $composerFileName;
+    $json = json_decode(file_get_contents($rootComposer), TRUE);
+
+    if (is_null($json)) {
+      throw new \Exception('Unable to decode composer information from ' . $rootComposer);
+    }
+
+    if (is_array($json) && isset($json['config']['bin-dir'])) {
+      $binPath = $this->finder->getComposerRoot() . '/' . $json['config']['bin-dir'];
+      if (file_exists($binPath . '/phpstan')) {
+        return $binPath;
+      }
+      else {
+        $attempted_paths[] = $binPath . '/phpstan';
+      }
+    }
+
+    // Bail here as continuing makes no sense.
+    throw new \Exception('Vendor binary path not correct or phpstan is not installed there. Checked: ' . join(',', $attempted_paths));
   }
 
   /**
@@ -188,15 +254,31 @@ final class DeprecationAnalyzer {
    *   Errors are logged to the logger, data is stored to keyvalue storage.
    */
   public function analyze(Extension $extension) {
+    try {
+      $this->initEnvironment();
+    }
+    catch (\Exception $e) {
+      // Should not get here as integrations are expected to invoke
+      // initEnvironment() first by itself to ensure the environment
+      // is going to work when needed (and inform users about any 
+      // issues). That said, if they did not do that and there was
+      // no issue with the environment, then they are lucky.
+      return;
+    }
+
     $project_dir = DRUPAL_ROOT . '/' . $extension->getPath();
     $this->logger->notice('Processing %path.', ['%path' => $project_dir]);
 
     $output = [];
-    exec($this->vendorPath . '/bin/phpstan analyse --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir, $output);
+    exec($this->binPath . '/phpstan analyse --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir, $output);
     $json = json_decode(implode('', $output), TRUE);
+    if (!isset($json['files']) || !is_array($json['files'])) {
+       $this->logger->error('PHPStan failed: %results', ['%results' => print_r($result, TRUE)]);
+       $json = ['files' => [], 'totals' => ['file_errors' => 0]];
+    }
     $result = [
       'date' => $this->time->getRequestTime(),
-      'data' => $json ?? ['files' => [], 'totals' => ['file_errors' => 0]],
+      'data' => $json,
     ];
 
     $twig_deprecations = $this->analyzeTwigTemplates($extension->getPath());
@@ -360,31 +442,27 @@ final class DeprecationAnalyzer {
    * dynamically set a temporary directory for PHPStan's cache in the neon file
    * provided by Upgrade Status.
    *
-   * @return bool
-   *   True if the temporary directory is created, false if not.
+   * @throws \Exception
+   *   If creating the temporary directory failed.
    */
   protected function prepareTempDirectory() {
     $success = $this->fileSystem->prepareDirectory($this->temporaryDirectory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
-
     if (!$success) {
-      $this->logger->error('Unable to create temporary directory for Upgrade Status: %directory.', ['%directory' => $this->temporaryDirectory]);
-      return $success;
+      throw new \Exception('Unable to create temporary directory for Upgrade Status at ' . $this->temporaryDirectory);
     }
 
     $phpstan_cache_directory = $this->temporaryDirectory . '/phpstan';
     $success = $this->fileSystem->prepareDirectory($phpstan_cache_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
-
     if (!$success) {
-      $this->logger->error('Unable to create temporary directory for PHPStan: %directory.', ['%directory' => $phpstan_cache_directory]);
+      throw new \Exception('Unable to create temporary directory for PHPStan at ' . $phpstan_cache_directory);
     }
-
-    return $success;
   }
 
   /**
    * Creates the final config file in the temporary directory.
    *
-   * @return bool
+   * @throws \Exception
+   *   If the PHPStan configuration file cannot be written.
    */
   protected function createModifiedNeonFile() {
     $module_path = DRUPAL_ROOT . '/' . drupal_get_path('module', 'upgrade_status');
@@ -400,9 +478,8 @@ final class DeprecationAnalyzer {
       $this->vendorPath . "/phpstan/phpstan-deprecation-rules/rules.neon'\n";
     $success = file_put_contents($this->phpstanNeonPath, $config);
     if (!$success) {
-      $this->logger->error('Unable to write configuration for PHPStan: %file.', ['%file' => $this->phpstanNeonPath]);
+      throw new \Exception('Unable to write configuration for PHPStan to ' . $this->phpstanNeonPath);
     }
-    return $success ? TRUE : FALSE;
   }
 
   /**

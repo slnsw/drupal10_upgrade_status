@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
+use Drupal\upgrade_status\DeprecationAnalyzer;
 use Drupal\upgrade_status\ProjectCollector;
 use Drupal\upgrade_status\ScanResultFormatter;
 use GuzzleHttp\Cookie\CookieJar;
@@ -64,6 +65,13 @@ class UpgradeStatusForm extends FormBase {
   protected $moduleHandler;
 
   /**
+   * The deprecation analyzer.
+   * 
+   * @var \Drupal\upgrade_status\DeprecationAnalyzer
+   */
+  protected $deprecationAnalyzer;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -73,7 +81,8 @@ class UpgradeStatusForm extends FormBase {
       $container->get('upgrade_status.result_formatter'),
       $container->get('renderer'),
       $container->get('logger.channel.upgrade_status'),
-      $container->get('module_handler')
+      $container->get('module_handler'),
+      $container->get('upgrade_status.deprecation_analyzer')
     );
   }
 
@@ -92,6 +101,8 @@ class UpgradeStatusForm extends FormBase {
    *   The logger.
    * @param \Drupal\Core\Extension\ModuleHandler $module_handler
    *   The module handler.
+   * @param \Drupal\upgrade_status\DeprecationAnalyzer $deprecation_analyzer
+   *   The deprecation analyzer.
    */
   public function __construct(
     ProjectCollector $project_collector,
@@ -99,7 +110,8 @@ class UpgradeStatusForm extends FormBase {
     ScanResultFormatter $result_formatter,
     RendererInterface $renderer,
     LoggerInterface $logger,
-    ModuleHandler $module_handler
+    ModuleHandler $module_handler,
+    DeprecationAnalyzer $deprecation_analyzer
   ) {
     $this->projectCollector = $project_collector;
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
@@ -107,6 +119,7 @@ class UpgradeStatusForm extends FormBase {
     $this->renderer = $renderer;
     $this->logger = $logger;
     $this->moduleHandler = $module_handler;
+    $this->deprecationAnalyzer = $deprecation_analyzer;
   }
 
   /**
@@ -129,6 +142,15 @@ class UpgradeStatusForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['#attached']['library'][] = 'upgrade_status/upgrade_status.admin';
+
+    $analyzerReady = TRUE;
+    try {
+      $this->deprecationAnalyzer->initEnvironment();
+    }
+    catch (\Exception $e) {
+      $analyzerReady = FALSE;
+      $this->messenger()->addError($e->getMessage());
+    }
 
     $form['environment'] = [
       '#type' => 'details',
@@ -178,18 +200,21 @@ class UpgradeStatusForm extends FormBase {
       '#value' => $this->t('Scan selected'),
       '#weight' => 2,
       '#button_type' => 'primary',
+      '#disabled' => !$analyzerReady,
     ];
     $form['drupal_upgrade_status_form']['action']['export'] = [
       '#type' => 'submit',
       '#value' => $this->t('Export as HTML'),
       '#weight' => 5,
       '#submit' => [[$this, 'exportReportHTML']],
+      '#disabled' => !$analyzerReady,
     ];
     $form['drupal_upgrade_status_form']['action']['export_ascii'] = [
       '#type' => 'submit',
       '#value' => $this->t('Export as ASCII'),
       '#weight' => 6,
       '#submit' => [[$this, 'exportReportASCII']],
+      '#disabled' => !$analyzerReady,
     ];
 
     return $form;
