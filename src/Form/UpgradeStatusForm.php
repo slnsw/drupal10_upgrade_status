@@ -512,7 +512,17 @@ class UpgradeStatusForm extends FormBase {
         $type = 'MariaDB';
         $version = $matches[1];
         $requirement = $this->t('When using MariaDB, minimum version is 10.3.7');
-        $class = (version_compare($version, '10.3.7') >= 0) ? 'no-known-error' : 'known-errors';
+        if (version_compare($version, '10.3.7') >= 0) {
+          $class = 'no-known-error';
+        }
+        elseif (version_compare($version, '10.1.0') >= 0) {
+          $class = 'known-warnings';
+          $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
+        }
+        else {
+          $class = 'known-errors';
+          $requirement .= ' ' . $this->t('Once updated to at least 10.1, you can also <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
+        }
       }
       else {
         $type = 'MySQL or Percona Server';
