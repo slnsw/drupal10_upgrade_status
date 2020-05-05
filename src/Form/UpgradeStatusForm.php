@@ -462,17 +462,48 @@ class UpgradeStatusForm extends FormBase {
       '#rows' => [],
     ];
 
-    // Check Drupal version.
-    $version = \Drupal::VERSION;
+    // Check Drupal version. Link to update if available.
+    $core_version_info = [
+      '#type' => 'markup',
+      '#markup' => $this->t('Version @version and up to date.', ['@version' => \Drupal::VERSION]),
+    ];
+    $has_core_update = FALSE;
+    $core_update_info = $this->releaseStore->get('drupal');
+    if (isset($core_update_info['releases']) && is_array($core_update_info['releases'])) {
+      // Find the latest release that are higher than our current and is not beta/alpha/rc.
+      foreach ($core_update_info['releases'] as $version => $release) {
+        if ((version_compare($version, \Drupal::VERSION) > 0) && empty($release['version_extra'])) {
+          $link = $core_update_info['link'] . '/releases/' . $version;
+          $core_version_info = [
+            '#type' => 'link',
+            '#title' => $this->t('Version @current allows to upgrade but @new is available.', ['@current' => \Drupal::VERSION, '@new' => $version]),
+            '#url' => Url::fromUri($link),
+          ];
+          $has_core_update = TRUE;
+          break;
+        }
+      }
+    }
+    if (version_compare(\Drupal::VERSION, '8.8.0') >= 0) {
+      if (!$has_core_update) {
+        $class = 'no-known-error';
+      }
+      else {
+        $class = 'known-warnings';
+      }
+    }
+    else {
+      $class = 'known-errors';
+    }
     $build['data']['#rows'][] = [
-      'class' => [(version_compare($version, '8.8.0') >= 0) ? 'no-known-error' : 'known-errors'],
+      'class' => $class,
       'data' => [
         'requirement' => [
           'class' => 'requirement-label',
           'data' => $this->t('Drupal core should be 8.8.x or 8.9.x'),
         ],
         'status' => [
-          'data' => $this->t('Version @version', ['@version' => $version]),
+          'data' => $core_version_info,
           'class' => 'status-info',
         ],
       ]
