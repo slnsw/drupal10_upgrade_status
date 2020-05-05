@@ -6,10 +6,13 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ModuleHandler;
+use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Routing\RedirectDestination;
+use Drupal\Core\State\State;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\DeprecationAnalyzer;
 use Drupal\upgrade_status\ProjectCollector;
@@ -72,6 +75,27 @@ class UpgradeStatusForm extends FormBase {
   protected $deprecationAnalyzer;
 
   /**
+   * The state service.
+   * 
+   * @var \Drupal\Core\State\State
+   */
+  protected $state;
+
+  /**
+   * The date formatter.
+   * 
+   * @var \Drupal\Core\Datetime\DateFormatter
+   */
+  protected $dateFormatter;
+
+  /**
+   * The destination service.
+   * 
+   * @var \Drupal\Core\Routing\RedirectDestination
+   */
+  protected $destination;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -82,7 +106,10 @@ class UpgradeStatusForm extends FormBase {
       $container->get('renderer'),
       $container->get('logger.channel.upgrade_status'),
       $container->get('module_handler'),
-      $container->get('upgrade_status.deprecation_analyzer')
+      $container->get('upgrade_status.deprecation_analyzer'),
+      $container->get('state'),
+      $container->get('date.formatter'),
+      $container->get('redirect.destination')
     );
   }
 
@@ -103,6 +130,12 @@ class UpgradeStatusForm extends FormBase {
    *   The module handler.
    * @param \Drupal\upgrade_status\DeprecationAnalyzer $deprecation_analyzer
    *   The deprecation analyzer.
+   * @param \Drupal\Core\State\State $state
+   *   The state service.
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   *   The date formatter.
+   * @param \Drupal\Core\Routing\RedirectDestination $destination
+   *   The destination service.
    */
   public function __construct(
     ProjectCollector $project_collector,
@@ -111,7 +144,10 @@ class UpgradeStatusForm extends FormBase {
     RendererInterface $renderer,
     LoggerInterface $logger,
     ModuleHandler $module_handler,
-    DeprecationAnalyzer $deprecation_analyzer
+    DeprecationAnalyzer $deprecation_analyzer,
+    State $state,
+    DateFormatter $date_formatter,
+    RedirectDestination $destination
   ) {
     $this->projectCollector = $project_collector;
     $this->releaseStore = $key_value_expirable->get('update_available_releases');
@@ -120,6 +156,9 @@ class UpgradeStatusForm extends FormBase {
     $this->logger = $logger;
     $this->moduleHandler = $module_handler;
     $this->deprecationAnalyzer = $deprecation_analyzer;
+    $this->state = $state;
+    $this->dateFormatter = $date_formatter;
+    $this->destination = $destination;
   }
 
   /**
@@ -151,6 +190,26 @@ class UpgradeStatusForm extends FormBase {
       $analyzerReady = FALSE;
       $this->messenger()->addError($e->getMessage());
     }
+
+    $last = $this->state->get('update.last_check') ?: 0;
+    if ($last == 0) {
+      $last_checked = '<strong>' . $this->t('Available update data not available.') . '</strong>';
+    }
+    else {
+      $time = $this->dateFormatter->formatTimeDiffSince($last);
+      $last_checked = $this->t('Available update data last checked: @time ago.', ['@time' => $time]);
+    }
+    $form['update_time'] = [
+      [
+        '#type' => 'markup',
+        '#markup' => $last_checked . ' ',
+      ],
+      [
+        '#type' => 'link',
+        '#title' => '(' . $this->t('Check manually') . ')',
+        '#url' => Url::fromRoute('update.manual_status', [], ['query' => $this->destination->getAsArray()]),
+      ],
+    ];
 
     $form['environment'] = [
       '#type' => 'details',
