@@ -85,6 +85,15 @@
   background-image: url(../icons/check.svg);
 }
 
+.upgrade-status-summary tr.rector-covered {
+  background-color: #f0f8ff;
+  color: #000;
+}
+
+.upgrade-status-summary tr.rector-covered > td.status-info {
+  background-image: url(../icons/wrench.svg);
+}
+
 .upgrade-status-summary tr.not-scanned > td.status-info {
   background-image: url(../icons/questionmark-disc.svg);
 }

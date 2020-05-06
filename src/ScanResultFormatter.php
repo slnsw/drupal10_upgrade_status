@@ -155,7 +155,7 @@ class ScanResultFormatter {
       '#weight' => 100,
     ];
 
-    $hasFixNow = FALSE;
+    $hasFixRector = FALSE;
     foreach ($result['data']['files'] as $filepath => $errors) {
       foreach ($errors['messages'] as $error) {
 
@@ -230,9 +230,13 @@ class ScanResultFormatter {
             $level_label = $this->t('Fix later');
           }
           elseif (in_array($error['upgrade_status_category'], ['safe', 'old'])) {
-            $level_label = $this->t('Fix now');
+            $level_label = $this->t('Fix now manually');
             $error_class = 'known-errors';
-            $hasFixNow = TRUE;
+          }
+          elseif ($error['upgrade_status_category'] == 'rector') {
+            $level_label = $this->t('Fix now with rector');
+            $error_class = 'rector-covered';
+            $hasFixRector = TRUE;
           }
         }
 
@@ -270,13 +274,8 @@ class ScanResultFormatter {
     if (!empty($result['data']['totals']['upgrade_status_split']['warning'])) {
       $summary[] = $this->formatPlural($result['data']['totals']['upgrade_status_split']['warning'], '@count warning found.', '@count warnings found.');
     }
-    if ($hasFixNow) {
-      if (!empty($extension->info['project'])) {
-        $summary[] = $this->t('Items categorized "Fix now" are uses of deprecated APIs from community unsupported core versions.');
-      }
-      else {
-        $summary[] = $this->t('Items categorized "Fix now" are uses of deprecated APIs in custom code from current or older Drupal core version.');
-      }
+    if ($hasFixRector) {
+      $summary[] = $this->t('Avoid some manual work by using <a href="@drupal-rector">drupal-rector for fixing issues automatically</a> or <a href="@upgrade-rector">Upgrade Rector</a> to generate patches.', ['@drupal-rector' => 'https://www.drupal.org/project/rector', '@upgrade-rector' => 'https://www.drupal.org/project/upgrade_rector']);
     }
     $build['summary'] = [
       '#type' => '#markup',
@@ -390,7 +389,7 @@ class ScanResultFormatter {
     // Otherwise prepare list of errors in tables.
     $tables = '';
 
-    $hasFixNow = FALSE;
+    $hasFixRector = FALSE;
     foreach ($result['data']['files'] as $filepath => $errors) {
       // Remove the Drupal root directory name. If this is a composer setup,
       // then the webroot is in a web/ directory, add that back in for easy
@@ -414,7 +413,10 @@ class ScanResultFormatter {
           }
           elseif (in_array($error['upgrade_status_category'], ['safe', 'old'])) {
             $level_label = $this->t('Fix now');
-            $hasFixNow = TRUE;
+          }
+          elseif ($error['upgrade_status_category'] == 'rector') {
+            $level_label = $this->t('Fix with rector');
+            $hasFixRector = TRUE;
           }
         }
 
@@ -437,13 +439,8 @@ class ScanResultFormatter {
     if (!empty($result['data']['totals']['upgrade_status_split']['warning'])) {
       $summary[] = $this->formatPlural($result['data']['totals']['upgrade_status_split']['warning'], '@count warning found.', '@count warnings found.');
     }
-    if ($hasFixNow) {
-      if (!empty($extension->info['project'])) {
-        $summary[] = $this->t('Items categorized "Fix now" are uses of deprecated APIs from community unsupported core versions.');
-      }
-      else {
-        $summary[] = $this->t('Items categorized "Fix now" are uses of deprecated APIs in custom code from current or older Drupal core version.');
-      }
+    if ($hasFixRector) {
+      $summary[] = $this->t('Avoid some manual work by using drupal-rector for fixing issues automatically or Upgrade Rector to generate patches.');
     }
     $build['summary'] = [
       '#type' => '#markup',

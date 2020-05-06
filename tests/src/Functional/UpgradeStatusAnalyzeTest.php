@@ -42,7 +42,7 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $this->assertEquals(3, $message['line']);
     $file = next($report['data']['files']);
     $message = $file['messages'][0];
-    $this->assertEquals("Call to deprecated function menu_cache_clear_all(). Deprecated in drupal:8.6.0 and is removed from drupal:9.0.0. Use\n\Drupal::cache('menu')->invalidateAll() instead.", $message['message']);
+    $this->assertEquals("Call to deprecated function menu_cache_clear_all(). Deprecated in drupal:8.6.0 and is removed from drupal:9.0.0. Use \Drupal::cache('menu')->invalidateAll() instead.", $message['message']);
     $this->assertEquals(10, $message['line']);
 
     $project = $key_value->get('upgrade_status_test_no_error');
@@ -58,8 +58,8 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $this->assertCount(2, $report['data']['files']);
     $file = reset($report['data']['files']);
     $message = $file['messages'][0];
-    $this->assertEquals("Call to deprecated function format_string(). Deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.\nUse \Drupal\Component\Render\FormattableMarkup instead.", $message['message']);
-    $this->assertEquals(15, $message['line']);
+    $this->assertEquals("Call to deprecated function drupal_set_message(). Deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. Use Drupal\Core\Messenger\MessengerInterface::addMessage() instead.", $message['message']);
+    $this->assertEquals(13, $message['line']);
 
     $project = $key_value->get('upgrade_status_test_twig');
     $this->assertNotEmpty($project);

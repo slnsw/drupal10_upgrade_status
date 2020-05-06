@@ -10,10 +10,7 @@ use Drupal\Core\Controller\ControllerBase;
 class UpgradeStatusTestContribErrorController extends ControllerBase {
 
   public function content() {
-    return [
-      '#type' => 'markup',
-      '#markup' => format_string('I am @deprecated', ['@deprecated' => 'deprecated']),
-    ];
+    drupal_set_message('I am deprecated');
   }
 
 }
