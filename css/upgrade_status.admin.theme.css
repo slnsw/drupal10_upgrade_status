@@ -45,6 +45,7 @@
   width: 40%;
 }
 
+.upgrade-status-error-list tr > td.status-info,
 .upgrade-status-summary tr > td.status-info {
   padding-left: 35px; /* LTR */
   background-repeat: no-repeat;
@@ -52,45 +53,52 @@
   background-position-y: center;
 }
 
+[dir="rtl"] .upgrade-status-error-list tr > td.status-info,
 [dir="rtl"] .upgrade-status-summary tr > td.status-info {
   padding-left: 0;
   padding-right: 35px; /* LTR */
   /* @todo x background position for RTL */
 }
 
+.upgrade-status-error-list tr.known-errors,
 .upgrade-status-summary tr.known-errors {
   background-color: #fcf4f2;
   color: #a51b00;
 }
 
+.upgrade-status-error-list tr.known-errors > td.status-info,
 .upgrade-status-summary tr.known-errors > td.status-info {
   background-image: url(../icons/error.svg);
 }
 
+.upgrade-status-error-list tr.known-warnings,
 .upgrade-status-summary tr.known-warnings {
   background-color: #fdf8ed;
   color: #734c00;
 }
 
+.upgrade-status-error-list tr.known-warnings > td.status-info,
 .upgrade-status-summary tr.known-warnings > td.status-info {
   background-image: url(../icons/warning.svg);
 }
 
+.upgrade-status-error-list tr.no-known-error,
 .upgrade-status-summary tr.no-known-error {
   background-color: #f3faef;
   color: #325e1c;
 }
 
+.upgrade-status-error-list tr.no-known-error > td.status-info,
 .upgrade-status-summary tr.no-known-error > td.status-info {
   background-image: url(../icons/check.svg);
 }
 
-.upgrade-status-summary tr.rector-covered {
+.upgrade-status-error-list tr.rector-covered {
   background-color: #f0f8ff;
   color: #000;
 }
 
-.upgrade-status-summary tr.rector-covered > td.status-info {
+.upgrade-status-error-list tr.rector-covered > td.status-info {
   background-image: url(../icons/wrench.svg);
 }
 
@@ -242,4 +250,25 @@
 }
 .upgrade-status-ok-label {
   background-color: #7bae4a;
+}
+.upgrade-status-space {
+  margin: 0.5em 0;
+}
+.upgrade-status-space .upgrade-status-error-label,
+.upgrade-status-space .upgrade-status-ok-label {
+  margin-left: 0;
+}
+
+h3.upgrade-status-group {
+  margin: 30px 0 0 0;
+}
+div.upgrade-status-description {
+  margin-bottom: 10px;
+}
+.upgrade-status-error-list tr td:nth-child(1),
+.upgrade-status-error-list tr td:nth-child(3) {
+  width: 40%;
+}
+.upgrade-status-error-list tr td:nth-child(2) {
+  width: 10%;
 }

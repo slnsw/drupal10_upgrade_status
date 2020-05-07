@@ -62,35 +62,35 @@ class UpgradeStatusForm extends FormBase {
 
   /**
    * The module handler service.
-   * 
+   *
    * @var \Drupal\Core\Extension\ModuleHandler
    */
   protected $moduleHandler;
 
   /**
    * The deprecation analyzer.
-   * 
+   *
    * @var \Drupal\upgrade_status\DeprecationAnalyzer
    */
   protected $deprecationAnalyzer;
 
   /**
    * The state service.
-   * 
+   *
    * @var \Drupal\Core\State\State
    */
   protected $state;
 
   /**
    * The date formatter.
-   * 
+   *
    * @var \Drupal\Core\Datetime\DateFormatter
    */
   protected $dateFormatter;
 
   /**
    * The destination service.
-   * 
+   *
    * @var \Drupal\Core\Routing\RedirectDestination
    */
   protected $destination;
@@ -657,7 +657,7 @@ class UpgradeStatusForm extends FormBase {
         ],
       ]
     ];
-    
+
     // Check Apache. Logic is based on system_requirements() code.
     $request_object = \Drupal::request();
     $software = $request_object->server->get('SERVER_SOFTWARE');
@@ -901,12 +901,12 @@ class UpgradeStatusForm extends FormBase {
 
   /**
    * Do an HTTP request with the type and machine name.
-   * 
+   *
    * @param string $type
    *   Type of the extension, it can be either 'module' or 'theme' or 'profile'.
    * @param string $project_machine_name
    *   The machine name of the project.
-   * 
+   *
    * @return array
    *   A three item array with any potential errors, the error message and the
    *   returned data as the third item. Either of them will be FALSE if they are

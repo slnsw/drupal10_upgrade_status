@@ -12,7 +12,7 @@ services:
       - '@datetime.time'
   upgrade_status.library_deprecation_analyzer:
     class: Drupal\upgrade_status\LibraryDeprecationAnalyzer
-    arguments: 
+    arguments:
       - '@library.discovery.parser'
       - '@twig'
       - '@extension.list.module'
@@ -26,7 +26,7 @@ services:
     arguments: ['@extension.list.module', '@extension.list.theme', '@extension.list.profile']
   upgrade_status.result_formatter:
     class: Drupal\upgrade_status\ScanResultFormatter
-    arguments: ['@keyvalue', '@date.formatter', '@datetime.time']
+    arguments: ['@keyvalue', '@date.formatter', '@datetime.time', '@module_handler']
   logger.channel.upgrade_status:
     parent: logger.channel_base
     arguments: ['upgrade_status']
