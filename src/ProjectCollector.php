@@ -90,11 +90,6 @@ class ProjectCollector {
         continue;
       }
 
-      if ($extension->getType() !== 'profile' && $extension->status === 0) {
-        // Ignore disabled extensions.
-        continue;
-      }
-
       // If the project is already specified in this extension, use that.
       $project = isset($extension->info['project']) ? $extension->info['project'] : '';
       if (array_key_exists($project, $projects['custom'])

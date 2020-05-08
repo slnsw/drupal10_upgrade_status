@@ -17,6 +17,10 @@
   border-bottom: 1px solid #ccc;
 }
 
+.upgrade-status-summary table+h3 {
+  margin-top: 2em;
+}
+
 .upgrade-status-summary table {
   margin-top: 1.2em;
 }

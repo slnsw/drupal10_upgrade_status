@@ -45,7 +45,7 @@ class UpgradeStatusCommands extends DrushCommands {
 
   /**
    * Output mode (format).
-   * 
+   *
    * @var string
    */
   protected $mode = 'ascii';
@@ -74,16 +74,17 @@ class UpgradeStatusCommands extends DrushCommands {
   }
 
   /**
-   * Analyze installed projects output as XML.
+   * Analyze projects output as XML.
    *
    * @param array $projects
-   *   List of projects to analyze. Only installed projects are supported.
+   *   List of projects to analyze.
    * @param array $options
    *   Additional options for the command.
    *
    * @command upgrade_status:checkstyle
-   * @option all Analyze all enabled projects.
+   * @option all Analyze all projects.
    * @option skip-existing Return results from a previous scan of a project if available, otherwise start a new one.
+   * @option ignore-uninstalled Ignore uninstalled projects.
    * @aliases us-cs
    *
    * @throws \InvalidArgumentException
@@ -95,16 +96,17 @@ class UpgradeStatusCommands extends DrushCommands {
   }
 
   /**
-   * Analyze installed projects output as ASCII.
+   * Analyze projects output as ASCII.
    *
    * @param array $projects
-   *   List of projects to analyze. Only installed projects are supported.
+   *   List of projects to analyze.
    * @param array $options
    *   Additional options for the command.
    *
    * @command upgrade_status:analyze
-   * @option all Analyze all enabled projects.
+   * @option all Analyze all projects.
    * @option skip-existing Return results from a previous scan of a project if available, otherwise start a new one.
+   * @option ignore-uninstalled Ignore uninstalled projects.
    * @aliases us-a
    *
    * @throws \InvalidArgumentException
@@ -127,7 +129,9 @@ class UpgradeStatusCommands extends DrushCommands {
     if ($options['all']) {
       foreach ($available_projects as $projects) {
         foreach ($projects as $name => $project) {
-          $extensions[$project->getType()][$name] = $project;
+          if (!$options['ignore-uninstalled'] || $project->status !== 0) {
+            $extensions[$project->getType()][$name] = $project;
+          }
         }
       }
     }
@@ -135,11 +139,21 @@ class UpgradeStatusCommands extends DrushCommands {
       foreach ($projects as $name) {
         if (array_key_exists($name, $available_projects['custom'])) {
           $type = $available_projects['custom'][$name]->getType();
-          $extensions[$type][$name] = $available_projects['custom'][$name];
+          if (!$options['ignore-uninstalled'] || $available_projects['custom'][$name]->status !== 0) {
+            $extensions[$type][$name] = $available_projects['custom'][$name];
+          }
+          else {
+            $invalid_names[] = $name;
+          }
         }
         elseif (array_key_exists($name, $available_projects['contrib'])) {
           $type = $available_projects['contrib'][$name]->getType();
-          $extensions[$type][$name] = $available_projects['contrib'][$name];
+          if (!$options['ignore-uninstalled'] || $available_projects['contrib'][$name]->status !== 0) {
+            $extensions[$type][$name] = $available_projects['contrib'][$name];
+          }
+          else {
+            $invalid_names[] = $name;
+          }
         }
         else {
           $invalid_names[] = $name;
@@ -149,12 +163,12 @@ class UpgradeStatusCommands extends DrushCommands {
 
     if (!empty($invalid_names)) {
       if (count($invalid_names) == 1) {
-        $message = dt('The project machine name @invalid_name is invalid. Is this a project installed on this site? (For community projects, use the machine name of the drupal.org project itself).', [
+        $message = dt('The project machine name @invalid_name is invalid. Is this a project on this site? (For community projects, use the machine name of the drupal.org project itself).', [
           '@invalid_name' => $invalid_names[0],
         ]);
       }
       else {
-        $message = dt('The project machine names @invalid_names are invalid. Are these projects installed on this site? (For community projects, use the machine name of the drupal.org project itself).', [
+        $message = dt('The project machine names @invalid_names are invalid. Are these projects on this site? (For community projects, use the machine name of the drupal.org project itself).', [
           '@invalid_names' => implode(', ', $invalid_names),
         ]);
       }

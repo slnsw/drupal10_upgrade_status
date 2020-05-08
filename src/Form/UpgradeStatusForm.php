@@ -306,13 +306,15 @@ class UpgradeStatusForm extends FormBase {
     }
     $header['status'] = ['data' => $this->t('Status'), 'class' => 'status-info'];
 
-    $build['data'] = [
+    $build['uninstalled'] = $build['installed'] = [
       '#type' => 'tableselect',
       '#header' => $header,
       '#weight' => 20,
       '#options' => [],
     ];
+    $build['uninstalled']['#weight'] = '40';
 
+    $update_check_for_uninstalled = $this->config('update.settings')->get('check.disabled_extensions');
     foreach ($projects as $name => $extension) {
       // Always use a fresh service. An injected service could get stale results
       // because scan result saving happens in different HTTP requests for most
@@ -320,6 +322,7 @@ class UpgradeStatusForm extends FormBase {
       $scan_result = \Drupal::service('keyvalue')->get('upgrade_status_scan_results')->get($name);
       $info = $extension->info;
       $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
+      $state = $extension->status === 0 ? 'uninstalled' : 'installed';
 
       $update_cell = [
         'class' => 'update-info',
@@ -341,10 +344,8 @@ class UpgradeStatusForm extends FormBase {
 
       if ($isContrib) {
         $projectUpdateData = $this->releaseStore->get($name);
-
-        // @todo: trigger update information fetch.
         if (!isset($projectUpdateData['releases']) || is_null($projectUpdateData['releases'])) {
-          $update_cell = ['class' => 'update-info', 'data' => $this->t('N/A')];
+          $update_cell = ['class' => 'update-info', 'data' => $update_check_for_uninstalled ? $this->t('Not available') : $this->t('Not checked')];
         }
         else {
           $latestRelease = reset($projectUpdateData['releases']);
@@ -366,7 +367,7 @@ class UpgradeStatusForm extends FormBase {
 
       // If this project was not found in our keyvalue storage, it is not yet scanned, report that.
       if (empty($scan_result)) {
-        $build['data']['#options'][$name] = [
+        $build[$state]['#options'][$name] = [
           '#attributes' => ['class' => ['not-scanned', 'project-' . $name]],
           'project' => $label_cell,
           'update' => $update_cell,
@@ -395,7 +396,7 @@ class UpgradeStatusForm extends FormBase {
 
       // If this project had no known issues found, report that.
       if ($project_error_count === 0) {
-        $build['data']['#options'][$name] = [
+        $build[$state]['#options'][$name] = [
           '#attributes' => ['class' => ['no-known-error', 'project-' . $name]],
           'project' => $label_cell,
           'update' => $update_cell,
@@ -433,7 +434,7 @@ class UpgradeStatusForm extends FormBase {
       if (!empty($report['data']['totals']['upgrade_status_split']['declared_ready'])) {
         $error_class = 'no-known-error';
       }
-      $build['data']['#options'][$name] = [
+      $build[$state]['#options'][$name] = [
         '#attributes' => ['class' => [$error_class, 'project-' . $name]],
         'project' => $label_cell,
         'update' => $update_cell,
@@ -458,11 +459,46 @@ class UpgradeStatusForm extends FormBase {
 
     if (!$isContrib) {
       // If the list is not for contrib, remove the update placeholder.
-      foreach ($build['data']['#options'] as $name => &$row) {
-        if (is_array($row)) {
-          unset($row['update']);
+      $states = ['installed', 'uninstalled'];
+      foreach ($states as $state) {
+        foreach ($build[$state]['#options'] as $name => &$row) {
+          if (is_array($row)) {
+            unset($row['update']);
+          }
         }
       }
+    }
+
+    if (empty($build['uninstalled']['#options'])) {
+      unset($build['uninstalled']);
+    }
+    else {
+      // Add a specific intro section to uninstalled extensions.
+      $check_info = '';
+      if ($isContrib) {
+        // Contrib extensions that are uninstalled may not get available updates info.
+        $enable_check = Url::fromRoute('update.settings', [], ['query' => $this->destination->getAsArray()])->toString();
+        if (!empty($update_check_for_uninstalled)) {
+          $check_info = ' ' . $this->t('Available update checking for uninstalled extensions is enabled.');
+        }
+        else {
+          $check_info = ' ' . $this->t('Available update checking for uninstalled extensions is disabled. (<a href="@enable">Enable</a>)', ['@enable' => $enable_check]);
+        }
+      }
+      $build['uninstalled_intro'] = [
+        '#weight' => 30,
+        [
+          '#type' => 'markup',
+          '#markup' => '<h3>' . $this->t('Uninstalled extensions') . '</h3>'
+        ],
+        [
+          '#type' => 'markup',
+          '#markup' => '<div>' . $this->t('Consider if you need these uninstalled extensions at all. A limited set of checks may also be run on uninstalled extensions.') . $check_info . '</div>',
+        ]
+      ];
+    }
+    if (empty($build['installed']['#options'])) {
+      unset($build['installed']);
     }
 
     $summary = [];
@@ -753,14 +789,17 @@ class UpgradeStatusForm extends FormBase {
     }
 
     foreach (['custom', 'contrib'] as $type) {
-      if (!empty($submitted[$type])) {
-        foreach($submitted[$type]['data']['data'] as $project => $checked) {
-          if ($checked !== 0) {
-            // If the checkbox was checked, add a batch operation.
-            $operations[] = [
-              static::class . '::parseProject',
-              [$projects[$type][$project], $use_http]
-            ];
+      $states = ['uninstalled', 'installed'];
+      foreach ($states as $state) {
+        if (!empty($submitted[$type]['data'][$state])) {
+          foreach($submitted[$type]['data'][$state] as $project => $checked) {
+            if ($checked !== 0) {
+              // If the checkbox was checked, add a batch operation.
+              $operations[] = [
+                static::class . '::parseProject',
+                [$projects[$type][$project], $use_http]
+              ];
+            }
           }
         }
       }
@@ -820,13 +859,18 @@ class UpgradeStatusForm extends FormBase {
     $projects = $this->projectCollector->collectProjects();
 
     foreach (['custom', 'contrib'] as $type) {
-      foreach($selected[$type]['data']['data'] as $project => $checked) {
-        if ($checked !== 0) {
-          // If the checkbox was checked, add it to the list.
-          $extensions[$type][$project] =
-            $format == 'html' ?
-              $this->resultFormatter->formatResult($projects[$type][$project]) :
-              $this->resultFormatter->formatAsciiResult($projects[$type][$project]);
+      $states = ['uninstalled', 'installed'];
+      foreach ($states as $state) {
+        if (!empty($selected[$type]['data'][$state])) {
+          foreach($selected[$type]['data'][$state] as $project => $checked) {
+            if ($checked !== 0) {
+              // If the checkbox was checked, add it to the list.
+              $extensions[$type][$project] =
+                $format == 'html' ?
+                  $this->resultFormatter->formatResult($projects[$type][$project]) :
+                  $this->resultFormatter->formatAsciiResult($projects[$type][$project]);
+            }
+          }
         }
       }
     }

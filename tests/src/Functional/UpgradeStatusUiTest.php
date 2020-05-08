@@ -103,9 +103,9 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
 
     // Run partial export of multiple projects.
     $edit = [
-      'custom[data][data][upgrade_status_test_error]' => TRUE,
-      'custom[data][data][upgrade_status_test_no_error]' => TRUE,
-      'contrib[data][data][upgrade_status_test_contrib_error]' => TRUE,
+      'custom[data][installed][upgrade_status_test_error]' => TRUE,
+      'custom[data][installed][upgrade_status_test_no_error]' => TRUE,
+      'contrib[data][installed][upgrade_status_test_contrib_error]' => TRUE,
     ];
     $expected = [
       'Export as HTML' => ['Contributed projects', 'Custom projects'],
