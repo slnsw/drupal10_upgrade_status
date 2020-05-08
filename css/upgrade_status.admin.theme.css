@@ -82,6 +82,10 @@
   background-image: url(../icons/warning.svg);
 }
 
+.upgrade-status-error-list tr.known-later > td.status-info {
+  background-image: url(../icons/ex.svg);
+}
+
 .upgrade-status-error-list tr.no-known-error,
 .upgrade-status-summary tr.no-known-error {
   background-color: #f3faef;

@@ -277,8 +277,8 @@ class ScanResultFormatter {
       ],
       'later' => [
         $this->t('Fix later'),
-        'known-warnings',
-        // Issues to fix later need differen guidance based on whether they
+        'known-later',
+        // Issues to fix later need different guidance based on whether they
         // were found in a contributed project or a custom project.
         !empty($extension->info['project']) ?
           $this->t('Based on the Drupal deprecation version number of these, fixing them may make the contributed project incompatible with supported Drupal core versions.') :
