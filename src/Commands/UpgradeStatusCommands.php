@@ -85,12 +85,14 @@ class UpgradeStatusCommands extends DrushCommands {
    * @option all Analyze all projects.
    * @option skip-existing Return results from a previous scan of a project if available, otherwise start a new one.
    * @option ignore-uninstalled Ignore uninstalled projects.
+   * @option ignore-contrib Ignore contributed projects.
+   * @option ignore-custom Ignore custom projects.
    * @aliases us-cs
    *
    * @throws \InvalidArgumentException
    *   Thrown when one of the passed arguments is invalid or no arguments were provided.
    */
-  public function checkstyle(array $projects, array $options = ['all' => FALSE, 'skip-existing' => FALSE]) {
+  public function checkstyle(array $projects, array $options = ['all' => FALSE, 'skip-existing' => FALSE, 'ignore-uninstalled' => FALSE, 'ignore-contrib' => FALSE, 'ignore-custom' => FALSE]) {
     $this->mode = 'checkstyle';
     $this->analyze($projects, $options);
   }
@@ -107,12 +109,14 @@ class UpgradeStatusCommands extends DrushCommands {
    * @option all Analyze all projects.
    * @option skip-existing Return results from a previous scan of a project if available, otherwise start a new one.
    * @option ignore-uninstalled Ignore uninstalled projects.
+   * @option ignore-contrib Ignore contributed projects.
+   * @option ignore-custom Ignore custom projects.
    * @aliases us-a
    *
    * @throws \InvalidArgumentException
    *   Thrown when one of the passed arguments is invalid or no arguments were provided.
    */
-  public function analyze(array $projects, array $options = ['all' => FALSE, 'skip-existing' => FALSE]) {
+  public function analyze(array $projects, array $options = ['all' => FALSE, 'skip-existing' => FALSE, 'ignore-uninstalled' => FALSE, 'ignore-contrib' => FALSE, 'ignore-custom' => FALSE]) {
     // Group by type here so we can tell loader what is type of each one of
     // these.
     $extensions = [];
@@ -127,17 +131,19 @@ class UpgradeStatusCommands extends DrushCommands {
     $available_projects = $this->projectCollector->collectProjects();
 
     if ($options['all']) {
-      foreach ($available_projects as $projects) {
-        foreach ($projects as $name => $project) {
-          if (!$options['ignore-uninstalled'] || $project->status !== 0) {
-            $extensions[$project->getType()][$name] = $project;
+      foreach ($available_projects as $type => $projects) {
+        if (!$options['ignore-' . $type]) {
+          foreach ($projects as $name => $project) {
+            if (!$options['ignore-uninstalled'] || $project->status !== 0) {
+              $extensions[$project->getType()][$name] = $project;
+            }
           }
         }
       }
     }
     else {
       foreach ($projects as $name) {
-        if (array_key_exists($name, $available_projects['custom'])) {
+        if (!$options['ignore-custom'] && array_key_exists($name, $available_projects['custom'])) {
           $type = $available_projects['custom'][$name]->getType();
           if (!$options['ignore-uninstalled'] || $available_projects['custom'][$name]->status !== 0) {
             $extensions[$type][$name] = $available_projects['custom'][$name];
@@ -146,7 +152,7 @@ class UpgradeStatusCommands extends DrushCommands {
             $invalid_names[] = $name;
           }
         }
-        elseif (array_key_exists($name, $available_projects['contrib'])) {
+        elseif (!$options['ignore-contrib'] && array_key_exists($name, $available_projects['contrib'])) {
           $type = $available_projects['contrib'][$name]->getType();
           if (!$options['ignore-uninstalled'] || $available_projects['contrib'][$name]->status !== 0) {
             $extensions[$type][$name] = $available_projects['contrib'][$name];
