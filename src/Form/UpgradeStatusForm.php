@@ -2,7 +2,6 @@
 
 namespace Drupal\upgrade_status\Form;
 
-use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ModuleHandler;
@@ -12,7 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RedirectDestination;
-use Drupal\Core\State\State;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
 use Drupal\upgrade_status\DeprecationAnalyzer;
 use Drupal\upgrade_status\ProjectCollector;
@@ -77,7 +76,7 @@ class UpgradeStatusForm extends FormBase {
   /**
    * The state service.
    *
-   * @var \Drupal\Core\State\State
+   * @var \Drupal\Core\State\StateInterface
    */
   protected $state;
 
@@ -130,7 +129,7 @@ class UpgradeStatusForm extends FormBase {
    *   The module handler.
    * @param \Drupal\upgrade_status\DeprecationAnalyzer $deprecation_analyzer
    *   The deprecation analyzer.
-   * @param \Drupal\Core\State\State $state
+   * @param \Drupal\Core\State\StateInterface $state
    *   The state service.
    * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
    *   The date formatter.
@@ -145,7 +144,7 @@ class UpgradeStatusForm extends FormBase {
     LoggerInterface $logger,
     ModuleHandler $module_handler,
     DeprecationAnalyzer $deprecation_analyzer,
-    State $state,
+    StateInterface $state,
     DateFormatter $date_formatter,
     RedirectDestination $destination
   ) {
