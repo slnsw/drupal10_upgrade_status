@@ -124,7 +124,12 @@ final class LibraryDeprecationAnalyzer {
       return [new DeprecationMessage($message, $extension->getPath(), 0)];
     }
 
-    $libraries = $this->libraryDiscoveryParser->buildByExtension($extension->getName());
+    try {
+      $libraries = $this->libraryDiscoveryParser->buildByExtension($extension->getName());
+    }
+    catch (\Exception $e) {
+      return [new DeprecationMessage($e->getMessage(), $extension->getPath(), 0)];
+    }
     $libraries_with_dependencies = array_filter($libraries, function($library) {
       return isset($library['dependencies']);
     });
@@ -139,9 +144,15 @@ final class LibraryDeprecationAnalyzer {
           $deprecations[] = new DeprecationMessage($message, $file, 0);
         }
         elseif (!empty($is_deprecated)) {
-          $message = sprintf("The '%s' library is depending on a deprecated library. %s", $key, $is_deprecated);
-          $file = sprintf('%s/%s.libraries.yml', $extension->getPath(), $extension->getName());
-          $deprecations[] = new DeprecationMessage($message, $file, 0);
+          if ($is_deprecated instanceof DeprecationMessage) {
+            $is_deprecated->setFile($file);
+            $deprecations[] = $is_deprecated;
+          }
+          else {
+            $message = sprintf("The '%s' library is depending on a deprecated library. %s", $key, $is_deprecated);
+            $file = sprintf('%s/%s.libraries.yml', $extension->getPath(), $extension->getName());
+            $deprecations[] = new DeprecationMessage($message, $file, 0);
+          }
         }
       }
     }
@@ -169,11 +180,17 @@ final class LibraryDeprecationAnalyzer {
       $is_deprecated = $this->isLibraryDeprecated($library);
       if (is_null($is_deprecated)) {
         $message = sprintf("The '%s' library is not defined because the defining extension is not installed. Cannot decide if it is deprecated or not.", $library);
-        $deprecations[] = new DeprecationMessage($message, $extension->getFilename(), 0);
+        $deprecated_libraries[] = new DeprecationMessage($message, $extension->getFilename(), 0);
       }
       elseif (!empty($is_deprecated)) {
-        $message = "Theme is overriding a deprecated library. $is_deprecated";
-        $deprecated_libraries[] = new DeprecationMessage($message, $extension->getFilename(), 0);
+        if ($is_deprecated instanceof DeprecationMessage) {
+          $is_deprecated->setFile($extension->getFilename());
+          $deprecated_libraries[] = $is_deprecated;
+        }
+        else {
+          $message = "Theme is overriding a deprecated library. $is_deprecated";
+          $deprecated_libraries[] = new DeprecationMessage($message, $extension->getFilename(), 0);
+        }
       }
       return $deprecated_libraries;
     }, []);
@@ -195,16 +212,21 @@ final class LibraryDeprecationAnalyzer {
       return [];
     }
 
-
     return array_reduce(array_keys($extension->info['libraries-extend']), function($deprecated_libraries, $library) use($extension) {
       $is_deprecated = $this->isLibraryDeprecated($library);
       if (is_null($is_deprecated)) {
         $message = sprintf("The '%s' library is not defined because the defining extension is not installed. Cannot decide if it is deprecated or not.", $library);
-        $deprecations[] = new DeprecationMessage($message, $extension->getFilename(), 0);
+        $deprecated_libraries[] = new DeprecationMessage($message, $extension->getFilename(), 0);
       }
       elseif (!empty($is_deprecated)) {
-        $message = "Theme is extending a deprecated library. $is_deprecated";
-        $deprecated_libraries[] = new DeprecationMessage($message, $extension->getFilename(), 0);
+        if ($is_deprecated instanceof DeprecationMessage) {
+          $is_deprecated->setFile($extension->getFilename());
+          $deprecated_libraries[] = $is_deprecated;
+        }
+        else {
+          $message = "Theme is extending a deprecated library. $is_deprecated";
+          $deprecated_libraries[] = new DeprecationMessage($message, $extension->getFilename(), 0);
+        }
       }
       return $deprecated_libraries;
     }, []);
@@ -239,8 +261,14 @@ final class LibraryDeprecationAnalyzer {
             $deprecations[] = new DeprecationMessage($message, $name, $library['line']);
           }
           elseif (!empty($is_deprecated)) {
-            $message = 'Template is attaching a deprecated library. ' . $is_deprecated;
-            $deprecations[] = new DeprecationMessage($message, $name, $library['line']);
+            if ($is_deprecated instanceof DeprecationMessage) {
+              $is_deprecated->setFile($name);
+              $deprecations[] = $is_deprecated;
+            }
+            else {
+              $message = 'Template is attaching a deprecated library. ' . $is_deprecated;
+              $deprecations[] = new DeprecationMessage($message, $name, $library['line']);
+            }
           }
         }
       } catch (SyntaxError $e) {
@@ -353,8 +381,14 @@ final class LibraryDeprecationAnalyzer {
             $deprecations[] = new DeprecationMessage($message, $file->getPathName(), $potential_library['line']);
           }
           elseif (!empty($is_deprecated)) {
-            $message = "The referenced library is deprecated. $is_deprecated";
-            $deprecations[] = new DeprecationMessage($message, $file->getPathName(), $potential_library['line']);
+            if ($is_deprecated instanceof DeprecationMessage) {
+              $is_deprecated->setFile($file->getPathName());
+              $deprecations[] = $is_deprecated;
+            }
+            else {
+              $message = "The referenced library is deprecated. $is_deprecated";
+              $deprecations[] = new DeprecationMessage($message, $file->getPathName(), $potential_library['line']);
+            }
           }
         }
       }
@@ -369,7 +403,7 @@ final class LibraryDeprecationAnalyzer {
    * @param string $library
    *   A string representing library. For example, 'node/drupal.node'.
    *
-   * @return bool|string|NULL
+   * @return bool|string|NULL|DeprecationMessage
    *   FALSE if the library is not deprecated. NULL if the library's module
    *   is not enabled. Deprecation message string otherwise.
    */
@@ -388,7 +422,13 @@ final class LibraryDeprecationAnalyzer {
       }
     }
 
-    $dependency_libraries = $this->libraryDiscoveryParser->buildByExtension($extension_name);
+    try {
+      $dependency_libraries = $this->libraryDiscoveryParser->buildByExtension($extension_name);
+    }
+    catch (\Exception $e) {
+      return new DeprecationMessage($e->getMessage());
+    }
+
     if (isset($dependency_libraries[$library_name]) && isset($dependency_libraries[$library_name]['deprecated'])) {
       return str_replace('%library_id%', "$extension_name/$library_name", $dependency_libraries[$library_name]['deprecated']);
     }

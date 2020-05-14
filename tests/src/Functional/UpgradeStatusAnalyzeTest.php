@@ -120,6 +120,14 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $this->assertEquals(8, $file['messages'][0]['line']);
     $this->assertEquals('The referenced library is deprecated. The "upgrade_status_test_twig/deprecated_library" asset library is deprecated for testing.', $file['messages'][1]['message']);
     $this->assertEquals(10, $file['messages'][1]['line']);
+
+    $project = $key_value->get('upgrade_status_test_library_exception');
+    $this->assertNotEmpty($project);
+    $report = json_decode($project, TRUE);
+    $this->assertEquals(1, $report['data']['totals']['file_errors']);
+    $this->assertCount(1, $report['data']['files']);
+    $file = reset($report['data']['files']);
+    $this->assertEquals("Incomplete library definition for definition 'library_exception' in extension 'upgrade_status_test_library_exception'", $file['messages'][0]['message']);
   }
 
 }
