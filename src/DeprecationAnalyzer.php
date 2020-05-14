@@ -116,7 +116,7 @@ final class DeprecationAnalyzer {
 
   /**
    * Whether the analyzer environment is initialized.
-   * 
+   *
    * @var bool
    */
   protected $environmentInitialized = FALSE;
@@ -163,8 +163,8 @@ final class DeprecationAnalyzer {
 
   /**
    * Initialize the external environment.
-   * 
-   * @throws \Exception 
+   *
+   * @throws \Exception
    *   In case initialization failed. The analyzer will not work in this case.
    */
   public function initEnvironment() {
@@ -260,7 +260,7 @@ final class DeprecationAnalyzer {
     catch (\Exception $e) {
       // Should not get here as integrations are expected to invoke
       // initEnvironment() first by itself to ensure the environment
-      // is going to work when needed (and inform users about any 
+      // is going to work when needed (and inform users about any
       // issues). That said, if they did not do that and there was
       // no issue with the environment, then they are lucky.
       return;
@@ -574,7 +574,7 @@ final class DeprecationAnalyzer {
       'Call to deprecated function db_select(). Deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Instead, get a database connection injected into your service from the container and call select() on it. For example,',
       'Call to deprecated function db_query(). Deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Instead, get a database connection injected into your service from the container and call query() on it. For example,',
       'Call to deprecated function file_prepare_directory(). Deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use Drupal\Core\File\FileSystemInterface::prepareDirectory().',
-      // 'Call to deprecated method getMock() of class Drupal\Tests\UnitTestCase. Deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. Use Drupal\Tests\PhpunitCompatibilityTrait::createMock() instead.',
+      'Call to deprecated method getMock() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. Use Drupal\Tests\PhpunitCompatibilityTrait::createMock() instead.',
       'Call to deprecated method getMock() of class Drupal\KernelTests\KernelTestBase. Deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. Use Drupal\Tests\PhpunitCompatibilityTrait::createMock() instead.',
       'Call to deprecated method getMock() of class Drupal\Tests\UnitTestCase. Deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. Use Drupal\Tests\PhpunitCompatibilityTrait::createMock() instead.',
       'Call to deprecated method url() of class Drupal. Deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Instead create a \Drupal\Core\Url object directly, for example using Url::fromRoute().',
