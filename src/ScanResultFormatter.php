@@ -196,7 +196,7 @@ class ScanResultFormatter {
         $formatted_error = preg_replace('!deprecated function ([^(]+)\(\)!', 'deprecated function <a target="_blank" href="' . $api_link . '\1">\1()</a>', $error['message']);
 
         // Replace deprecated class links.
-        if (preg_match('!class (Drupal\\\\.+)\.( |$)!', $formatted_error, $found)) {
+        if (preg_match('!class (Drupal\\\\\S+)\.( |$)!', $formatted_error, $found)) {
           if (preg_match('!Drupal\\\\([a-z_0-9A-Z]+)\\\\(.+)$!', $found[1], $namespace)) {
 
             $path_parts = explode('\\', $namespace[2]);
