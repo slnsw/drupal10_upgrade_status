@@ -1,0 +1,8 @@
+name: 'Upgrade status test submodule with error'
+type: module
+description: 'Support module for upgrade status module testing.'
+package: Testing
+version: VERSION
+core: 7.x
+dependencies:
+  - upgrade_status:upgrade_status_test_submodules_with_error

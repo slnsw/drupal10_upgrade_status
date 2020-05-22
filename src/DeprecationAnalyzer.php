@@ -320,36 +320,46 @@ final class DeprecationAnalyzer {
     // Assume this project is Drupal 9 ready unless proven otherwise.
     $result['data']['totals']['upgrade_status_split']['declared_ready'] = TRUE;
 
-    // Manually add on info file incompatibility to results. Not using
-    // $extension->info because that is cached in the extension cache.
-    try {
-      $info = Yaml::decode(file_get_contents($extension->getPathname())) ?: [];
-      if (!isset($info['core_version_requirement'])) {
-        $result['data']['files'][$extension->getPathname()]['messages'][] = [
-          'message' => 'Add <code>core_version_requirement: ^8 || ^9</code> to ' . $extension->getFilename() . ' to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.',
+    $info_files = $this->getSubExtensionInfoFiles($project_dir);
+    foreach ($info_files as $info_file) {
+      try {
+        // Manually add on info file incompatibility to results. Reding
+        // .info.yml files directly, not from extension discovery because that
+        // is cached.
+        $info = Yaml::decode(file_get_contents($info_file)) ?: [];
+        if (!empty($info['package']) && $info['package'] == 'Testing' && !strpos($info_file, '/upgrade_status_test')) {
+          // If this info file was for a testing project other than our own
+          // testing projects, ignore it.
+          continue;
+        }
+        $error_path = str_replace(DRUPAL_ROOT . '/', '', $info_file);
+        if (!isset($info['core_version_requirement'])) {
+          $result['data']['files'][$error_path]['messages'][] = [
+            'message' => "Add <code>core_version_requirement: ^8 || ^9</code> to {$error_path} to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.",
+            'line' => 0,
+          ];
+          $result['data']['totals']['errors']++;
+          $result['data']['totals']['file_errors']++;
+          $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
+        }
+        elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
+          $result['data']['files'][$error_path]['messages'][] = [
+            'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$error_path} is not compatible with Drupal 9.0.0. See https://drupal.org/node/3070687.",
+            'line' => 0,
+          ];
+          $result['data']['totals']['errors']++;
+          $result['data']['totals']['file_errors']++;
+          $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
+        }
+      } catch (InvalidDataTypeException $e) {
+        $result['data']['files'][$error_path]['messages'][] = [
+          'message' => 'Parse error. ' . $e->getMessage(),
           'line' => 0,
         ];
         $result['data']['totals']['errors']++;
         $result['data']['totals']['file_errors']++;
         $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
       }
-      elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
-        $result['data']['files'][$extension->getPathname()]['messages'][] = [
-          'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$extension->getFilename()} is not compatible with Drupal 9.0.0. See https://drupal.org/node/3070687.",
-          'line' => 0,
-        ];
-        $result['data']['totals']['errors']++;
-        $result['data']['totals']['file_errors']++;
-        $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
-      }
-    } catch (InvalidDataTypeException $e) {
-      $result['data']['files'][$extension->getPathname()]['messages'][] = [
-        'message' => 'Parse error. ' . $e->getMessage(),
-        'line' => 0,
-      ];
-      $result['data']['totals']['errors']++;
-      $result['data']['totals']['file_errors']++;
-      $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
     }
 
     // Manually add on composer.json file incompatibility to results.
@@ -619,6 +629,23 @@ final class DeprecationAnalyzer {
       'Call to deprecated function file_uri_target(). Deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::getTarget() instead.',
     ];
     return in_array($string, $rector_covered);
+  }
+
+  /**
+   * Finds all .info.yml files for non-test extensions under a path.
+   *
+   * @param string $path
+   *   Base path to find all info.yml files in.
+   *
+   * @return array
+   *   A list of paths to .info.yml files found under the base path.
+   */
+  private function getSubExtensionInfoFiles(string $path) {
+    $files = glob($path . '/*.info.yml');
+    foreach (glob($path . '/*', GLOB_ONLYDIR|GLOB_NOSORT) as $dir) {
+      $files = array_merge($files, $this->getSubExtensionInfoFiles($dir));
+    }
+    return $files;
   }
 
 }
