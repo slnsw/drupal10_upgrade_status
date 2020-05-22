@@ -321,7 +321,7 @@ class UpgradeStatusForm extends FormBase {
       $scan_result = \Drupal::service('keyvalue')->get('upgrade_status_scan_results')->get($name);
       $info = $extension->info;
       $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
-      $state = $extension->status === 0 ? 'uninstalled' : 'installed';
+      $state = empty($extension->status) ? 'uninstalled' : 'installed';
 
       $update_cell = [
         'class' => 'update-info',
