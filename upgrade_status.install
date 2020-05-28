@@ -6,6 +6,24 @@
  */
 
 /**
+ * Implements hook_requirements().
+ */
+function upgrade_status_requirements($phase) {
+  if ($phase == 'install') {
+    // Check if the Drupal Finder is available. This will attempt to autoload
+    // the class, so we can bail out as soon as possible.
+    if (!class_exists('DrupalFinder\DrupalFinder')) {
+      return [
+        'upgrade_status' => [
+          'description' => t('External dependencies for Upgrade Status are not available. Use composer to install them. See https://drupal.org/project/upgrade_status for instructions.'),
+          'severity' => REQUIREMENT_ERROR,
+        ]
+      ];
+    }
+  }
+}
+
+/**
  * Implements hook_uninstall().
  */
 function upgrade_status_uninstall() {
