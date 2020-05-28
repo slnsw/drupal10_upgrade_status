@@ -12,7 +12,7 @@ function upgrade_status_requirements($phase) {
   if ($phase == 'install') {
     // Check if the Drupal Finder is available. This will attempt to autoload
     // the class, so we can bail out as soon as possible.
-    if (!class_exists('DrupalFinder\DrupalFinderS')) {
+    if (!class_exists('DrupalFinder\DrupalFinder')) {
       return [
         'upgrade_status' => [
           'description' => t('External dependencies for Upgrade Status are not available. Composer must be used to download the module with dependencies. See <a href="@url">the Upgrade Status project page</a> for instructions.', ['@url' => 'https://drupal.org/project/upgrade_status']),
