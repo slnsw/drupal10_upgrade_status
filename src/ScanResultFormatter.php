@@ -361,7 +361,7 @@ class ScanResultFormatter {
 
     $build['export_ascii'] = [
       '#type' => 'link',
-      '#title' => $this->t('Export as ASCII'),
+      '#title' => $this->t('Export as text'),
       '#name' => 'export_ascii',
       '#url' => Url::fromRoute(
         'upgrade_status.export',

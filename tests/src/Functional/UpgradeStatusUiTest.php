@@ -94,7 +94,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     // Go back to the listing page and click over to exporting in single ASCII.
     $this->drupalGet(Url::fromRoute('upgrade_status.report'));
     $this->clickLink('2 errors, 2 warnings');
-    $this->clickLink('Export as ASCII');
+    $this->clickLink('Export as text');
     $this->assertText('Upgrade status test error ' . \Drupal::VERSION);
     $this->assertText('CUSTOM PROJECTS');
     $this->assertNoText('CONTRIBUTED PROJECTS');
@@ -109,7 +109,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     ];
     $expected = [
       'Export selected as HTML' => ['Contributed projects', 'Custom projects'],
-      'Export selected as ASCII' => ['CONTRIBUTED PROJECTS', 'CUSTOM PROJECTS'],
+      'Export selected as text' => ['CONTRIBUTED PROJECTS', 'CUSTOM PROJECTS'],
     ];
     foreach ($expected as $button => $assert) {
       $this->drupalPostForm('admin/reports/upgrade-status', $edit, $button);

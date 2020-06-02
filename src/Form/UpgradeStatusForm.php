@@ -269,7 +269,7 @@ class UpgradeStatusForm extends FormBase {
     ];
     $form['drupal_upgrade_status_form']['action']['export_ascii'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Export selected as ASCII'),
+      '#value' => $this->t('Export selected as text'),
       '#weight' => 6,
       '#submit' => [[$this, 'exportReportASCII']],
       '#disabled' => !$analyzerReady,
