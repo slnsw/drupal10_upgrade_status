@@ -27,7 +27,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $assert_session = $this->assertSession();
 
     $assert_session->buttonExists('Scan selected');
-    $assert_session->buttonExists('Export as HTML');
+    $assert_session->buttonExists('Export selected as HTML');
 
     // Status for every project should be 'Not scanned'.
     $status = $this->getSession()->getPage()->findAll('css', '.upgrade-status-summary-custom td.status-info');
@@ -50,7 +50,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $assert_session = $this->assertSession();
 
     $assert_session->buttonExists('Scan selected');
-    $assert_session->buttonExists('Export as HTML');
+    $assert_session->buttonExists('Export selected as HTML');
 
     // Custom projects have 3 columns of information.
     $upgrade_status_test_error = $page->find('css', '.upgrade-status-summary-custom .project-upgrade_status_test_error');
@@ -108,8 +108,8 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
       'contrib[data][installed][upgrade_status_test_contrib_error]' => TRUE,
     ];
     $expected = [
-      'Export as HTML' => ['Contributed projects', 'Custom projects'],
-      'Export as ASCII' => ['CONTRIBUTED PROJECTS', 'CUSTOM PROJECTS'],
+      'Export selected as HTML' => ['Contributed projects', 'Custom projects'],
+      'Export selected as ASCII' => ['CONTRIBUTED PROJECTS', 'CUSTOM PROJECTS'],
     ];
     foreach ($expected as $button => $assert) {
       $this->drupalPostForm('admin/reports/upgrade-status', $edit, $button);

@@ -262,14 +262,14 @@ class UpgradeStatusForm extends FormBase {
     ];
     $form['drupal_upgrade_status_form']['action']['export'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Export as HTML'),
+      '#value' => $this->t('Export selected as HTML'),
       '#weight' => 5,
       '#submit' => [[$this, 'exportReportHTML']],
       '#disabled' => !$analyzerReady,
     ];
     $form['drupal_upgrade_status_form']['action']['export_ascii'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Export as ASCII'),
+      '#value' => $this->t('Export selected as ASCII'),
       '#weight' => 6,
       '#submit' => [[$this, 'exportReportASCII']],
       '#disabled' => !$analyzerReady,
@@ -814,6 +814,9 @@ class UpgradeStatusForm extends FormBase {
       ];
       batch_set($batch);
     }
+    else {
+      $this->messenger()->addError('No projects selected to scan.');
+    }
   }
 
   /**
@@ -872,6 +875,11 @@ class UpgradeStatusForm extends FormBase {
           }
         }
       }
+    }
+
+    if (empty($extensions)) {
+      $this->messenger()->addError('No projects selected to export.');
+      return;
     }
 
     $build = [
