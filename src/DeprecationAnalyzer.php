@@ -335,7 +335,7 @@ final class DeprecationAnalyzer {
         $error_path = str_replace(DRUPAL_ROOT . '/', '', $info_file);
         if (!isset($info['core_version_requirement'])) {
           $result['data']['files'][$error_path]['messages'][] = [
-            'message' => "Add <code>core_version_requirement: ^8 || ^9</code> to {$error_path} to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.",
+            'message' => "Add core_version_requirement: ^8 || ^9 to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.",
             'line' => 0,
           ];
           $result['data']['totals']['errors']++;
@@ -344,7 +344,7 @@ final class DeprecationAnalyzer {
         }
         elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
           $result['data']['files'][$error_path]['messages'][] = [
-            'message' => "The current value  <code>core_version_requirement: {$info['core_version_requirement']}</code> in {$error_path} is not compatible with Drupal 9.0.0. See https://drupal.org/node/3070687.",
+            'message' => "Value of core_version_requirement: {$info['core_version_requirement']} is not compatible with Drupal 9.0.0. See https://drupal.org/node/3070687.",
             'line' => 0,
           ];
           $result['data']['totals']['errors']++;
