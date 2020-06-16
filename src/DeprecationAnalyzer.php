@@ -637,7 +637,7 @@ final class DeprecationAnalyzer {
     ];
     return
       in_array($string, $rector_covered) ||
-      preg_match('!Call to deprecated method l\\(\\) of class Drupal\\\\.+ Deprecated in!', $string);
+      strpos($string, 'Call to deprecated method l() of class Drupal') === 0;
   }
 
   /**
