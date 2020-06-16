@@ -21,6 +21,7 @@ function upgrade_status_requirements($phase) {
       ];
     }
   }
+  return [];
 }
 
 /**
