@@ -408,6 +408,9 @@ final class LibraryDeprecationAnalyzer {
    *   is not enabled. Deprecation message string otherwise.
    */
   private function isLibraryDeprecated($library) {
+    if (!strpos($library, '/')) {
+      return new DeprecationMessage('The ' . $library . ' library does not have an extension name and is therefore not valid.');
+    }
     list($extension_name, $library_name) = explode('/', $library, 2);
 
     // Drupal\Core\Asset\LibraryDiscoveryParser::buildByExtension() assumes a
