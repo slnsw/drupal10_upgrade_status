@@ -21,7 +21,7 @@ final class DeprecationAnalyzer {
    *
    * @var string
    */
-  const CORE_MINOR_OLDEST_SUPPORTED = '8.7';
+  const CORE_MINOR_OLDEST_SUPPORTED = '8.8';
 
   /**
    * Upgrade status scan result storage.
