@@ -650,7 +650,15 @@ final class DeprecationAnalyzer {
    *   A list of paths to .info.yml files found under the base path.
    */
   private function getSubExtensionInfoFiles(string $path) {
-    $files = glob($path . '/*.info.yml');
+    $files = [];
+    foreach(glob($path . '/*.info.yml') as $file) {
+      // Make sure the filename matches rules for an extension. There may be
+      // info.yml files in shipped configuration which would have more parts.
+      $parts = explode('.', basename($file));
+      if (count($parts) == 3) {
+        $files[] = $file;
+      }
+    }
     foreach (glob($path . '/*', GLOB_ONLYDIR|GLOB_NOSORT) as $dir) {
       $files = array_merge($files, $this->getSubExtensionInfoFiles($dir));
     }
