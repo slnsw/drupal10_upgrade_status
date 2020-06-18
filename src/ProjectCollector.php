@@ -101,6 +101,14 @@ class ProjectCollector {
         continue;
       }
 
+      if ($key === 'upgrade_status' && !drupal_valid_test_ua()) {
+        // Don't add the Upgrade Status module to the list if not in tests.
+        // Upgrade status is a temporary site component and does have
+        // intentional deprecated API use for the sake of testing. Avoid
+        // distracting site owners with this.
+        continue;
+      }
+
       // Attempt to identfy if the project was contrib based on the directory
       // structure it is in. Extension placement is not a mandatory requirement
       // and theoretically this could lead to false positives, but if
