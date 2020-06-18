@@ -101,8 +101,8 @@ class ProjectCollector {
         continue;
       }
 
-      if ($key === 'upgrade_status' && !drupal_valid_test_ua()) {
-        // Don't add the Upgrade Status module to the list if not in tests.
+      if ((strpos($key, 'upgrade_status') === 0) && !drupal_valid_test_ua()) {
+        // Don't add the Upgrade Status modules to the list if not in tests.
         // Upgrade status is a temporary site component and does have
         // intentional deprecated API use for the sake of testing. Avoid
         // distracting site owners with this.
