@@ -2,6 +2,7 @@
 
 namespace Drupal\upgrade_status\Form;
 
+use Composer\Semver\Semver;
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ModuleHandler;
@@ -301,9 +302,9 @@ class UpgradeStatusForm extends FormBase {
 
     $header = ['project' => ['data' => $this->t('Project'), 'class' => 'project-label']];
     if ($isContrib) {
-      $header['update'] = ['data' => $this->t('Available update'), 'class' => 'update-info'];
+      $header['update'] = ['data' => $this->t('Drupal.org update'), 'class' => 'update-info'];
     }
-    $header['status'] = ['data' => $this->t('Status'), 'class' => 'status-info'];
+    $header['status'] = ['data' => $this->t('Local result'), 'class' => 'status-info'];
 
     $build['uninstalled'] = $build['installed'] = [
       '#type' => 'tableselect',
@@ -321,11 +322,19 @@ class UpgradeStatusForm extends FormBase {
       $scan_result = \Drupal::service('keyvalue')->get('upgrade_status_scan_results')->get($name);
       $info = $extension->info;
       $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
+      if (isset($info['core_version_requirement']) && Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
+        $label .= ' 🎉';
+      }
       $state = empty($extension->status) ? 'uninstalled' : 'installed';
 
       $update_cell = [
-        'class' => 'update-info',
-        'data' => $isContrib ? $this->t('Up to date') : '',
+        'class' => ['update-info'],
+        'data' => [
+          'info' => [
+            '#type'=> 'markup',
+            '#markup' => $isContrib ? $this->t('Up to date') : '',
+          ],
+        ],
       ];
       $label_cell = [
         'data' => [
@@ -344,24 +353,38 @@ class UpgradeStatusForm extends FormBase {
       if ($isContrib) {
         $projectUpdateData = $this->releaseStore->get($name);
         if (!isset($projectUpdateData['releases']) || is_null($projectUpdateData['releases'])) {
-          $update_cell = ['class' => 'update-info', 'data' => $update_check_for_uninstalled ? $this->t('Not available') : $this->t('Not checked')];
+          $update_cell = [
+            'class' => ['update-info', 'upgrade-status-not-checked'],
+            'data' => $update_check_for_uninstalled ? $this->t('Not available') : $this->t('Not checked')
+          ];
         }
         else {
           $latestRelease = reset($projectUpdateData['releases']);
           $latestVersion = $latestRelease['version'];
-
+          if (!empty($latestRelease['core_compatibility'])) {
+            if (Semver::satisfies('9.0.0', $latestRelease['core_compatibility'])) {
+              $update_cell['data']['info']['#markup'] = '<strong>' . $this->t('9 ready:') . '</strong> ';
+              $update_cell['class'][] = 'upgrade-status-9-ready';
+            }
+            else {
+              $update_cell['data']['info']['#markup'] = '<strong>' . $this->t('Not 9 ready:') . '</strong> ';
+              $update_cell['class'][] = 'upgrade-status-not-9-ready';
+            }
+          }
           if ($info['version'] !== $latestVersion) {
             $link = $projectUpdateData['link'] . '/releases/' . $latestVersion;
-            $update_cell = [
-              'class' => 'update-info',
-              'data' => [
+            $update_cell['data'][] = [
+              'link' => [
                 '#type' => 'link',
                 '#title' => $latestVersion,
                 '#url' => Url::fromUri($link),
-              ]
+              ],
             ];
           }
         }
+      }
+      else {
+        $update_cell['class'][] = 'upgrade-status-not-checked';
       }
 
       // If this project was not found in our keyvalue storage, it is not yet scanned, report that.

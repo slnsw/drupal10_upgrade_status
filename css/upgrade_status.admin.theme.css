@@ -27,15 +27,13 @@
 
 .upgrade-status-summary th.project-label,
 .upgrade-status-summary th.requirement-label {
-  width: 60%;
+  width: 70%;
 }
 
-.upgrade-status-summary th.update-info {
-  width: 20%;
-}
-
-.upgrade-status-summary th.status-info {
-  width: 20%;
+.upgrade-status-summary th.update-info,
+.upgrade-status-summary th.status-info,
+.upgrade-status-summary th.rector-info {
+  width: 15%;
 }
 
 .upgrade-status-summary-custom th.project-label {
@@ -50,7 +48,9 @@
 }
 
 .upgrade-status-error-list tr > td.status-info,
-.upgrade-status-summary tr > td.status-info {
+.upgrade-status-summary tr > td.update-info,
+.upgrade-status-summary tr > td.status-info,
+.upgrade-status-summary tr > td.rector-info {
   padding-left: 35px; /* LTR */
   background-repeat: no-repeat;
   background-position-x: 10px; /* LTR */
@@ -58,7 +58,9 @@
 }
 
 [dir="rtl"] .upgrade-status-error-list tr > td.status-info,
-[dir="rtl"] .upgrade-status-summary tr > td.status-info {
+[dir="rtl"] .upgrade-status-summary tr > td.update-info,
+[dir="rtl"] .upgrade-status-summary tr > td.status-info,
+[dir="rtl"] .upgrade-status-summary tr > td.rector-info {
   padding-left: 0;
   padding-right: 35px; /* LTR */
   /* @todo x background position for RTL */
@@ -71,7 +73,9 @@
 }
 
 .upgrade-status-error-list tr.known-errors > td.status-info,
-.upgrade-status-summary tr.known-errors > td.status-info {
+.upgrade-status-summary tr.known-errors > td.status-info,
+td.update-info.upgrade-status-not-9-ready,
+td.rector-info.upgrade-status-error-patch {
   background-image: url(../icons/error.svg);
 }
 
@@ -97,7 +101,9 @@
 }
 
 .upgrade-status-error-list tr.no-known-error > td.status-info,
-.upgrade-status-summary tr.no-known-error > td.status-info {
+.upgrade-status-summary tr.no-known-error > td.status-info,
+td.update-info.upgrade-status-9-ready,
+td.rector-info.upgrade-status-empty-patch {
   background-image: url(../icons/check.svg);
 }
 
@@ -106,11 +112,14 @@
   color: #000;
 }
 
-.upgrade-status-error-list tr.rector-covered > td.status-info {
+.upgrade-status-error-list tr.rector-covered > td.status-info,
+td.rector-info.upgrade-status-ok-patch {
   background-image: url(../icons/wrench.svg);
 }
 
-.upgrade-status-summary tr.not-scanned > td.status-info {
+.upgrade-status-summary tr.not-scanned > td.status-info,
+td.update-info.upgrade-status-not-checked,
+td.rector-info.upgrade-status-no-patch {
   background-image: url(../icons/questionmark-disc.svg);
 }
 
