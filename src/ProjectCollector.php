@@ -9,11 +9,14 @@ use Drupal\Core\Extension\ProfileExtensionList;
 use Drupal\Core\Extension\ThemeExtensionList;
 use Drupal\Core\Extension\Exception\UnknownExtensionException;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactory;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Collects projects and their associated metadata collated for Upgrade Status.
  */
 class ProjectCollector {
+
+  use StringTranslationTrait;
 
   /**
    * The list of available modules.
@@ -392,6 +395,39 @@ class ProjectCollector {
     // because scan result saving happens in different HTTP requests for most
     // cases (when analysis was successful).
     return \Drupal::service('keyvalue')->get('upgrade_status_scan_results')->get($project_machine_name) ?: NULL;
+  }
+
+  /**
+   * Return list of possible next steps and their labels and descriptions.
+   *
+   * @return array
+   *   Associative array keyes by next step identifier. Values are arrays
+   *   where the first item is a label an the second is a description.
+   */
+  public function getNextStepInfo() {
+    return [
+      ProjectCollector::NEXT_REMOVE => [
+        $this->t('Remove projects'), $this->t('The likely best action is to remove projects that are uninstalled. Why invest in updating them to be compatible if you are not using them?'),
+      ],
+      ProjectCollector::NEXT_UPDATE => [
+        $this->t('Update projects'), $this->t('There is an update available. Even if that is not fully Drupal 9 compatible, it may be more compatible than what you have, so best to start with updating first.'),
+      ],
+      ProjectCollector::NEXT_SCAN => [
+        $this->t('Scan projects'), $this->t('Status of this project cannot be determined without scanning the source code here. Use this form to run a scan on these.'),
+      ],
+      ProjectCollector::NEXT_COLLABORATE => [
+        $this->t('Collaborate with project maintainers'), $this->t('There are likely Drupal.org issues by contributors or even <a href=":drupal-bot">the Project Update Bot</a>. Work with the maintainer to get them committed, provide feedback if they worked.', [':drupal-bot' => 'https://www.drupal.org/u/project-update-bot']),
+      ],
+      ProjectCollector::NEXT_RECTOR => [
+        $this->t('Fix projects with rector'), $this->t('Some or all problems found can be fixed automatically with <a href=":drupal-rector">drupal-rector</a>. Make the machine do the work.', [':drupal-rector' => 'https://www.drupal.org/project/rector']),
+      ],
+      ProjectCollector::NEXT_MANUAL => [
+        $this->t('Fix projects manually'), $this->t('It looks like there is no automated fixes for either problems found. Check the report for pointers on how to fix.'),
+      ],
+      ProjectCollector::NEXT_RELAX => [
+        $this->t('Relax'), $this->t('Already Drupal 9 compatbile. Congrats!'),
+      ],
+    ];
   }
 
 }

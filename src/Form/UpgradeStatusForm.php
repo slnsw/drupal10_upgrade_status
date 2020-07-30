@@ -180,7 +180,7 @@ class UpgradeStatusForm extends FormBase {
    *   The form structure.
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    //$form['#attached']['library'][] = 'upgrade_status/upgrade_status.admin';
+    $form['#attached']['library'][] = 'upgrade_status/upgrade_status.admin';
 
     $analyzer_ready = TRUE;
     try {
@@ -211,9 +211,6 @@ class UpgradeStatusForm extends FormBase {
       ],
     ];
 
-    // Gather project list grouped by custom and contrib projects.
-    $projects = $this->projectCollector->collectProjects();
-
     $form['environment'] = [
       '#type' => 'details',
       '#title' => $this->t('Drupal core and hosting environment'),
@@ -224,17 +221,28 @@ class UpgradeStatusForm extends FormBase {
       '#tree' => TRUE,
     ];
 
-    // Gather project list grouped by custom and contrib projects.
+    // Gather project list with metadata.
     $projects = $this->projectCollector->collectProjects();
-
-    $form['projects'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Project results'),
-      '#open' => TRUE,
-      '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-custom']],
-      'data' => $this->buildProjectList($projects),
-      '#tree' => TRUE,
-    ];
+    $next_steps = $this->projectCollector->getNextStepInfo();
+    foreach ($next_steps as $next_step => $step_label) {
+      $sublist = [];
+      foreach ($projects as $name => $project) {
+        if ($project->info['upgrade_status_next'] == $next_step) {
+          $sublist[$name] = $project;
+        }
+      }
+      if (!empty($sublist)) {
+        $form[$next_step] = [
+          '#type' => 'details',
+          '#title' => $step_label[0],
+          '#description' => $step_label[1],
+          '#open' => TRUE,
+          '#attributes' => ['class' => ['upgrade-status-summary']],
+          'data' => $this->buildProjectList($sublist),
+          '#tree' => TRUE,
+        ];
+      }
+    }
 
     $form['drupal_upgrade_status_form']['action']['submit'] = [
       '#type' => 'submit',
@@ -273,7 +281,6 @@ class UpgradeStatusForm extends FormBase {
   protected function buildProjectList(array $projects) {
     $header = [
       'project'  => ['data' => $this->t('Project'), 'class' => 'project-label'],
-      'next'     => ['data' => $this->t('Next step'), 'class' => 'next-label'],
       'type'     => ['data' => $this->t('Type'), 'class' => 'type-label'],
       'status'   => ['data' => $this->t('Status'), 'class' => 'status-label'],
       'version'  => ['data' => $this->t('Local version'), 'class' => 'version-label'],
@@ -304,35 +311,6 @@ class UpgradeStatusForm extends FormBase {
         ],
         'class' => 'project-label',
       ];
-      $next_step = $this->t('Relax');
-      switch ($extension->info['upgrade_status_next']) {
-        case ProjectCollector::NEXT_REMOVE:
-          $next_step = $this->t('Remove');
-          break;
-        case ProjectCollector::NEXT_UPDATE:
-          $next_step = $this->t('Update');
-          break;
-        case ProjectCollector::NEXT_COLLABORATE:
-          $next_step = $this->t('Collaborate with maintainer');
-          break;
-        case ProjectCollector::NEXT_RECTOR:
-          $next_step = $this->t('Fix with rector');
-          break;
-        case ProjectCollector::NEXT_SCAN:
-          $next_step = $this->t('Scan');
-          break;
-        case ProjectCollector::NEXT_MANUAL:
-          $next_step = $this->t('Fix manually');
-          break;
-      }
-      $option['next'] = [
-        'data' => [
-          'label' => [
-            '#type' => 'markup',
-            '#markup' => $next_step,
-          ],
-        ]
-      ];
       $option['type'] = [
         'data' => [
           'label' => [
@@ -360,6 +338,7 @@ class UpgradeStatusForm extends FormBase {
         ]
       ];
       $option['ready'] = [
+        'class' => 'status-info ' . (!empty($extension->info['upgrade_status_9_compatible']) ? 'status-info-compatible' : 'status-info-incompatible'),
         'data' => [
           'label' => [
             '#type' => 'markup',
@@ -425,24 +404,30 @@ class UpgradeStatusForm extends FormBase {
           ]
         ];
       }
+      $update_class = 'status-info-na';
       $update_info = $this->t('N/A');
       if (isset($extension->info['upgrade_status_update'])) {
         switch ($extension->info['upgrade_status_update']) {
           case ProjectCollector::UPDATE_NOT_AVAILABLE:
             $update_info = $this->t('Not available');
+            $update_class = 'status-info-na';
             break;
           case ProjectCollector::UPDATE_NOT_CHECKED:
             $update_info = $this->t('Not checked');
+            $update_class = 'status-info-unchecked';
             break;
           case ProjectCollector::UPDATE_NOT_DRUPAL_9_COMPATIBLE:
             $update_info = $this->t('Not Drupal 9 compatible');
+            $update_class = 'status-info-incompatible';
             break;
           case ProjectCollector::UPDATE_DRUPAL_9_COMPATIBLE:
             $update_info = $this->t('Drupal 9 compatible');
+            $update_class = 'status-info-compatible';
             break;
         }
       }
       $option['update9'] = [
+        'class' => 'status-info ' . $update_class,
         'data' => [
           'label' => [
             '#type' => 'markup',
@@ -700,9 +685,14 @@ class UpgradeStatusForm extends FormBase {
     $operations = $list = [];
     $projects = $this->projectCollector->collectProjects();
     $submitted = $form_state->getValues();
-    foreach ($projects as $name => $extension) {
-      if (!empty($submitted['projects']['data']['list'][$name])) {
-        $list[] = $extension;
+    $next_steps = $this->projectCollector->getNextStepInfo();
+    foreach ($next_steps as $next_step => $step_label) {
+      if (!empty($submitted[$next_step]['data']['list'])) {
+        foreach ($submitted[$next_step]['data']['list'] as $item) {
+          if (isset($projects[$item])) {
+            $list[] = $projects[$item];
+          }
+        }
       }
     }
 

@@ -25,9 +25,18 @@
   margin-top: 1.2em;
 }
 
-.upgrade-status-summary th.project-label,
 .upgrade-status-summary th.requirement-label {
   width: 70%;
+}
+
+.upgrade-status-summary th {
+  width: 8%;
+}
+.upgrade-status-summary th.project-label {
+  width: 20%;
+}
+.upgrade-status-summary th.issue-info {
+  width: 24%;
 }
 
 .upgrade-status-summary th.update-info,
@@ -86,11 +95,13 @@ td.rector-info.upgrade-status-error-patch {
 }
 
 .upgrade-status-error-list tr.known-warnings > td.status-info,
-.upgrade-status-summary tr.known-warnings > td.status-info {
+.upgrade-status-summary tr.known-warnings > td.status-info,
+.upgrade-status-summary td.status-info-incompatible {
   background-image: url(../icons/warning.svg);
 }
 
-.upgrade-status-error-list tr.known-later > td.status-info {
+.upgrade-status-error-list tr.known-later > td.status-info,
+.upgrade-status-summary td.status-info-na {
   background-image: url(../icons/ex.svg);
 }
 
@@ -103,7 +114,8 @@ td.rector-info.upgrade-status-error-patch {
 .upgrade-status-error-list tr.no-known-error > td.status-info,
 .upgrade-status-summary tr.no-known-error > td.status-info,
 td.update-info.upgrade-status-9-ready,
-td.rector-info.upgrade-status-empty-patch {
+td.rector-info.upgrade-status-empty-patch,
+.upgrade-status-summary td.status-info-compatible {
   background-image: url(../icons/check.svg);
 }
 
@@ -119,7 +131,8 @@ td.rector-info.upgrade-status-ok-patch {
 
 .upgrade-status-summary tr.not-scanned > td.status-info,
 td.update-info.upgrade-status-not-checked,
-td.rector-info.upgrade-status-no-patch {
+td.rector-info.upgrade-status-no-patch,
+.upgrade-status-summary td.status-info-unchecked {
   background-image: url(../icons/questionmark-disc.svg);
 }
 
