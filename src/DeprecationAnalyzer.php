@@ -385,6 +385,9 @@ final class DeprecationAnalyzer {
       }
     }
 
+    // Assume next step is to relax (there were no errors found).
+    $result['data']['totals']['upgrade_status_next'] = ProjectCollector::NEXT_RELAX;
+
     foreach ($result['data']['files'] as $path => &$errors) {
       if (!empty($errors['messages'])) {
         foreach ($errors['messages'] as &$error) {
@@ -393,6 +396,18 @@ final class DeprecationAnalyzer {
           [$message, $category] = $this->categorizeMessage($error['message'], $extension);
           $error['message'] = $message;
           $error['upgrade_status_category'] = $category;
+
+          // If the category was 'rector' that means at least one error was
+          // identified as covered by rector, so next step should be to run
+          // rector on this project.
+          if ($category == 'rector') {
+            $result['data']['totals']['upgrade_status_next'] = ProjectCollector::NEXT_RECTOR;
+          }
+          // If the category was not rector, if the next step is still to
+          // relax, modify that to fix manually.
+          elseif ($result['data']['totals']['upgrade_status_next'] == ProjectCollector::NEXT_RELAX) {
+            $result['data']['totals']['upgrade_status_next'] = ProjectCollector::NEXT_MANUAL;
+          }
 
           // Sum up the error based on the category it ended up in. Split the
           // categories into two high level buckets needing attention now or
@@ -430,7 +445,7 @@ final class DeprecationAnalyzer {
     }
 
     // Store the analysis results in our storage bin.
-    $this->scanResultStorage->set($extension->getName(), json_encode($result));
+    $this->scanResultStorage->set($extension->getName(), $result);
   }
 
   /**

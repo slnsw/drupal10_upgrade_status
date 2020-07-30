@@ -165,7 +165,7 @@ class UpgradeStatusForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'drupal_upgrade_status_form';
+    return 'drupal_upgrade_status_summary_form';
   }
 
   /**
@@ -180,14 +180,14 @@ class UpgradeStatusForm extends FormBase {
    *   The form structure.
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['#attached']['library'][] = 'upgrade_status/upgrade_status.admin';
+    //$form['#attached']['library'][] = 'upgrade_status/upgrade_status.admin';
 
-    $analyzerReady = TRUE;
+    $analyzer_ready = TRUE;
     try {
       $this->deprecationAnalyzer->initEnvironment();
     }
     catch (\Exception $e) {
-      $analyzerReady = FALSE;
+      $analyzer_ready = FALSE;
       $this->messenger()->addError($e->getMessage());
     }
 
@@ -211,6 +211,9 @@ class UpgradeStatusForm extends FormBase {
       ],
     ];
 
+    // Gather project list grouped by custom and contrib projects.
+    $projects = $this->projectCollector->collectProjects();
+
     $form['environment'] = [
       '#type' => 'details',
       '#title' => $this->t('Drupal core and hosting environment'),
@@ -224,33 +227,12 @@ class UpgradeStatusForm extends FormBase {
     // Gather project list grouped by custom and contrib projects.
     $projects = $this->projectCollector->collectProjects();
 
-    // List custom project status first.
-    $custom = ['#type' => 'markup', '#markup' => '<br /><strong>' . $this->t('No custom projects found.') . '</strong>'];
-    if (count($projects['custom'])) {
-      $custom = $this->buildProjectList($projects['custom']);
-    }
-    $form['custom'] = [
+    $form['projects'] = [
       '#type' => 'details',
-      '#title' => $this->t('Custom projects'),
-      '#description' => $this->t('Custom code is specific to your site, and must be upgraded manually. <a href=":upgrade">Read more about how developers can upgrade their code to Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/docs/9/how-drupal-9-is-made-and-what-is-included/how-and-why-we-deprecate-on-the-way-to-drupal-9']),
+      '#title' => $this->t('Project results'),
       '#open' => TRUE,
       '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-custom']],
-      'data' => $custom,
-      '#tree' => TRUE,
-    ];
-
-    // List contrib project status second.
-    $contrib = ['#type' => 'markup', '#markup' => '<br /><strong>' . $this->t('No contributed projects found.') . '</strong>'];
-    if (count($projects['contrib'])) {
-      $contrib = $this->buildProjectList($projects['contrib'], TRUE);
-    }
-    $form['contrib'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Contributed projects'),
-      '#description' => $this->t('Contributed code is available from drupal.org. Problems here may be partially resolved by updating to the latest version. <a href=":update">Read more about how to update contributed projects</a>.', [':update' => 'https://www.drupal.org/docs/8/update/update-modules']),
-      '#open' => TRUE,
-      '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-contrib']],
-      'data' => $contrib,
+      'data' => $this->buildProjectList($projects),
       '#tree' => TRUE,
     ];
 
@@ -259,21 +241,21 @@ class UpgradeStatusForm extends FormBase {
       '#value' => $this->t('Scan selected'),
       '#weight' => 2,
       '#button_type' => 'primary',
-      '#disabled' => !$analyzerReady,
+      '#disabled' => !$analyzer_ready,
     ];
     $form['drupal_upgrade_status_form']['action']['export'] = [
       '#type' => 'submit',
       '#value' => $this->t('Export selected as HTML'),
       '#weight' => 5,
       '#submit' => [[$this, 'exportReportHTML']],
-      '#disabled' => !$analyzerReady,
+      '#disabled' => !$analyzer_ready,
     ];
     $form['drupal_upgrade_status_form']['action']['export_ascii'] = [
       '#type' => 'submit',
       '#value' => $this->t('Export selected as text'),
       '#weight' => 6,
       '#submit' => [[$this, 'exportReportASCII']],
-      '#disabled' => !$analyzerReady,
+      '#disabled' => !$analyzer_ready,
     ];
 
     return $form;
@@ -284,188 +266,121 @@ class UpgradeStatusForm extends FormBase {
    *
    * @param \Drupal\Core\Extension\Extension[] $projects
    *   Array of extensions representing projects.
-   * @param bool $isContrib
-   *   (Optional) Whether the list to be produced is for contributed projects.
    *
    * @return array
    *   Build array.
    */
-  protected function buildProjectList(array $projects, bool $isContrib = FALSE) {
-    $counters = [
-      'not-scanned' => 0,
-      'no-known-error' => 0,
-      'known-errors' => 0,
-      'known-warnings' => 0,
-      'known-error-projects' => 0,
-      'known-warning-projects' => 0,
+  protected function buildProjectList(array $projects) {
+    $header = [
+      'project'  => ['data' => $this->t('Project'), 'class' => 'project-label'],
+      'next'     => ['data' => $this->t('Next step'), 'class' => 'next-label'],
+      'type'     => ['data' => $this->t('Type'), 'class' => 'type-label'],
+      'status'   => ['data' => $this->t('Status'), 'class' => 'status-label'],
+      'version'  => ['data' => $this->t('Local version'), 'class' => 'version-label'],
+      'ready'    => ['data' => $this->t('Local 9-ready'), 'class' => 'ready-label'],
+      'result'   => ['data' => $this->t('Local scan result'), 'class' => 'scan-info'],
+      'updatev'  => ['data' => $this->t('Drupal.org version'), 'class' => 'updatev-info'],
+      'update9'  => ['data' => $this->t('Drupal.org 9-ready'), 'class' => 'update9-info'],
+      'issues'   => ['data' => $this->t('Drupal.org issues'), 'class' => 'issue-info'],
     ];
-
-    $header = ['project' => ['data' => $this->t('Project'), 'class' => 'project-label']];
-    if ($isContrib) {
-      $header['update'] = ['data' => $this->t('Drupal.org update'), 'class' => 'update-info'];
-    }
-    $header['status'] = ['data' => $this->t('Local result'), 'class' => 'status-info'];
-
-    $build['uninstalled'] = $build['installed'] = [
+    $build['list'] = [
       '#type' => 'tableselect',
       '#header' => $header,
       '#weight' => 20,
       '#options' => [],
     ];
-    $build['uninstalled']['#weight'] = '40';
-
-    $update_check_for_uninstalled = $this->config('update.settings')->get('check.disabled_extensions');
     foreach ($projects as $name => $extension) {
-      // Always use a fresh service. An injected service could get stale results
-      // because scan result saving happens in different HTTP requests for most
-      // cases (when analysis was successful).
-      $scan_result = \Drupal::service('keyvalue')->get('upgrade_status_scan_results')->get($name);
-      $info = $extension->info;
-      $label = $info['name'] . (!empty($info['version']) ? ' ' . $info['version'] : '');
-      if (isset($info['core_version_requirement']) && Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
-        $label .= ' 🎉';
-      }
-      $state = empty($extension->status) ? 'uninstalled' : 'installed';
-
-      $update_cell = [
-        'class' => ['update-info'],
-        'data' => [
-          'info' => [
-            '#type'=> 'markup',
-            '#markup' => $isContrib ? $this->t('Up to date') : '',
-          ],
-        ],
-      ];
-      $label_cell = [
+      $option = [];
+      $option['project'] = [
         'data' => [
           'label' => [
             '#type' => 'html_tag',
             '#tag' => 'label',
-            '#value' => $label,
+            '#value' => $extension->info['name'],
             '#attributes' => [
-              'for' => 'edit-' . ($isContrib ? 'contrib' : 'custom') . '-data-data-' . str_replace('_', '-', $name),
+              'for' => 'edit-projects-data-list-' . str_replace('_', '-', $name),
             ],
           ],
         ],
         'class' => 'project-label',
       ];
-
-      if ($isContrib) {
-        $projectUpdateData = $this->releaseStore->get($name);
-        if (!isset($projectUpdateData['releases']) || is_null($projectUpdateData['releases'])) {
-          $update_cell = [
-            'class' => ['update-info', 'upgrade-status-not-checked'],
-            'data' => $update_check_for_uninstalled ? $this->t('Not available') : $this->t('Not checked')
-          ];
-        }
-        else {
-          $latestRelease = reset($projectUpdateData['releases']);
-          $latestVersion = $latestRelease['version'];
-          if (!empty($latestRelease['core_compatibility'])) {
-            if (Semver::satisfies('9.0.0', $latestRelease['core_compatibility'])) {
-              $update_cell['data']['info']['#markup'] = '<strong>' . $this->t('9 ready:') . '</strong> ';
-              $update_cell['class'][] = 'upgrade-status-9-ready';
-            }
-            else {
-              $update_cell['data']['info']['#markup'] = '<strong>' . $this->t('Not 9 ready:') . '</strong> ';
-              $update_cell['class'][] = 'upgrade-status-not-9-ready';
-            }
-          }
-          if ($info['version'] !== $latestVersion) {
-            $link = $projectUpdateData['link'] . '/releases/' . $latestVersion;
-            $update_cell['data'][] = [
-              'link' => [
-                '#type' => 'link',
-                '#title' => $latestVersion,
-                '#url' => Url::fromUri($link),
-              ],
-            ];
-          }
-        }
+      $next_step = $this->t('Relax');
+      switch ($extension->info['upgrade_status_next']) {
+        case ProjectCollector::NEXT_REMOVE:
+          $next_step = $this->t('Remove');
+          break;
+        case ProjectCollector::NEXT_UPDATE:
+          $next_step = $this->t('Update');
+          break;
+        case ProjectCollector::NEXT_COLLABORATE:
+          $next_step = $this->t('Collaborate with maintainer');
+          break;
+        case ProjectCollector::NEXT_RECTOR:
+          $next_step = $this->t('Fix with rector');
+          break;
+        case ProjectCollector::NEXT_SCAN:
+          $next_step = $this->t('Scan');
+          break;
+        case ProjectCollector::NEXT_MANUAL:
+          $next_step = $this->t('Fix manually');
+          break;
       }
-      else {
-        $update_cell['class'][] = 'upgrade-status-not-checked';
-      }
+      $option['next'] = [
+        'data' => [
+          'label' => [
+            '#type' => 'markup',
+            '#markup' => $next_step,
+          ],
+        ]
+      ];
+      $option['type'] = [
+        'data' => [
+          'label' => [
+            '#type' => 'markup',
+            '#markup' => $extension->info['upgrade_status_type'] == ProjectCollector::TYPE_CUSTOM ? $this->t('Custom') : $this->t('Contributed'),
+          ],
+        ]
+      ];
+      $option['status'] = [
+        'data' => [
+          'label' => [
+            '#type' => 'markup',
+            '#markup' => empty($extension->status) ? $this->t('Uninstalled') : $this->t('Installed'),
+          ],
+        ]
+      ];
 
-      // If this project was not found in our keyvalue storage, it is not yet scanned, report that.
-      if (empty($scan_result)) {
-        $build[$state]['#options'][$name] = [
-          '#attributes' => ['class' => ['not-scanned', 'project-' . $name]],
-          'project' => $label_cell,
-          'update' => $update_cell,
-          'status' => ['class' => 'status-info', 'data' => $this->t('Not scanned')],
-        ];
-        $counters['not-scanned']++;
-        continue;
-      }
+      // Start of local version/readiness columns.
+      $option['version'] = [
+        'data' => [
+          'label' => [
+            '#type' => 'markup',
+            '#markup' => !empty($extension->info['version']) ? $extension->info['version'] : $this->t('N/A'),
+          ],
+        ]
+      ];
+      $option['ready'] = [
+        'data' => [
+          'label' => [
+            '#type' => 'markup',
+            '#markup' => !empty($extension->info['upgrade_status_9_compatible']) ? $this->t('Compatible') : $this->t('Not compatible'),
+          ],
+        ]
+      ];
 
-      // Unpack JSON of deprecations to display results.
-      $report = json_decode($scan_result, TRUE);
-
-      if (!empty($report['plans'])) {
-        $label_cell['data']['plans'] = [
-          '#type' => 'markup',
-          '#markup' => '<div>' . $report['plans'] . '</div>'
-        ];
-      }
-
-      if (isset($report['data']['totals'])) {
-        $project_error_count = $report['data']['totals']['file_errors'];
-      }
-      else {
-        $project_error_count = 0;
-      }
-
-      // If this project had no known issues found, report that.
-      if ($project_error_count === 0) {
-        $build[$state]['#options'][$name] = [
-          '#attributes' => ['class' => ['no-known-error', 'project-' . $name]],
-          'project' => $label_cell,
-          'update' => $update_cell,
-          'status' => ['class' => 'status-info', 'data' => $this->t('No known errors')],
-        ];
-        $counters['no-known-error']++;
-        continue;
-      }
-
-      // Finally this project had errors found, display them.
-      $error_label = [];
-      $error_class = 'known-warnings';
-      if (!empty($report['data']['totals']['upgrade_status_split']['error'])) {
-        $counters['known-errors'] += $report['data']['totals']['upgrade_status_split']['error'];
-        $counters['known-error-projects']++;
-        $error_class = 'known-errors';
-        $error_label[] = $this->formatPlural(
-          $report['data']['totals']['upgrade_status_split']['error'],
-          '@count error',
-          '@count errors'
+      $report = $this->projectCollector->getResults($name);
+      $result_summary = $this->t('N/A');
+      if (!empty($report['data']['totals']['file_errors'])) {
+        $result_summary = $this->formatPlural(
+          $report['data']['totals']['file_errors'],
+          '@count problem',
+          '@count problems'
         );
-      }
-      if (!empty($report['data']['totals']['upgrade_status_split']['warning'])) {
-        $counters['known-warnings'] += $report['data']['totals']['upgrade_status_split']['warning'];
-        $counters['known-warning-projects']++;
-        $error_label[] = $this->formatPlural(
-          $report['data']['totals']['upgrade_status_split']['warning'],
-          '@count warning',
-          '@count warnings'
-        );
-      }
-      // If the project was declared Drupal 9 compatible (info and composer
-      // files), than use that to visually display it as such. We still list
-      // errors but they may be false positives or results of workaround code.
-      if (!empty($report['data']['totals']['upgrade_status_split']['declared_ready'])) {
-        $error_class = 'no-known-error';
-      }
-      $build[$state]['#options'][$name] = [
-        '#attributes' => ['class' => [$error_class, 'project-' . $name]],
-        'project' => $label_cell,
-        'update' => $update_cell,
-        'status' => [
-          'class' => 'status-info',
+        $option['result'] = [
           'data' => [
             '#type' => 'link',
-            '#title' => join(', ', $error_label),
-            '#url' => Url::fromRoute('upgrade_status.project', ['type' => $extension->getType(), 'project_machine_name' => $name]),
+            '#title' => $result_summary,
+            '#url' => Url::fromRoute('upgrade_status.project', ['project_machine_name' => $name]),
             '#attributes' => [
               'class' => ['use-ajax'],
               'data-dialog-type' => 'modal',
@@ -475,89 +390,89 @@ class UpgradeStatusForm extends FormBase {
               ]),
             ],
           ]
-        ],
-      ];
-    }
+        ];
+      }
+      else {
+        $option['result'] = [
+          'data' => [
+            'label' => [
+              '#type' => 'markup',
+              '#markup' => $result_summary,
+            ],
+          ]
+        ];
+      }
 
-    if (!$isContrib) {
-      // If the list is not for contrib, remove the update placeholder.
-      $states = ['installed', 'uninstalled'];
-      foreach ($states as $state) {
-        foreach ($build[$state]['#options'] as $name => &$row) {
-          if (is_array($row)) {
-            unset($row['update']);
-          }
+      // Start of drupal.org data columns.
+      if (isset($extension->info['upgrade_status_update_link'])) {
+        $option['updatev'] = [
+          'data' => [
+            'link' => [
+              '#type' => 'link',
+              '#title' => $extension->info['upgrade_status_update_version'],
+              '#url' => Url::fromUri($extension->info['upgrade_status_update_link']),
+            ],
+          ]
+        ];
+      }
+      else {
+        $option['updatev'] = [
+          'data' => [
+            'label' => [
+              '#type' => 'markup',
+              '#markup' => $this->t('N/A'),
+            ],
+          ]
+        ];
+      }
+      $update_info = $this->t('N/A');
+      if (isset($extension->info['upgrade_status_update'])) {
+        switch ($extension->info['upgrade_status_update']) {
+          case ProjectCollector::UPDATE_NOT_AVAILABLE:
+            $update_info = $this->t('Not available');
+            break;
+          case ProjectCollector::UPDATE_NOT_CHECKED:
+            $update_info = $this->t('Not checked');
+            break;
+          case ProjectCollector::UPDATE_NOT_DRUPAL_9_COMPATIBLE:
+            $update_info = $this->t('Not Drupal 9 compatible');
+            break;
+          case ProjectCollector::UPDATE_DRUPAL_9_COMPATIBLE:
+            $update_info = $this->t('Drupal 9 compatible');
+            break;
         }
       }
-    }
-
-    if (empty($build['uninstalled']['#options'])) {
-      unset($build['uninstalled']);
-    }
-    else {
-      // Add a specific intro section to uninstalled extensions.
-      $check_info = '';
-      if ($isContrib) {
-        // Contrib extensions that are uninstalled may not get available updates info.
-        $enable_check = Url::fromRoute('update.settings', [], ['query' => $this->destination->getAsArray()])->toString();
-        if (!empty($update_check_for_uninstalled)) {
-          $check_info = ' ' . $this->t('Available update checking for uninstalled extensions is enabled.');
-        }
-        else {
-          $check_info = ' ' . $this->t('Available update checking for uninstalled extensions is disabled. (<a href="@enable">Enable</a>)', ['@enable' => $enable_check]);
-        }
-      }
-      $build['uninstalled_intro'] = [
-        '#weight' => 30,
-        [
-          '#type' => 'markup',
-          '#markup' => '<h3>' . $this->t('Uninstalled extensions') . '</h3>'
-        ],
-        [
-          '#type' => 'markup',
-          '#markup' => '<div>' . $this->t('Consider if you need these uninstalled extensions at all. A limited set of checks may also be run on uninstalled extensions.') . $check_info . '</div>',
+      $option['update9'] = [
+        'data' => [
+          'label' => [
+            '#type' => 'markup',
+            '#markup' => $update_info,
+          ],
         ]
       ];
+      if ($extension->info['upgrade_status_type'] == ProjectCollector::TYPE_CUSTOM) {
+        $option['issues'] = [
+          'data' => [
+            'label' => [
+              '#type' => 'markup',
+              '#markup' => $this->t('N/A'),
+            ],
+          ]
+        ];
+      }
+      else {
+        $option['issues'] = [
+          'data' => [
+            'label' => [
+              '#type' => 'markup',
+              // Display Drupal 9 pland or issue search if there was no plan.
+              '#markup' => !empty($report['plans']) ? $report['plans'] : '<a href="https://drupal.org/project/issues/' . $name . '?text=Drupal+9&status=All">' . $this->t('Drupal.org issue search') . '</a>',
+            ],
+          ]
+        ];
+      }
+      $build['list']['#options'][$name] = $option;
     }
-    if (empty($build['installed']['#options'])) {
-      unset($build['installed']);
-    }
-
-    $summary = [];
-
-    if ($counters['known-errors'] > 0) {
-      $summary[] = [
-        'type' => $this->formatPlural($counters['known-errors'], '1 error', '@count errors'),
-        'class' => 'error',
-        'message' => $this->formatPlural($counters['known-error-projects'], 'Found in one project.', 'Found in @count projects.')
-      ];
-    }
-    if ($counters['known-warnings'] > 0) {
-      $summary[] = [
-        'type' => $this->formatPlural($counters['known-warnings'], '1 warning', '@count warnings'),
-        'class' => 'warning',
-        'message' => $this->formatPlural($counters['known-warning-projects'], 'Found in one project.', 'Found in @count projects.')
-      ];
-    }
-    if ($counters['no-known-error'] > 0) {
-      $summary[] = [
-        'type' => $this->formatPlural($counters['no-known-error'], '1 checked', '@count checked'),
-        'class' => 'checked',
-        'message' => $this->t('No known errors found.')
-      ];
-    }
-    if ($counters['not-scanned'] > 0) {
-      $summary[] = [
-        'type' => $this->formatPlural($counters['not-scanned'], '1 not scanned', '@count not scanned'),
-        'class' => 'not-scanned',
-        'message' => $this->t('Scan to find errors.')
-      ];
-    }
-
-    $build['summary'] = [
-      '#theme' => 'upgrade_status_summary_counter',
-      '#summary' => $summary
-    ];
 
     return $build;
   }
@@ -779,9 +694,17 @@ class UpgradeStatusForm extends FormBase {
    *   The current state of the form.
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $operations = [];
+    // Reset extension lists for better Drupal 9 compatibility info.
+    $this->projectCollector->resetLists();
+
+    $operations = $list = [];
     $projects = $this->projectCollector->collectProjects();
     $submitted = $form_state->getValues();
+    foreach ($projects as $name => $extension) {
+      if (!empty($submitted['projects']['data']['list'][$name])) {
+        $list[] = $extension;
+      }
+    }
 
     // It is not possible to make an HTTP request to this same webserver
     // if the host server is PHP itself, because it is single-threaded.
@@ -790,7 +713,7 @@ class UpgradeStatusForm extends FormBase {
     $php_server = !$use_http;
     if ($php_server) {
       // Log the selected processing method for project support purposes.
-      $this->logger->notice('Processing projects without HTTP sandboxing because the built-in PHP webserver does not allow for that.');
+      $this->logger->notice('Starting Upgrade Status on @count projects without HTTP sandboxing because the built-in PHP webserver does not allow for that.', ['@count' => count($list)]);
     }
     else {
       // Attempt to do an HTTP request to the frontpage of this Drupal instance.
@@ -801,30 +724,20 @@ class UpgradeStatusForm extends FormBase {
       list($error, $message, $data) = static::doHttpRequest('upgrade_status_request_test', 'upgrade_status_request_test');
       if (empty($data) || !is_array($data) || ($data['message'] != 'Request test success')) {
         $use_http = FALSE;
-        $this->logger->notice('Processing projects without HTTP sandboxing. @error', ['@error' => $message]);
+        $this->logger->notice('Starting Upgrade Status on @count projects without HTTP sandboxing. @error', ['@error' => $message, '@count' => count($list)]);
       }
     }
 
     if ($use_http) {
       // Log the selected processing method for project support purposes.
-      $this->logger->notice('Processing projects with HTTP sandboxing.');
+      $this->logger->notice('Starting Upgrade Status on @count projects with HTTP sandboxing.', ['@count' => count($list)]);
     }
 
-    foreach (['custom', 'contrib'] as $type) {
-      $states = ['uninstalled', 'installed'];
-      foreach ($states as $state) {
-        if (!empty($submitted[$type]['data'][$state])) {
-          foreach($submitted[$type]['data'][$state] as $project => $checked) {
-            if ($checked !== 0) {
-              // If the checkbox was checked, add a batch operation.
-              $operations[] = [
-                static::class . '::parseProject',
-                [$projects[$type][$project], $use_http]
-              ];
-            }
-          }
-        }
-      }
+    foreach ($list as $item) {
+      $operations[] = [
+        static::class . '::parseProject',
+        [$item, $use_http]
+      ];
     }
     if (!empty($operations)) {
       // Allow other modules to alter the operations to be run.
@@ -834,6 +747,7 @@ class UpgradeStatusForm extends FormBase {
       $batch = [
         'title' => $this->t('Scanning projects'),
         'operations' => $operations,
+        'finished' => static::class . '::finishedParsing',
       ];
       batch_set($batch);
     }
@@ -940,7 +854,7 @@ class UpgradeStatusForm extends FormBase {
     }
 
     // Do the HTTP request to run processing.
-    list($error, $message, $data) = static::doHttpRequest($extension->getType(), $extension->getName());
+    list($error, $message, $data) = static::doHttpRequest($extension->getName());
 
     if ($error !== FALSE) {
       /** @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface $key_value */
@@ -968,16 +882,31 @@ class UpgradeStatusForm extends FormBase {
         ],
       ];
 
-      $key_value->set($extension->getName(), json_encode($result));
+      $key_value->set($extension->getName(), $result);
     }
+  }
 
+  /**
+   * Batch callback to finish parsing.
+   *
+   * @param $success
+   *   TRUE if the batch operation was successful; FALSE if there were errors.
+   * @param $results
+   *   An associative array of results from the batch operation.
+   */
+  public static function finishedParsing($success, $results) {
+    $logger = \Drupal::logger('upgrade_status');
+    if ($success) {
+      $logger->notice('Finished Upgrade Status processing successfully.');
+    }
+    else {
+      $logger->notice('Finished Upgrade Status processing with errors.');
+    }
   }
 
   /**
    * Do an HTTP request with the type and machine name.
    *
-   * @param string $type
-   *   Type of the extension, it can be either 'module' or 'theme' or 'profile'.
    * @param string $project_machine_name
    *   The machine name of the project.
    *
@@ -986,7 +915,7 @@ class UpgradeStatusForm extends FormBase {
    *   returned data as the third item. Either of them will be FALSE if they are
    *   not applicable. Data may also be NULL if response JSON decoding failed.
    */
-  public static function doHttpRequest(string $type, string $project_machine_name) {
+  public static function doHttpRequest(string $project_machine_name) {
     $error = $message = $data = FALSE;
 
     // Prepare for a POST request to scan this project. The separate HTTP
@@ -996,7 +925,6 @@ class UpgradeStatusForm extends FormBase {
     $url = Url::fromRoute(
       'upgrade_status.analyze',
       [
-        'type' => $type,
         'project_machine_name' => $project_machine_name
       ]
     );
