@@ -425,7 +425,7 @@ class ProjectCollector {
         $this->t('Fix projects manually'), $this->t('It looks like there is no automated fixes for either problems found. Check the report for pointers on how to fix.'),
       ],
       ProjectCollector::NEXT_RELAX => [
-        $this->t('Relax'), $this->t('Already Drupal 9 compatbile. Congrats!'),
+        $this->t('Relax'), $this->t('Already Drupal 9 compatible. Congrats!'),
       ],
     ];
   }

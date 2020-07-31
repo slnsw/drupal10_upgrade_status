@@ -216,7 +216,7 @@ class UpgradeStatusForm extends FormBase {
       '#title' => $this->t('Drupal core and hosting environment'),
       '#description' => $this->t('<a href=":upgrade">Upgrades to Drupal 9 are supported from Drupal 8.8.x and Drupal 8.9.x</a>. It is suggested to update to the latest Drupal 8 version available. <a href=":platform">Several hosting platform requirements have been raised for Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/docs/9/how-to-prepare-your-drupal-7-or-8-site-for-drupal-9/upgrading-a-drupal-8-site-to-drupal-9', ':platform' => 'https://www.drupal.org/docs/9/how-drupal-9-is-made-and-what-is-included/environment-requirements-of-drupal-9']),
       '#open' => TRUE,
-      '#attributes' => ['class' => ['upgrade-status-summary upgrade-status-summary-environment']],
+      '#attributes' => ['class' => ['upgrade-status-summary-environment']],
       'data' => $this->buildEnvironmentChecks(),
       '#tree' => TRUE,
     ];
@@ -237,7 +237,7 @@ class UpgradeStatusForm extends FormBase {
           '#title' => $step_label[0],
           '#description' => $step_label[1],
           '#open' => TRUE,
-          '#attributes' => ['class' => ['upgrade-status-summary']],
+          '#attributes' => ['class' => ['upgrade-status-summary', 'upgrade-status-next-step-' . $next_step]],
           'data' => $this->buildProjectList($sublist),
           '#tree' => TRUE,
         ];
@@ -342,7 +342,7 @@ class UpgradeStatusForm extends FormBase {
         'data' => [
           'label' => [
             '#type' => 'markup',
-            '#markup' => !empty($extension->info['upgrade_status_9_compatible']) ? $this->t('Compatible') : $this->t('Not compatible'),
+            '#markup' => !empty($extension->info['upgrade_status_9_compatible']) ? $this->t('Compatible') : $this->t('Incompatible'),
           ],
         ]
       ];
@@ -409,19 +409,19 @@ class UpgradeStatusForm extends FormBase {
       if (isset($extension->info['upgrade_status_update'])) {
         switch ($extension->info['upgrade_status_update']) {
           case ProjectCollector::UPDATE_NOT_AVAILABLE:
-            $update_info = $this->t('Not available');
+            $update_info = $this->t('Unavailable');
             $update_class = 'status-info-na';
             break;
           case ProjectCollector::UPDATE_NOT_CHECKED:
-            $update_info = $this->t('Not checked');
+            $update_info = $this->t('Unchecked');
             $update_class = 'status-info-unchecked';
             break;
           case ProjectCollector::UPDATE_NOT_DRUPAL_9_COMPATIBLE:
-            $update_info = $this->t('Not Drupal 9 compatible');
+            $update_info = $this->t('Incompatible');
             $update_class = 'status-info-incompatible';
             break;
           case ProjectCollector::UPDATE_DRUPAL_9_COMPATIBLE:
-            $update_info = $this->t('Drupal 9 compatible');
+            $update_info = $this->t('Compatible');
             $update_class = 'status-info-compatible';
             break;
         }
@@ -506,11 +506,11 @@ class UpgradeStatusForm extends FormBase {
         $class = 'no-known-error';
       }
       else {
-        $class = 'known-warnings';
+        $class = 'known-warning';
       }
     }
     else {
-      $class = 'known-errors';
+      $class = 'known-error';
     }
     $build['data']['#rows'][] = [
       'class' => $class,
@@ -529,7 +529,7 @@ class UpgradeStatusForm extends FormBase {
     // Check PHP version.
     $version = PHP_VERSION;
     $build['data']['#rows'][] = [
-      'class' => [(version_compare($version, '7.3.0') >= 0) ? 'no-known-error' : 'known-errors'],
+      'class' => [(version_compare($version, '7.3.0') >= 0) ? 'no-known-error' : 'known-error'],
       'data' => [
         'requirement' => [
           'class' => 'requirement-label',
@@ -564,11 +564,11 @@ class UpgradeStatusForm extends FormBase {
           $class = 'no-known-error';
         }
         elseif (version_compare($version, '10.1.0') >= 0) {
-          $class = 'known-warnings';
+          $class = 'known-warning';
           $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
         }
         else {
-          $class = 'known-errors';
+          $class = 'known-error';
           $requirement .= ' ' . $this->t('Once updated to at least 10.1, you can also <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
         }
       }
@@ -579,11 +579,11 @@ class UpgradeStatusForm extends FormBase {
           $class = 'no-known-error';
         }
         elseif (version_compare($version, '5.6.0') >= 0) {
-          $class = 'known-warnings';
+          $class = 'known-warning';
           $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
         }
         else {
-          $class = 'known-errors';
+          $class = 'known-error';
           $requirement .= ' ' . $this->t('Once updated to at least 5.6, you can also <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
         }
       }
@@ -591,12 +591,12 @@ class UpgradeStatusForm extends FormBase {
     elseif ($type == 'pgsql') {
       $type = 'PostgreSQL';
       $requirement = $this->t('When using PostgreSQL, minimum version is 10 <a href=":trgm">with the pg_trgm extension</a> (The extension is not checked here)', [':trgm' => 'https://www.postgresql.org/docs/10/pgtrgm.html']);
-      $class = (version_compare($version, '10') >= 0) ? 'no-known-error' : 'known-errors';
+      $class = (version_compare($version, '10') >= 0) ? 'no-known-error' : 'known-error';
     }
     elseif ($type == 'sqlite') {
       $type = 'SQLite';
       $requirement = $this->t('When using SQLite, minimum version is 3.26');
-      $class = (version_compare($version, '3.26') >= 0) ? 'no-known-error' : 'known-errors';
+      $class = (version_compare($version, '3.26') >= 0) ? 'no-known-error' : 'known-error';
     }
 
     $build['data']['#rows'][] = [
@@ -621,7 +621,7 @@ class UpgradeStatusForm extends FormBase {
     $software = $request_object->server->get('SERVER_SOFTWARE');
     if (strpos($software, 'Apache') !== FALSE && preg_match('!^Apache/([\d\.]+) !', $software, $found)) {
       $version = $found[1];
-      $class = [(version_compare($version, '2.4.7') >= 0) ? 'no-known-error' : 'known-errors'];
+      $class = [(version_compare($version, '2.4.7') >= 0) ? 'no-known-error' : 'known-error'];
       $label = $this->t('Version @version', ['@version' => $version]);
     }
     else {
@@ -645,7 +645,7 @@ class UpgradeStatusForm extends FormBase {
     // Check Drush. We only detect site-local drush for now.
     if (class_exists('\\Drush\\Drush')) {
       $version = call_user_func('\\Drush\\Drush::getMajorVersion');
-      $class = [(version_compare($version, '10') >= 0) ? 'no-known-error' : 'known-errors'];
+      $class = [(version_compare($version, '10') >= 0) ? 'no-known-error' : 'known-error'];
       $label = $this->t('Version @version', ['@version' => $version]);
     }
     else {

@@ -11,22 +11,23 @@
   margin-right: 0;
 }
 
-.upgrade-status-summary > summary {
+.upgrade-status-summary > summary,
+.upgrade-status-summary-environment > summary {
   background-color: #f5f5f2;
   margin: 0 0 1em 0;
   border-bottom: 1px solid #ccc;
 }
 
-.upgrade-status-summary table+h3 {
-  margin-top: 2em;
-}
-
-.upgrade-status-summary table {
+.upgrade-status-summary table,
+.upgrade-status-summary-environment table {
   margin-top: 1.2em;
 }
 
-.upgrade-status-summary th.requirement-label {
+.upgrade-status-summary-environment th.requirement-label {
   width: 70%;
+}
+.upgrade-status-summary-environment th.status-info {
+  width: 30%;
 }
 
 .upgrade-status-summary th {
@@ -39,27 +40,14 @@
   width: 24%;
 }
 
-.upgrade-status-summary th.update-info,
-.upgrade-status-summary th.status-info,
-.upgrade-status-summary th.rector-info {
-  width: 15%;
-}
-
-.upgrade-status-summary-custom th.project-label {
-  width: 80%;
-}
-
-.upgrade-status-summary td.requirement-label {
+.upgrade-status-summary-environment td.requirement-label,
+.upgrade-status-summary td.project-label {
   font-weight: bold;
-}
-.upgrade-status-summary-environment th.status-info {
-  width: 40%;
 }
 
 .upgrade-status-error-list tr > td.status-info,
-.upgrade-status-summary tr > td.update-info,
 .upgrade-status-summary tr > td.status-info,
-.upgrade-status-summary tr > td.rector-info {
+.upgrade-status-summary-environment tr > td.status-info {
   padding-left: 35px; /* LTR */
   background-repeat: no-repeat;
   background-position-x: 10px; /* LTR */
@@ -67,36 +55,37 @@
 }
 
 [dir="rtl"] .upgrade-status-error-list tr > td.status-info,
-[dir="rtl"] .upgrade-status-summary tr > td.update-info,
 [dir="rtl"] .upgrade-status-summary tr > td.status-info,
-[dir="rtl"] .upgrade-status-summary tr > td.rector-info {
+[dir="rtl"] .upgrade-status-summary-environment tr > td.status-info {
   padding-left: 0;
   padding-right: 35px; /* LTR */
   /* @todo x background position for RTL */
 }
 
 .upgrade-status-error-list tr.known-errors,
-.upgrade-status-summary tr.known-errors {
+.upgrade-status-next-step-rector tr,
+.upgrade-status-next-step-manual tr,
+.upgrade-status-summary-environment tr.known-error {
   background-color: #fcf4f2;
   color: #a51b00;
 }
 
 .upgrade-status-error-list tr.known-errors > td.status-info,
-.upgrade-status-summary tr.known-errors > td.status-info,
-td.update-info.upgrade-status-not-9-ready,
-td.rector-info.upgrade-status-error-patch {
+.upgrade-status-summary-environment tr.known-error > td.status-info {
   background-image: url(../icons/error.svg);
 }
 
 .upgrade-status-error-list tr.known-warnings,
-.upgrade-status-summary tr.known-warnings {
+.upgrade-status-next-step-update tr,
+.upgrade-status-next-step-remove tr,
+.upgrade-status-summary-environment tr.known-warning {
   background-color: #fdf8ed;
   color: #734c00;
 }
 
 .upgrade-status-error-list tr.known-warnings > td.status-info,
-.upgrade-status-summary tr.known-warnings > td.status-info,
-.upgrade-status-summary td.status-info-incompatible {
+.upgrade-status-summary td.status-info-incompatible,
+.upgrade-status-summary-environment tr.known-warning > td.status-info {
   background-image: url(../icons/warning.svg);
 }
 
@@ -106,32 +95,28 @@ td.rector-info.upgrade-status-error-patch {
 }
 
 .upgrade-status-error-list tr.no-known-error,
-.upgrade-status-summary tr.no-known-error {
+.upgrade-status-next-step-relax tr,
+.upgrade-status-summary-environment tr.no-known-error {
   background-color: #f3faef;
   color: #325e1c;
 }
 
 .upgrade-status-error-list tr.no-known-error > td.status-info,
-.upgrade-status-summary tr.no-known-error > td.status-info,
-td.update-info.upgrade-status-9-ready,
-td.rector-info.upgrade-status-empty-patch,
-.upgrade-status-summary td.status-info-compatible {
+.upgrade-status-summary td.status-info-compatible,
+.upgrade-status-summary-environment tr.no-known-error > td.status-info {
   background-image: url(../icons/check.svg);
 }
 
-.upgrade-status-error-list tr.rector-covered {
+.upgrade-status-error-list tr.rector-covered,
+.upgrade-status-next-step-collaborate tr {
   background-color: #f0f8ff;
   color: #000;
 }
 
-.upgrade-status-error-list tr.rector-covered > td.status-info,
-td.rector-info.upgrade-status-ok-patch {
+.upgrade-status-error-list tr.rector-covered > td.status-info {
   background-image: url(../icons/wrench.svg);
 }
 
-.upgrade-status-summary tr.not-scanned > td.status-info,
-td.update-info.upgrade-status-not-checked,
-td.rector-info.upgrade-status-no-patch,
 .upgrade-status-summary td.status-info-unchecked {
   background-image: url(../icons/questionmark-disc.svg);
 }
@@ -140,133 +125,6 @@ td.rector-info.upgrade-status-no-patch,
   margin-bottom: 1em;
 }
 
-.upgrade-status-counters {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.upgrade-status-counters__item {
-  flex-grow: 1;
-  flex-shrink: 0;
-  flex-basis: 100%;
-  margin: 10px 0;
-}
-
-.upgrade-status-counter {
-  display: flex;
-  overflow-y: hidden;
-  box-sizing: border-box;
-  width: 100%;
-  border: 1px solid #e6e4df;
-  border-radius: 3px;
-  background: #fcfcfa;
-}
-
-.upgrade-status-counter__status-icon {
-  display: inline-block;
-  width: 60px;
-  height: 60px;
-  vertical-align: middle;
-  border-right: 1px solid #e6e4df; /* LTR */
-  border-left: 0; /* LTR */
-  background-color: #faf9f5;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1) inset;
-}
-
-[dir="rtl"] .upgrade-status-counter__status-icon {
-  border-right: 0;
-  border-left: 1px solid #e6e4df;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1) inset;
-}
-
-.upgrade-status-counter__status-icon:before {
-  display: block;
-  width: 100%;
-  height: 100%;
-  content: "";
-  background-repeat: no-repeat;
-  background-position: 50% center;
-  background-size: 25px;
-}
-
-.upgrade-status-counter__status-icon--error:before {
-  background-image: url(../icons/error.svg);
-}
-
-.upgrade-status-counter__status-icon--warning:before {
-  background-image: url(../icons/warning.svg);
-}
-
-.upgrade-status-counter__status-icon--checked:before {
-  background-image: url(../icons/check.svg);
-}
-
-.upgrade-status-counter__status-icon--not-scanned:before {
-  background-image: url(../icons/questionmark-disc.svg);
-}
-
-.upgrade-status-counter__status-title {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0 6px;
-  vertical-align: middle;
-  text-transform: uppercase;
-  font-size: 1rem;
-  font-weight: bold;
-  line-height: 1em;
-}
-
-.upgrade-status-counter__title-count {
-  display: block;
-  margin-bottom: 2px;
-}
-
-.upgrade-status-counter__details {
-  display: block;
-  text-transform: none;
-  font-size: 12px;
-  font-weight: normal;
-}
-
-@media screen and (min-width: 61em) {
-  .upgrade-status-counters__item {
-    flex-basis: calc(50% - 10px);
-  }
-
-  .upgrade-status-counters__item:nth-child(2n) {
-    margin-left: 20px;
-  }
-
-  .upgrade-status-counter__status-icon,
-  .upgrade-status-counter {
-    height: 65px;
-  }
-
-  .upgrade-status-counter__status-icon {
-    width: 65px;
-  }
-
-  .upgrade-status-counter__status-title {
-    flex-grow: 1;
-    padding: 10px 3%;
-    font-size: 16px;
-  }
-
-  .upgrade-status-counter__status-icon:before {
-    background-size: 35px;
-  }
-}
-
-@media screen and (min-width: 75rem) {
-  .upgrade-status-counters__item {
-    flex-basis: calc(25% - 15px);
-  }
-
-  .upgrade-status-counters__item + .upgrade-status-counters__item {
-    margin-left: 20px;
-  }
-}
 
 .upgrade-status-ok-label,
 .upgrade-status-error-label {
