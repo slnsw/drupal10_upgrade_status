@@ -191,25 +191,7 @@ class UpgradeStatusForm extends FormBase {
       $this->messenger()->addError($e->getMessage());
     }
 
-    $last = $this->state->get('update.last_check') ?: 0;
-    if ($last == 0) {
-      $last_checked = '<strong>' . $this->t('Available update data not available.') . '</strong>';
-    }
-    else {
-      $time = $this->dateFormatter->formatTimeDiffSince($last);
-      $last_checked = $this->t('Available update data last checked: @time ago.', ['@time' => $time]);
-    }
-    $form['update_time'] = [
-      [
-        '#type' => 'markup',
-        '#markup' => $last_checked . ' ',
-      ],
-      [
-        '#type' => 'link',
-        '#title' => '(' . $this->t('Check manually') . ')',
-        '#url' => Url::fromRoute('update.manual_status', [], ['query' => $this->destination->getAsArray()]),
-      ],
-    ];
+    $form['summary'] = $this->buildResultSummary();
 
     $form['environment'] = [
       '#type' => 'details',
@@ -459,6 +441,90 @@ class UpgradeStatusForm extends FormBase {
       $build['list']['#options'][$name] = $option;
     }
 
+    return $build;
+  }
+
+  /**
+   * Build a result summary table for quick overview display to users.
+   */
+  protected function buildResultSummary() {
+    $projects = $this->projectCollector->collectProjects();
+    $next_steps = $this->projectCollector->getNextStepInfo();
+
+    $last = $this->state->get('update.last_check') ?: 0;
+    if ($last == 0) {
+      $last_checked = '<strong>' . $this->t('Never checked.') . '</strong>';
+    }
+    else {
+      $time = $this->dateFormatter->formatTimeDiffSince($last);
+      $last_checked = $this->t('Last checked @time ago.', ['@time' => $time]);
+    }
+    $update_time = [
+      [
+        '#type' => 'link',
+        '#title' => $this->t('Check available updates.'),
+        '#url' => Url::fromRoute('update.manual_status', [], ['query' => $this->destination->getAsArray()]),
+      ],
+      [
+        '#type' => 'markup',
+        '#markup' => ' ' . $last_checked,
+      ],
+    ];
+
+    $header = [
+      ProjectCollector::SUMMARY_ANALYZE => ['data' => $this->t('Analyze'), 'class' => 'summary-' . ProjectCollector::SUMMARY_ANALYZE],
+      ProjectCollector::SUMMARY_ACT => ['data' => $this->t('Act'), 'class' => 'status-' . ProjectCollector::SUMMARY_ACT],
+      ProjectCollector::SUMMARY_RELAX => ['data' => $this->t('Relax'), 'class' => 'status-' . ProjectCollector::SUMMARY_RELAX],
+    ];
+    $build = [
+      '#type' => 'table',
+      '#attributes' => ['class' => ['upgrade-status-overview']],
+      '#header' => $header,
+      '#rows' => [
+        [
+          'data' => [
+            ProjectCollector::SUMMARY_ANALYZE => ['data' => []],
+            ProjectCollector::SUMMARY_ACT => ['data' => []],
+            ProjectCollector::SUMMARY_RELAX => ['data' => []],
+          ]
+        ]
+      ],
+    ];
+    foreach ($header as $key => $value) {
+      $cell_data = $cell_items = [];
+      if ($key == ProjectCollector::SUMMARY_ANALYZE) {
+        $cell_items[] = $update_time;
+      }
+      foreach($next_steps as $next_step => $step_label) {
+        // If this next step summary belongs in this table cell, collect it.
+        if ($step_label[2] == $key) {
+          foreach ($projects as $name => $project) {
+            if ($project->info['upgrade_status_next'] == $next_step) {
+              $cell_data[$next_step]++;
+            }
+          }
+        }
+      }
+      if (count($cell_data)) {
+        foreach ($cell_data as $next_step => $count) {
+          $cell_items[] = [
+            '#markup' => '<a href="#edit-' . $next_step . '" class="upgrade-status-summary-label upgrade-status-summary-label-' . $next_step . '">' . $this->formatPlural($count, '@type: 1 project', '@type: @count projects', ['@type' => $next_steps[$next_step][0]]) . '</a>',
+          ];
+        }
+      }
+      if (count($cell_items)) {
+        $build['#rows'][0]['data'][$key]['data'] = [
+          '#theme' => 'item_list',
+          '#items' => $cell_items,
+        ];
+      }
+      else {
+        $build['#rows'][0]['data'][$key]['data'] = [
+          '#type' => 'markup',
+          '#markup' => $this->t('N/A'),
+        ];
+      }
+    }
     return $build;
   }
 

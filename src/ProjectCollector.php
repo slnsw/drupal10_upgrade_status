@@ -124,6 +124,21 @@ class ProjectCollector {
   const NEXT_MANUAL = 'manual';
 
   /**
+   * Summary category for things to analyze.
+   */
+  const SUMMARY_ANALYZE = 'analyze';
+
+  /**
+   * Summary category for things to act on.
+   */
+  const SUMMARY_ACT = 'act';
+
+  /**
+   * Summary category for things to act on.
+   */
+  const SUMMARY_RELAX = 'relax';
+
+  /**
    * Constructs a \Drupal\upgrade_status\ProjectCollector.
    *
    * @param \Drupal\Core\Extension\ModuleExtensionList $module_extension_list
@@ -407,25 +422,39 @@ class ProjectCollector {
   public function getNextStepInfo() {
     return [
       ProjectCollector::NEXT_REMOVE => [
-        $this->t('Remove projects'), $this->t('The likely best action is to remove projects that are uninstalled. Why invest in updating them to be compatible if you are not using them?'),
+        $this->t('Remove'),
+        $this->t('The likely best action is to remove projects that are uninstalled. Why invest in updating them to be compatible if you are not using them?'),
+        ProjectCollector::SUMMARY_ACT,
       ],
       ProjectCollector::NEXT_UPDATE => [
-        $this->t('Update projects'), $this->t('There is an update available. Even if that is not fully Drupal 9 compatible, it may be more compatible than what you have, so best to start with updating first.'),
+        $this->t('Update'),
+        $this->t('There is an update available. Even if that is not fully Drupal 9 compatible, it may be more compatible than what you have, so best to start with updating first.'),
+        ProjectCollector::SUMMARY_ACT,
       ],
       ProjectCollector::NEXT_SCAN => [
-        $this->t('Scan projects'), $this->t('Status of this project cannot be determined without scanning the source code here. Use this form to run a scan on these.'),
+        $this->t('Scan'),
+        $this->t('Status of this project cannot be determined without scanning the source code here. Use this form to run a scan on these.'),
+        ProjectCollector::SUMMARY_ANALYZE,
       ],
       ProjectCollector::NEXT_COLLABORATE => [
-        $this->t('Collaborate with project maintainers'), $this->t('There are likely Drupal.org issues by contributors or even <a href=":drupal-bot">the Project Update Bot</a>. Work with the maintainer to get them committed, provide feedback if they worked.', [':drupal-bot' => 'https://www.drupal.org/u/project-update-bot']),
+        $this->t('Collaborate with maintainers'),
+        $this->t('There are likely Drupal.org issues by contributors or even <a href=":drupal-bot">the Project Update Bot</a>. Work with the maintainer to get them committed, provide feedback if they worked.', [':drupal-bot' => 'https://www.drupal.org/u/project-update-bot']),
+        ProjectCollector::SUMMARY_ACT,
       ],
       ProjectCollector::NEXT_RECTOR => [
-        $this->t('Fix projects with rector'), $this->t('Some or all problems found can be fixed automatically with <a href=":drupal-rector">drupal-rector</a>. Make the machine do the work.', [':drupal-rector' => 'https://www.drupal.org/project/rector']),
+        $this->t('Fix with rector'),
+        $this->t('Some or all problems found can be fixed automatically with <a href=":drupal-rector">drupal-rector</a>. Make the machine do the work.', [':drupal-rector' => 'https://www.drupal.org/project/rector']),
+        ProjectCollector::SUMMARY_ACT,
       ],
       ProjectCollector::NEXT_MANUAL => [
-        $this->t('Fix projects manually'), $this->t('It looks like there is no automated fixes for either problems found. Check the report for pointers on how to fix.'),
+        $this->t('Fix manually'),
+        $this->t('It looks like there is no automated fixes for either problems found. Check the report for pointers on how to fix.'),
+        ProjectCollector::SUMMARY_ACT,
       ],
       ProjectCollector::NEXT_RELAX => [
-        $this->t('Relax'), $this->t('Already Drupal 9 compatible. Congrats!'),
+        $this->t('Drupal 9 compatible'),
+        $this->t('Well done. Congrats! Let\'s get everything else here!'),
+        ProjectCollector::SUMMARY_RELAX,
       ],
     ];
   }

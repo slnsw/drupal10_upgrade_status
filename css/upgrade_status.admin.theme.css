@@ -11,6 +11,23 @@
   margin-right: 0;
 }
 
+.upgrade-status-overview tr:hover {
+  color: inherit;
+  background-color: inherit;
+}
+.upgrade-status-overview th {
+  background-color: #f5f5f2;
+  border-bottom: 1px solid #ccc;
+  width: 33%;
+}
+.upgrade-status-overview td {
+  vertical-align: top;
+}
+.upgrade-status-overview td .item-list ul li {
+  list-style-type: none;
+  margin-left: 0;
+}
+
 .upgrade-status-summary > summary,
 .upgrade-status-summary-environment > summary {
   background-color: #f5f5f2;
@@ -125,6 +142,29 @@
   margin-bottom: 1em;
 }
 
+.upgrade-status-summary-label {
+  padding: 3px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.upgrade-status-summary-label-relax {
+  background-color: #f3faef;
+  color: #325e1c;
+}
+.upgrade-status-summary-label-update,
+.upgrade-status-summary-label-remove {
+  background-color: #fdf8ed;
+  color: #734c00;
+}
+.upgrade-status-summary-label-rector,
+.upgrade-status-summary-label-manual {
+  background-color: #fcf4f2;
+  color: #a51b00;
+}
+.upgrade-status-summary-label-collaborate {
+  background-color: #f0f8ff;
+  color: #000;
+}
 
 .upgrade-status-ok-label,
 .upgrade-status-error-label {
