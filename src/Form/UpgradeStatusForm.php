@@ -191,7 +191,9 @@ class UpgradeStatusForm extends FormBase {
       $this->messenger()->addError($e->getMessage());
     }
 
-    $form['summary'] = $this->buildResultSummary();
+    $environment = $this->buildEnvironmentChecks();
+    $form['summary'] = $this->buildResultSummary($environment['status']);
+    unset($environment['status']);
 
     $form['environment'] = [
       '#type' => 'details',
@@ -199,7 +201,7 @@ class UpgradeStatusForm extends FormBase {
       '#description' => $this->t('<a href=":upgrade">Upgrades to Drupal 9 are supported from Drupal 8.8.x and Drupal 8.9.x</a>. It is suggested to update to the latest Drupal 8 version available. <a href=":platform">Several hosting platform requirements have been raised for Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/docs/9/how-to-prepare-your-drupal-7-or-8-site-for-drupal-9/upgrading-a-drupal-8-site-to-drupal-9', ':platform' => 'https://www.drupal.org/docs/9/how-drupal-9-is-made-and-what-is-included/environment-requirements-of-drupal-9']),
       '#open' => TRUE,
       '#attributes' => ['class' => ['upgrade-status-summary-environment']],
-      'data' => $this->buildEnvironmentChecks(),
+      'data' => $environment,
       '#tree' => TRUE,
     ];
 
@@ -446,34 +448,40 @@ class UpgradeStatusForm extends FormBase {
 
   /**
    * Build a result summary table for quick overview display to users.
+   *
+   * @param bool $environment_status
+   *   The status of the environment. Whether to put it into the Fix or Relax columns.
+   *
+   * @return array
+   *   Render array.
    */
-  protected function buildResultSummary() {
+  protected function buildResultSummary($environment_status = TRUE) {
     $projects = $this->projectCollector->collectProjects();
     $next_steps = $this->projectCollector->getNextStepInfo();
 
     $last = $this->state->get('update.last_check') ?: 0;
     if ($last == 0) {
-      $last_checked = '<strong>' . $this->t('Never checked.') . '</strong>';
+      $last_checked = $this->t('Never checked');
     }
     else {
       $time = $this->dateFormatter->formatTimeDiffSince($last);
-      $last_checked = $this->t('Last checked @time ago.', ['@time' => $time]);
+      $last_checked = $this->t('Last checked @time ago', ['@time' => $time]);
     }
     $update_time = [
       [
         '#type' => 'link',
-        '#title' => $this->t('Check available updates.'),
+        '#title' => $this->t('Check available updates'),
         '#url' => Url::fromRoute('update.manual_status', [], ['query' => $this->destination->getAsArray()]),
       ],
       [
         '#type' => 'markup',
-        '#markup' => ' ' . $last_checked,
+        '#markup' => ' (' . $last_checked . ')',
       ],
     ];
 
     $header = [
-      ProjectCollector::SUMMARY_ANALYZE => ['data' => $this->t('Analyze'), 'class' => 'summary-' . ProjectCollector::SUMMARY_ANALYZE],
-      ProjectCollector::SUMMARY_ACT => ['data' => $this->t('Act'), 'class' => 'status-' . ProjectCollector::SUMMARY_ACT],
+      ProjectCollector::SUMMARY_ANALYZE => ['data' => $this->t('Gather data'), 'class' => 'summary-' . ProjectCollector::SUMMARY_ANALYZE],
+      ProjectCollector::SUMMARY_ACT => ['data' => $this->t('Fix incompatibilities'), 'class' => 'status-' . ProjectCollector::SUMMARY_ACT],
       ProjectCollector::SUMMARY_RELAX => ['data' => $this->t('Relax'), 'class' => 'status-' . ProjectCollector::SUMMARY_RELAX],
     ];
     $build = [
@@ -506,12 +514,18 @@ class UpgradeStatusForm extends FormBase {
         // If neither Composer Deploy nor Git Deploy are available and installed, suggest installing one.
         if (empty($projects['git_deploy']->status) && empty($projects['composer_deploy']->status)) {
           $cell_items[] = [
-            '#markup' => $this->t('Install <a href=":composer_deploy">Composer Deploy</a> or <a href=":git_deploy">Git Deploy</a> as appropriate for accurate update recommendations.', [':composer_deploy' => 'https://drupal.org/project/composer_deploy', ':git_deploy' => 'https://drupal.org/project/git_deploy'])
+            '#markup' => $this->t('Install <a href=":composer_deploy">Composer Deploy</a> or <a href=":git_deploy">Git Deploy</a> as appropriate for accurate update recommendations', [':composer_deploy' => 'https://drupal.org/project/composer_deploy', ':git_deploy' => 'https://drupal.org/project/git_deploy'])
           ];
         }
         // Add available update info.
         $cell_items[] = $update_time;
       }
+      if (($key == ProjectCollector::SUMMARY_ACT) && !$environment_status) {
+        $cell_items[] = [
+          '#markup' => '<a href="#edit-environment" class="upgrade-status-summary-label">' . $this->t('Environment is incompatible') . '</a>',
+        ];
+      }
+
       if (count($cell_data)) {
         foreach ($cell_data as $next_step => $count) {
           $cell_items[] = [
@@ -519,11 +533,17 @@ class UpgradeStatusForm extends FormBase {
           ];
         }
       }
+
+      if ($key == ProjectCollector::SUMMARY_ANALYZE) {
+        $cell_items[] = [
+          '#markup' => 'Select any of the projects to rescan as needed below',
+        ];
+      }
       if ($key == ProjectCollector::SUMMARY_RELAX) {
-        $percent == 0;
-        if (!empty($cell_data[ProjectCollector::NEXT_RELAX])) {
-          $percent = round($cell_data[ProjectCollector::NEXT_RELAX] / count($projects) * 100);
-        }
+        // Calculate how done is this site assuming the environment as
+        // "one project" for simplicity.
+        $done_count = (!empty($cell_data[ProjectCollector::NEXT_RELAX]) ? $cell_data[ProjectCollector::NEXT_RELAX] : 0) + (int) $environment_status;
+        $percent = round($done_count / (count($projects) + 1) * 100);
         $build['#rows'][0]['data'][$key]['data'][] = [
           '#type' => 'markup',
           '#allowed_tags' => ['svg', 'path', 'text'],
@@ -546,6 +566,11 @@ class UpgradeStatusForm extends FormBase {
       </div>
 MARKUP
         ];
+        if ($environment_status) {
+          $cell_items[] = [
+            '#markup' => '<a href="#edit-environment" class="upgrade-status-summary-label">' . $this->t('Environment checks passed') . '</a>',
+          ];
+        }
       }
       if (count($cell_items)) {
         $build['#rows'][0]['data'][$key]['data'][] = [
@@ -567,9 +592,11 @@ MARKUP
    * Builds a list of environment checks.
    *
    * @return array
-   *   Build array.
+   *   Build array. The overall environment status (TRUE or FALSE) is indicated
+   *   in the 'status' key.
    */
   protected function buildEnvironmentChecks() {
+    $status = TRUE;
     $header = [
       'requirement' => ['data' => $this->t('Requirement'), 'class' => 'requirement-label'],
       'status' => ['data' => $this->t('Status'), 'class' => 'status-info'],
@@ -611,6 +638,7 @@ MARKUP
       }
     }
     else {
+      $status = FALSE;
       $class = 'known-error';
     }
     $build['data']['#rows'][] = [
@@ -629,8 +657,15 @@ MARKUP
 
     // Check PHP version.
     $version = PHP_VERSION;
+    if (version_compare($version, '7.3.0') >= 0) {
+      $class = 'no-known-error';
+    }
+    else {
+      $class = 'known-error';
+      $status = FALSE;
+    }
     $build['data']['#rows'][] = [
-      'class' => [(version_compare($version, '7.3.0') >= 0) ? 'no-known-error' : 'known-error'],
+      'class' => [$class],
       'data' => [
         'requirement' => [
           'class' => 'requirement-label',
@@ -669,6 +704,7 @@ MARKUP
           $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
         }
         else {
+          $status = FALSE;
           $class = 'known-error';
           $requirement .= ' ' . $this->t('Once updated to at least 10.1, you can also <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
         }
@@ -684,6 +720,7 @@ MARKUP
           $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
         }
         else {
+          $status = FALSE;
           $class = 'known-error';
           $requirement .= ' ' . $this->t('Once updated to at least 5.6, you can also <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
         }
@@ -691,13 +728,25 @@ MARKUP
     }
     elseif ($type == 'pgsql') {
       $type = 'PostgreSQL';
-      $requirement = $this->t('When using PostgreSQL, minimum version is 10 <a href=":trgm">with the pg_trgm extension</a> (The extension is not checked here)', [':trgm' => 'https://www.postgresql.org/docs/10/pgtrgm.html']);
-      $class = (version_compare($version, '10') >= 0) ? 'no-known-error' : 'known-error';
+      $requirement = $this->t('When using PostgreSQL, minimum version is 10 <a href=":trgm">with the pg_trgm extension</a> (The extension is not checked here).', [':trgm' => 'https://www.postgresql.org/docs/10/pgtrgm.html']);
+      if (version_compare($version, '10') >= 0) {
+        $class = 'no-known-error';
+      }
+      else {
+        $status = FALSE;
+        $class = 'known-error';
+      }
     }
     elseif ($type == 'sqlite') {
       $type = 'SQLite';
       $requirement = $this->t('When using SQLite, minimum version is 3.26');
-      $class = (version_compare($version, '3.26') >= 0) ? 'no-known-error' : 'known-error';
+      if (version_compare($version, '3.26') >= 0) {
+        $class = 'no-known-error';
+      }
+      else {
+        $status = FALSE;
+        $class = 'known-error';
+      }
     }
 
     $build['data']['#rows'][] = [
@@ -722,7 +771,13 @@ MARKUP
     $software = $request_object->server->get('SERVER_SOFTWARE');
     if (strpos($software, 'Apache') !== FALSE && preg_match('!^Apache/([\d\.]+) !', $software, $found)) {
       $version = $found[1];
-      $class = [(version_compare($version, '2.4.7') >= 0) ? 'no-known-error' : 'known-error'];
+      if (version_compare($version, '2.4.7') >= 0) {
+        $class = 'no-known-error';
+      }
+      else {
+        $status = FALSE;
+        $class = 'known-error';
+      }
       $label = $this->t('Version @version', ['@version' => $version]);
     }
     else {
@@ -730,7 +785,7 @@ MARKUP
       $label = $this->t('Version cannot be detected or not using Apache, check manually.');
     }
     $build['data']['#rows'][] = [
-      'class' => $class,
+      'class' => [$class],
       'data' => [
         'requirement' => [
           'class' => 'requirement-label',
@@ -746,7 +801,13 @@ MARKUP
     // Check Drush. We only detect site-local drush for now.
     if (class_exists('\\Drush\\Drush')) {
       $version = call_user_func('\\Drush\\Drush::getMajorVersion');
-      $class = [(version_compare($version, '10') >= 0) ? 'no-known-error' : 'known-error'];
+      if (version_compare($version, '10') >= 0) {
+        $class = 'no-known-error';
+      }
+      else {
+        $status = FALSE;
+        $class = 'known-error';
+      }
       $label = $this->t('Version @version', ['@version' => $version]);
     }
     else {
@@ -766,6 +827,10 @@ MARKUP
         ],
       ]
     ];
+
+    // Save the overall status indicator in the build array. It will be
+    // popped off later to be used in the summary table.
+    $build['status'] = $status;
 
     return $build;
   }
