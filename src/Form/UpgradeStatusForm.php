@@ -512,14 +512,42 @@ class UpgradeStatusForm extends FormBase {
           ];
         }
       }
+      if ($key == ProjectCollector::SUMMARY_RELAX) {
+        $percent == 0;
+        if (!empty($cell_data[ProjectCollector::NEXT_RELAX])) {
+          $percent = round($cell_data[ProjectCollector::NEXT_RELAX] / count($projects) * 100);
+        }
+        $build['#rows'][0]['data'][$key]['data'][] = [
+          '#type' => 'markup',
+          '#allowed_tags' => ['svg', 'path', 'text'],
+          '#markup' => <<<MARKUP
+        <div class="upgrade-status-result-chart">
+        <svg viewBox="0 0 36 36" class="upgrade-status-result-circle">
+          <path class="circle-bg"
+            d="M18 2.0845
+              a 15.9155 15.9155 0 0 1 0 31.831
+              a 15.9155 15.9155 0 0 1 0 -31.831"
+          />
+          <path class="circle"
+            stroke-dasharray="{$percent}, 100"
+            d="M18 2.0845
+              a 15.9155 15.9155 0 0 1 0 31.831
+              a 15.9155 15.9155 0 0 1 0 -31.831"
+          />
+          <text x="18" y="20.35" class="percentage">{$percent}%</text>
+        </svg>
+      </div>
+MARKUP
+        ];
+      }
       if (count($cell_items)) {
-        $build['#rows'][0]['data'][$key]['data'] = [
+        $build['#rows'][0]['data'][$key]['data'][] = [
           '#theme' => 'item_list',
           '#items' => $cell_items,
         ];
       }
       else {
-        $build['#rows'][0]['data'][$key]['data'] = [
+        $build['#rows'][0]['data'][$key]['data'][] = [
           '#type' => 'markup',
           '#markup' => $this->t('N/A'),
         ];
