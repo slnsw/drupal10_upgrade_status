@@ -492,9 +492,6 @@ class UpgradeStatusForm extends FormBase {
     ];
     foreach ($header as $key => $value) {
       $cell_data = $cell_items = [];
-      if ($key == ProjectCollector::SUMMARY_ANALYZE) {
-        $cell_items[] = $update_time;
-      }
       foreach($next_steps as $next_step => $step_label) {
         // If this next step summary belongs in this table cell, collect it.
         if ($step_label[2] == $key) {
@@ -504,6 +501,16 @@ class UpgradeStatusForm extends FormBase {
             }
           }
         }
+      }
+      if ($key == ProjectCollector::SUMMARY_ANALYZE) {
+        // If neither Composer Deploy nor Git Deploy are available and installed, suggest installing one.
+        if (empty($projects['git_deploy']->status) && empty($projects['composer_deploy']->status)) {
+          $cell_items[] = [
+            '#markup' => $this->t('Install <a href=":composer_deploy">Composer Deploy</a> or <a href=":git_deploy">Git Deploy</a> as appropriate for accurate update recommendations.', [':composer_deploy' => 'https://drupal.org/project/composer_deploy', ':git_deploy' => 'https://drupal.org/project/git_deploy'])
+          ];
+        }
+        // Add available update info.
+        $cell_items[] = $update_time;
       }
       if (count($cell_data)) {
         foreach ($cell_data as $next_step => $count) {
