@@ -131,39 +131,38 @@ class UpgradeStatusCommands extends DrushCommands {
     $available_projects = $this->projectCollector->collectProjects();
 
     if ($options['all']) {
-      foreach ($available_projects as $type => $projects) {
-        if (!$options['ignore-' . $type]) {
-          foreach ($projects as $name => $project) {
-            if (!$options['ignore-uninstalled'] || $project->status !== 0) {
-              $extensions[$project->getType()][$name] = $project;
-            }
-          }
+      foreach ($available_projects as $name => $project) {
+        if ($options['ignore-uninstalled'] && $project->status === 0) {
+          continue;
         }
+        if ($options['ignore-contrib'] && $project->info['upgrade_status_type'] == ProjectCollector::TYPE_CONTRIB) {
+          continue;
+        }
+        if ($options['ignore-custom'] && $project->info['upgrade_status_type'] == ProjectCollector::TYPE_CUSTOM) {
+          continue;
+        }
+        $extensions[$project->getType()][$name] = $project;
       }
     }
     else {
       foreach ($projects as $name) {
-        if (!$options['ignore-custom'] && array_key_exists($name, $available_projects['custom'])) {
-          $type = $available_projects['custom'][$name]->getType();
-          if (!$options['ignore-uninstalled'] || $available_projects['custom'][$name]->status !== 0) {
-            $extensions[$type][$name] = $available_projects['custom'][$name];
-          }
-          else {
-            $invalid_names[] = $name;
-          }
-        }
-        elseif (!$options['ignore-contrib'] && array_key_exists($name, $available_projects['contrib'])) {
-          $type = $available_projects['contrib'][$name]->getType();
-          if (!$options['ignore-uninstalled'] || $available_projects['contrib'][$name]->status !== 0) {
-            $extensions[$type][$name] = $available_projects['contrib'][$name];
-          }
-          else {
-            $invalid_names[] = $name;
-          }
-        }
-        else {
+        if (!isset($available_projects[$name])) {
           $invalid_names[] = $name;
+          continue;
         }
+        if ($options['ignore-uninstalled'] && $available_projects[$name]->status === 0) {
+          $invalid_names[] = $name;
+          continue;
+        }
+        if ($options['ignore-contrib'] && $available_projects[$name]->info['upgrade_status_type'] == ProjectCollector::TYPE_CONTRIB) {
+          $invalid_names[] = $name;
+          continue;
+        }
+        if ($options['ignore-custom'] && $available_projects[$name]->info['upgrade_status_type'] == ProjectCollector::TYPE_CUSTOM) {
+          $invalid_names[] = $name;
+          continue;
+        }
+        $extensions[$available_projects[$name]->getType()][$name] = $available_projects[$name];
       }
     }
 
