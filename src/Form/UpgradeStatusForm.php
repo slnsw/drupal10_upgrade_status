@@ -507,7 +507,7 @@ class UpgradeStatusForm extends FormBase {
         if ($step_label[2] == $key) {
           foreach ($projects as $name => $project) {
             if ($project->info['upgrade_status_next'] == $next_step) {
-              $cell_data[$next_step]++;
+              @$cell_data[$next_step]++;
             }
           }
         }
