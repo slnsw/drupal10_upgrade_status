@@ -222,7 +222,7 @@ class UpgradeStatusForm extends FormBase {
           '#description' => $step_label[1],
           '#open' => TRUE,
           '#attributes' => ['class' => ['upgrade-status-summary', 'upgrade-status-next-step-' . $next_step]],
-          'data' => $this->buildProjectList($sublist),
+          'data' => $this->buildProjectList($sublist, $next_step),
           '#tree' => TRUE,
         ];
       }
@@ -258,11 +258,13 @@ class UpgradeStatusForm extends FormBase {
    *
    * @param \Drupal\Core\Extension\Extension[] $projects
    *   Array of extensions representing projects.
+   * @param string $next_step
+   *   The machine name of the suggested next step to take for these projects.
    *
    * @return array
    *   Build array.
    */
-  protected function buildProjectList(array $projects) {
+  protected function buildProjectList(array $projects, string $next_step) {
     $header = [
       'project'  => ['data' => $this->t('Project'), 'class' => 'project-label'],
       'type'     => ['data' => $this->t('Type'), 'class' => 'type-label'],
@@ -289,7 +291,7 @@ class UpgradeStatusForm extends FormBase {
             '#tag' => 'label',
             '#value' => $extension->info['name'],
             '#attributes' => [
-              'for' => 'edit-projects-data-list-' . str_replace('_', '-', $name),
+              'for' => 'edit-' . $next_step . '-data-list-' . str_replace('_', '-', $name),
             ],
           ],
         ],
