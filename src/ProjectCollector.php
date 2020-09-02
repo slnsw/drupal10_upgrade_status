@@ -350,7 +350,7 @@ class ProjectCollector {
 
       foreach ($extensions as $name_b => $extension_b) {
         // Skip collation for test modules except where we test that.
-        if ((strpos($name_b, 'upgrade_status_test_') === 0) && (strpos($name_b, 'upgrade_status_test_submodules_') !== 0)) {
+        if ((strpos($name_b, 'upgrade_status_test_') === 0) && ($name_b != 'upgrade_status_test_submodules_a') && ($name_b != 'upgrade_status_test_submodules_with_errors_a')) {
           continue;
         }
 

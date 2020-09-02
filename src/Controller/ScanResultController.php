@@ -99,7 +99,7 @@ class ScanResultController extends ControllerBase {
     }
 
     $build = ['#theme' =>  'upgrade_status_' . $format . '_export' ];
-    $build['#projects'][empty($extension->info['project']) ? 'custom' : 'contrib'] = [
+    $build['#projects'][$extension->info['upgrade_status_type'] == ProjectCollector::TYPE_CUSTOM ? 'custom' : 'contrib'] = [
       $project_machine_name =>
         $format == 'html' ?
           $this->resultFormatter->formatResult($extension) :

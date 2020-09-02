@@ -239,7 +239,7 @@ class UpgradeStatusForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Export selected as HTML'),
       '#weight' => 5,
-      '#submit' => [[$this, 'exportReportHTML']],
+      '#submit' => [[$this, 'exportReport']],
       '#disabled' => !$analyzer_ready,
     ];
     $form['drupal_upgrade_status_form']['action']['export_ascii'] = [
@@ -283,7 +283,9 @@ class UpgradeStatusForm extends FormBase {
       '#options' => [],
     ];
     foreach ($projects as $name => $extension) {
-      $option = [];
+      $option = [
+        '#attributes' => ['class' => 'project-' . $name],
+      ];
       $option['project'] = [
         'data' => [
           'label' => [
@@ -334,7 +336,7 @@ class UpgradeStatusForm extends FormBase {
       ];
 
       $report = $this->projectCollector->getResults($name);
-      $result_summary = $this->t('N/A');
+      $result_summary = !empty($report) ? $this->t('No problems found') : $this->t('N/A');
       if (!empty($report['data']['totals']['file_errors'])) {
         $result_summary = $this->formatPlural(
           $report['data']['totals']['file_errors'],
@@ -354,7 +356,8 @@ class UpgradeStatusForm extends FormBase {
                 'height' => 568,
               ]),
             ],
-          ]
+          ],
+          'class' => 'scan-result',
         ];
       }
       else {
@@ -364,7 +367,8 @@ class UpgradeStatusForm extends FormBase {
               '#type' => 'markup',
               '#markup' => $result_summary,
             ],
-          ]
+          ],
+          'class' => 'scan-result',
         ];
       }
 
@@ -921,52 +925,23 @@ MARKUP
    *   An associative array containing the structure of the form.
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
-   */
-  public function exportReportHTML(array &$form, FormStateInterface $form_state) {
-    $selected = $form_state->getValues();
-    $form_state->setResponse($this->exportReport($selected, 'html'));
-  }
-
-  /**
-   * Form submission handler.
-   *
-   * @param array $form
-   *   An associative array containing the structure of the form.
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   The current state of the form.
-   */
-  public function exportReportASCII(array &$form, FormStateInterface $form_state) {
-    $selected = $form_state->getValues();
-    $form_state->setResponse($this->exportReport($selected, 'ascii'));
-  }
-
-  /**
-   * Export generator.
-   *
-   * @param array $selected
-   *   Selected projects from the form.
    * @param string $format
-   *   The format of export to do: html or ascii.
-   *
-   * @return \Symfony\Component\HttpFoundation\Response
-   *   Response object for this export.
+   *   Either 'html' or 'ascii' depending on what the format should be.
    */
-  public function exportReport(array $selected, string $format) {
+  public function exportReport(array &$form, FormStateInterface $form_state, string $format = 'html') {
     $extensions = [];
     $projects = $this->projectCollector->collectProjects();
-
-    foreach (['custom', 'contrib'] as $type) {
-      $states = ['uninstalled', 'installed'];
-      foreach ($states as $state) {
-        if (!empty($selected[$type]['data'][$state])) {
-          foreach($selected[$type]['data'][$state] as $project => $checked) {
-            if ($checked !== 0) {
-              // If the checkbox was checked, add it to the list.
-              $extensions[$type][$project] =
-                $format == 'html' ?
-                  $this->resultFormatter->formatResult($projects[$type][$project]) :
-                  $this->resultFormatter->formatAsciiResult($projects[$type][$project]);
-            }
+    $submitted = $form_state->getValues();
+    $next_steps = $this->projectCollector->getNextStepInfo();
+    foreach ($next_steps as $next_step => $step_label) {
+      if (!empty($submitted[$next_step]['data']['list'])) {
+        foreach ($submitted[$next_step]['data']['list'] as $item) {
+          if (isset($projects[$item])) {
+            $type = $projects[$item]->info['upgrade_status_type'] == ProjectCollector::TYPE_CUSTOM ? 'custom' : 'contrib';
+            $extensions[$type][$item] =
+              $format == 'html' ?
+                $this->resultFormatter->formatResult($projects[$item]) :
+                $this->resultFormatter->formatAsciiResult($projects[$item]);
           }
         }
       }
@@ -988,7 +963,19 @@ MARKUP
 
     $response = new Response($this->renderer->renderRoot($build));
     $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-    return $response;
+    $form_state->setResponse($response);
+  }
+
+  /**
+   * Form submission handler.
+   *
+   * @param array $form
+   *   An associative array containing the structure of the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   */
+  public function exportReportASCII(array &$form, FormStateInterface $form_state) {
+    $this->exportReport($form, $form_state, 'ascii');
   }
 
   /**
