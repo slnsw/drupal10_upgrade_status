@@ -64,19 +64,14 @@ class ProjectCollector {
   const UPDATE_NOT_AVAILABLE = 1;
 
   /**
-   * Update available for a project but not Drupal 9 compatible.
+   * Update available for a project.
    */
-  const UPDATE_NOT_DRUPAL_9_COMPATIBLE = 2;
-
-  /**
-   * Drupal 9 compatible update available for a project.
-   */
-  const UPDATE_DRUPAL_9_COMPATIBLE = 3;
+  const UPDATE_AVAILABLE = 2;
 
   /**
    * The latest version is already being used.
    */
-  const UPDATE_ALREADY_INSTALLED = 4;
+  const UPDATE_ALREADY_INSTALLED = 3;
 
   /**
    * Custom project.
@@ -284,15 +279,20 @@ class ProjectCollector {
         else {
           // Add Drupal 9 compatibility info from the update's data.
           $latest_release = reset($project_update['releases']);
-          $projects[$name]->info['upgrade_status_update'] = self::UPDATE_NOT_DRUPAL_9_COMPATIBLE;
+          $projects[$name]->info['upgrade_status_update_compatible'] = FALSE;
           if (!empty($latest_release['core_compatibility']) && Semver::satisfies('9.0.0', $latest_release['core_compatibility'])) {
-            $projects[$name]->info['upgrade_status_update'] = self::UPDATE_DRUPAL_9_COMPATIBLE;
+            $projects[$name]->info['upgrade_status_update_compatible'] = TRUE;
           }
           // Denormalize update info into the extension info for our own use.
           if ($extension->info['version'] !== $latest_release['version']) {
+            $projects[$name]->info['upgrade_status_update'] = self::UPDATE_AVAILABLE;
             $link = $project_update['link'] . '/releases/' . $latest_release['version'];
             $projects[$name]->info['upgrade_status_update_link'] = $link;
             $projects[$name]->info['upgrade_status_update_version'] = $latest_release['version'];
+          }
+          else {
+            // If the current version is already the latest, store that.
+            $projects[$name]->info['upgrade_status_update'] = self::UPDATE_ALREADY_INSTALLED;
           }
         }
       }
@@ -301,7 +301,7 @@ class ProjectCollector {
       $scan_result = $this->getResults($name);
 
       // Pick a suggested next step for this project.
-      if ($extension->info['upgrade_status_9_compatible'] && $extension->info['upgrade_status_type'] == ProjectCollector::TYPE_CONTRIB) {
+      if ($extension->info['upgrade_status_9_compatible'] && $extension->info['upgrade_status_type'] == self::TYPE_CONTRIB) {
         // If the project was contrib and already Drupal 9 compatible, relax.
         $extension->info['upgrade_status_next'] = self::NEXT_RELAX;
       }
@@ -309,13 +309,13 @@ class ProjectCollector {
         // Uninstalled modules should be removed.
         $extension->info['upgrade_status_next'] = self::NEXT_REMOVE;
       }
-      elseif (isset($extension->info['upgrade_status_update']) && in_array($extension->info['upgrade_status_update'], [self::UPDATE_DRUPAL_9_COMPATIBLE, self::UPDATE_NOT_DRUPAL_9_COMPATIBLE])) {
+      elseif (isset($extension->info['upgrade_status_update']) && $extension->info['upgrade_status_update'] == self::UPDATE_AVAILABLE) {
         // If there was a Drupal 9 compatible update or even a yet incompatble
         // update to this project, the best course of action is to update to
         // that, since that should move closer to Drupal 9 compatibility.
         $extension->info['upgrade_status_next'] = self::NEXT_UPDATE;
       }
-      elseif ($extension->info['upgrade_status_type'] == ProjectCollector::TYPE_CONTRIB) {
+      elseif ($extension->info['upgrade_status_type'] == self::TYPE_CONTRIB) {
         // For installed contributed modules that do not have compatile updates, collaborate.
         $extension->info['upgrade_status_next'] = self::NEXT_COLLABORATE;
       }

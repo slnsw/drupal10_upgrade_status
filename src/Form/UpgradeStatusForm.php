@@ -373,7 +373,8 @@ class UpgradeStatusForm extends FormBase {
       }
 
       // Start of drupal.org data columns.
-      if (isset($extension->info['upgrade_status_update_link'])) {
+      $updatev = $this->t('Not applicable');
+      if (!empty($extension->info['upgrade_status_update_link'])) {
         $option['updatev'] = [
           'data' => [
             'link' => [
@@ -383,19 +384,29 @@ class UpgradeStatusForm extends FormBase {
             ],
           ]
         ];
+        unset($updatev);
       }
-      else {
+      elseif (!empty($extension->info['upgrade_status_update'])) {
+        $updatev = $this->t('Unavailable');
+        if ($extension->info['upgrade_status_update'] == ProjectCollector::UPDATE_NOT_CHECKED) {
+          $updatev = $this->t('Unchecked');
+        }
+        elseif ($extension->info['upgrade_status_update'] == ProjectCollector::UPDATE_ALREADY_INSTALLED) {
+          $updatev = $this->t('Up to date');
+        }
+      }
+      if (!empty($updatev)) {
         $option['updatev'] = [
           'data' => [
             'label' => [
               '#type' => 'markup',
-              '#markup' => $this->t('N/A'),
+              '#markup' => $updatev,
             ],
           ]
         ];
       }
       $update_class = 'status-info-na';
-      $update_info = $this->t('N/A');
+      $update_info = $this->t('Not applicable');
       if (isset($extension->info['upgrade_status_update'])) {
         switch ($extension->info['upgrade_status_update']) {
           case ProjectCollector::UPDATE_NOT_AVAILABLE:
@@ -406,13 +417,16 @@ class UpgradeStatusForm extends FormBase {
             $update_info = $this->t('Unchecked');
             $update_class = 'status-info-unchecked';
             break;
-          case ProjectCollector::UPDATE_NOT_DRUPAL_9_COMPATIBLE:
-            $update_info = $this->t('Incompatible');
-            $update_class = 'status-info-incompatible';
-            break;
-          case ProjectCollector::UPDATE_DRUPAL_9_COMPATIBLE:
-            $update_info = $this->t('Compatible');
-            $update_class = 'status-info-compatible';
+          case ProjectCollector::UPDATE_AVAILABLE:
+          case ProjectCollector::UPDATE_ALREADY_INSTALLED:
+            if ($extension->info['upgrade_status_update_compatible']) {
+              $update_info = $this->t('Compatible');
+              $update_class = 'status-info-compatible';
+            }
+            else {
+              $update_info = $this->t('Incompatible');
+              $update_class = 'status-info-incompatible';
+            }
             break;
         }
       }
@@ -430,7 +444,7 @@ class UpgradeStatusForm extends FormBase {
           'data' => [
             'label' => [
               '#type' => 'markup',
-              '#markup' => $this->t('N/A'),
+              '#markup' => $this->t('Not applicable'),
             ],
           ]
         ];
