@@ -271,7 +271,8 @@ class ProjectCollector {
 
       // Add available update information to contrib projects found.
       if ($extension->info['upgrade_status_type'] == self::TYPE_CONTRIB) {
-        $project_update = $this->availableUpdates->get($name);
+        // Look up by drupal.org project info not $name because the two may be different.
+        $project_update = $this->availableUpdates->get($extension->info['project']);
         if (!isset($project_update['releases']) || is_null($project_update['releases'])) {
           // Releases were either not checked or not available.
           $projects[$name]->info['upgrade_status_update'] = $update_check_for_uninstalled ? self::UPDATE_NOT_AVAILABLE : self::UPDATE_NOT_CHECKED;

@@ -455,7 +455,9 @@ class UpgradeStatusForm extends FormBase {
             'label' => [
               '#type' => 'markup',
               // Display Drupal 9 pland or issue search if there was no plan.
-              '#markup' => !empty($report['plans']) ? $report['plans'] : '<a href="https://drupal.org/project/issues/' . $name . '?text=Drupal+9&status=All">' . $this->t('Drupal.org issue search') . '</a>',
+              // Use the project name from the info array instead of $key.
+              // $key is the local name, not necessarily the project name.
+              '#markup' => !empty($report['plans']) ? $report['plans'] : '<a href="https://drupal.org/project/issues/' . $extension->info['project'] . '?text=Drupal+9&status=All">' . $this->t('Drupal.org issue search') . '</a>',
             ],
           ]
         ];
