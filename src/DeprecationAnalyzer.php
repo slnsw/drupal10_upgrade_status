@@ -276,7 +276,7 @@ final class DeprecationAnalyzer {
        $this->logger->error('PHPStan failed: %results', ['%results' => print_r($output, TRUE)]);
        $json = [
          'files' => [
-           'PHPStan failed' => 'PHP API deprecations cannot be checked. Reason: ' . $output,
+           'PHPStan failed' => 'PHP API deprecations cannot be checked. Reason: ' . print_r($output, TRUE),
            'line' => 0,
           ],
           'totals' => [
