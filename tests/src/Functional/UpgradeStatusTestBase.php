@@ -47,7 +47,6 @@ abstract class UpgradeStatusTestBase extends BrowserTestBase {
    */
   protected function runFullScan() {
     $edit = [
-      'relax[data][list][upgrade_status]' => TRUE,
       'scan[data][list][upgrade_status_test_error]' => TRUE,
       'scan[data][list][upgrade_status_test_no_error]' => TRUE,
       'scan[data][list][upgrade_status_test_submodules]' => TRUE,
@@ -57,6 +56,7 @@ abstract class UpgradeStatusTestBase extends BrowserTestBase {
       'scan[data][list][upgrade_status_test_theme_functions]' => TRUE,
       'scan[data][list][upgrade_status_test_library]' => TRUE,
       'scan[data][list][upgrade_status_test_library_exception]' => TRUE,
+      'collaborate[data][list][upgrade_status]' => TRUE,
       'collaborate[data][list][upgrade_status_test_contrib_error]' => TRUE,
       'relax[data][list][upgrade_status_test_contrib_no_error]' => TRUE,
     ];

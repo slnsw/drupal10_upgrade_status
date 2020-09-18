@@ -593,6 +593,9 @@ MARKUP
             '#markup' => '<a href="#edit-environment" class="upgrade-status-summary-label">' . $this->t('Environment checks passed') . '</a>',
           ];
         }
+        $cell_items[] = [
+          '#markup' => 'Once entirely compatible, make sure to remove Upgrade Status from the site before updating to Drupal 9',
+        ];
       }
       if (count($cell_items)) {
         $build['#rows'][0]['data'][$key]['data'][] = [
