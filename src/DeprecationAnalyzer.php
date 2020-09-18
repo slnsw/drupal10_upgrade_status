@@ -274,7 +274,16 @@ final class DeprecationAnalyzer {
     $json = json_decode(implode('', $output), TRUE);
     if (!isset($json['files']) || !is_array($json['files'])) {
        $this->logger->error('PHPStan failed: %results', ['%results' => print_r($output, TRUE)]);
-       $json = ['files' => [], 'totals' => ['file_errors' => 0]];
+       $json = [
+         'files' => [
+           'PHPStan failed' => 'PHP API deprecations cannot be checked. Reason: ' . $output,
+           'line' => 0,
+          ],
+          'totals' => [
+            'errors' => 1,
+            'file_errors' => 1,
+          ],
+       ];
     }
     $result = [
       'date' => $this->time->getRequestTime(),
