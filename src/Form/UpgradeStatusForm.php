@@ -275,6 +275,7 @@ class UpgradeStatusForm extends FormBase {
       'updatev'  => ['data' => $this->t('Drupal.org version'), 'class' => 'updatev-info'],
       'update9'  => ['data' => $this->t('Drupal.org 9-ready'), 'class' => 'update9-info'],
       'issues'   => ['data' => $this->t('Drupal.org issues'), 'class' => 'issue-info'],
+      'plan'     => ['data' => $this->t('Plan'), 'class' => 'plan-info'],
     ];
     $build['list'] = [
       '#type' => 'tableselect',
@@ -440,7 +441,7 @@ class UpgradeStatusForm extends FormBase {
         ]
       ];
       if ($extension->info['upgrade_status_type'] == ProjectCollector::TYPE_CUSTOM) {
-        $option['issues'] = [
+        $option['issues'] = $option['plan'] = [
           'data' => [
             'label' => [
               '#type' => 'markup',
@@ -450,14 +451,23 @@ class UpgradeStatusForm extends FormBase {
         ];
       }
       else {
+        $plan = (string) $this->projectCollector->getPlan($name);
         $option['issues'] = [
           'data' => [
             'label' => [
               '#type' => 'markup',
-              // Display Drupal 9 pland or issue search if there was no plan.
               // Use the project name from the info array instead of $key.
               // $key is the local name, not necessarily the project name.
-              '#markup' => !empty($report['plans']) ? $report['plans'] : '<a href="https://drupal.org/project/issues/' . $extension->info['project'] . '?text=Drupal+9&status=All">' . $this->t('Drupal.org issue search') . '</a>',
+              '#markup' => '<a href="https://drupal.org/project/issues/' . $extension->info['project'] . '?text=Drupal+9&status=All">' . $this->t('Issues') . '</a>',
+            ],
+          ]
+        ];
+        $plan = (string) $this->projectCollector->getPlan($name);
+        $option['plan'] = [
+          'data' => [
+            'label' => [
+              '#type' => 'markup',
+              '#markup' => !empty($plan) ? $plan : $this->t('N/A'),
             ],
           ]
         ];

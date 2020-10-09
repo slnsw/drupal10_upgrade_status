@@ -402,6 +402,9 @@ class ProjectCollector {
   /**
    * Get local scanning results for a project.
    *
+   * @param string $project_machine_name
+   *   Machine name for project.
+   *
    * @return mixed
    *   - NULL if there was no result
    *   - Associative array of results otherwise
@@ -411,6 +414,35 @@ class ProjectCollector {
     // because scan result saving happens in different HTTP requests for most
     // cases (when analysis was successful).
     return \Drupal::service('keyvalue')->get('upgrade_status_scan_results')->get($project_machine_name) ?: NULL;
+  }
+
+  /**
+   * Get the Drupal 9 plan for a project, either explicitly fetched or cached.
+   *
+   * @param string $project_machine_name
+   *   Machine name for project.
+   *
+   * @return NULL|string
+   *   Either NULL or the Drupal 9 plan for the project.
+   */
+  public function getPlan(string $project_machine_name) {
+    // Return explicitly fetched Drupal 9 plan if available.
+    $result = $this->getResults($project_machine_name);
+    if (!empty($result) && !empty($result['plans'])) {
+      return $result['plans'];
+    }
+
+    // Read our shipped snapshot of Drupal 9 plans to find this one.
+    $file = fopen(drupal_get_path('module', 'upgrade_status') . '/project_plans.csv', 'r');
+    while ($line = fgetcsv($file, 0, ";")) {
+      if ($line[0] == $project_machine_name) {
+        fclose($file);
+        // Replace drupal.org link formatting with actual links.
+        return preg_replace('!\[#(\d+)\]!', '<a href="https://drupal.org/node/\1">[#\1]</a>', $line[1]);
+      }
+    }
+    fclose($file);
+    return NULL;
   }
 
   /**
