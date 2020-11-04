@@ -507,9 +507,12 @@ final class DeprecationAnalyzer {
         "\tdrupal:\n\t\tdrupal_root: '" . DRUPAL_ROOT . "'",
       $config
     );
-    $config .= "\nincludes:\n\t- '" .
-      $this->vendorPath . "/mglaman/phpstan-drupal/extension.neon'\n\t- '" .
-      $this->vendorPath . "/phpstan/phpstan-deprecation-rules/rules.neon'\n";
+
+    if (!class_exists('PHPStan\ExtensionInstaller\GeneratedConfig')) {
+      $config .= "\nincludes:\n\t- '" .
+        $this->vendorPath . "/mglaman/phpstan-drupal/extension.neon'\n\t- '" .
+        $this->vendorPath . "/phpstan/phpstan-deprecation-rules/rules.neon'\n";
+    }
     $success = file_put_contents($this->phpstanNeonPath, $config);
     if (!$success) {
       throw new \Exception('Unable to write configuration for PHPStan to ' . $this->phpstanNeonPath);
