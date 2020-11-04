@@ -223,7 +223,7 @@ class ProjectCollector {
         continue;
       }
 
-      // Attempt to identfy if the project was contrib based on the directory
+      // Attempt to identify if the project was contrib based on the directory
       // structure it is in. Extension placement is not a mandatory requirement
       // and theoretically this could lead to false positives, but if
       // composer_deploy or git_deploy is not available (and/or did not
@@ -311,7 +311,7 @@ class ProjectCollector {
         $extension->info['upgrade_status_next'] = self::NEXT_REMOVE;
       }
       elseif (isset($extension->info['upgrade_status_update']) && $extension->info['upgrade_status_update'] == self::UPDATE_AVAILABLE) {
-        // If there was a Drupal 9 compatible update or even a yet incompatble
+        // If there was a Drupal 9 compatible update or even a yet incompatible
         // update to this project, the best course of action is to update to
         // that, since that should move closer to Drupal 9 compatibility.
         $extension->info['upgrade_status_next'] = self::NEXT_UPDATE;
@@ -449,7 +449,7 @@ class ProjectCollector {
    * Return list of possible next steps and their labels and descriptions.
    *
    * @return array
-   *   Associative array keyes by next step identifier. Values are arrays
+   *   Associative array keys by next step identifier. Values are arrays
    *   where the first item is a label an the second is a description.
    */
   public function getNextStepInfo() {

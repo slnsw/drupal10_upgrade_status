@@ -84,7 +84,7 @@ final class LibraryDeprecationAnalyzer {
    * Analyzes usages of deprecated libraries in an extension.
    *
    * @param \Drupal\Core\Extension\Extension $extension
-   *  The extensiion to be analyzed.
+   *  The extension to be analyzed.
    *
    * @return \Drupal\upgrade_status\DeprecationMessage[]
    *   A list of deprecation messages.
@@ -114,7 +114,7 @@ final class LibraryDeprecationAnalyzer {
    */
   private function analyzeLibraryDependencies(Extension $extension): array {
     // Drupal\Core\Asset\LibraryDiscoveryParser::buildByExtension() assumes a
-    // disaled module is a theme and fails not finding it then, so check if
+    // disabled module is a theme and fails not finding it then, so check if
     // the extension identified he is an installed module or theme. The library
     // info will not be available otherwise.
     $installed_modules = array_keys($this->moduleExtensionList->getAllInstalledInfo());
@@ -414,7 +414,7 @@ final class LibraryDeprecationAnalyzer {
     list($extension_name, $library_name) = explode('/', $library, 2);
 
     // Drupal\Core\Asset\LibraryDiscoveryParser::buildByExtension() assumes a
-    // disaled module is a theme and fails not finding it then, so check if
+    // disabled module is a theme and fails not finding it then, so check if
     // the extension identified he is an installed module or theme. The library
     // info will not be available otherwise.
     if ($extension_name != 'core') {
