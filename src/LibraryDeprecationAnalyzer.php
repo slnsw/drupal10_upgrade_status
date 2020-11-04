@@ -135,12 +135,12 @@ final class LibraryDeprecationAnalyzer {
     });
 
     $deprecations = [];
+    $file = sprintf('%s/%s.libraries.yml', $extension->getPath(), $extension->getName());
     foreach ($libraries_with_dependencies as $key => $library_with_dependency) {
       foreach ($library_with_dependency['dependencies'] as $dependency) {
         $is_deprecated = $this->isLibraryDeprecated($dependency);
         if (is_null($is_deprecated)) {
           $message = sprintf("The '%s' library (a dependency of '%s') is not defined because the defining extension is not installed. Cannot decide if it is deprecated or not.", $dependency, $key);
-          $file = sprintf('%s/%s.libraries.yml', $extension->getPath(), $extension->getName());
           $deprecations[] = new DeprecationMessage($message, $file, 0);
         }
         elseif (!empty($is_deprecated)) {
@@ -150,7 +150,6 @@ final class LibraryDeprecationAnalyzer {
           }
           else {
             $message = sprintf("The '%s' library is depending on a deprecated library. %s", $key, $is_deprecated);
-            $file = sprintf('%s/%s.libraries.yml', $extension->getPath(), $extension->getName());
             $deprecations[] = new DeprecationMessage($message, $file, 0);
           }
         }
