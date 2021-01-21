@@ -9,7 +9,8 @@
         "phpstan/phpstan-deprecation-rules": "^0.12.0",
         "mathieuviossat/arraytotexttable": "~1.0.0",
         "nikic/php-parser": "^4.0.0",
-        "webflo/drupal-finder": "^1.2"
+        "webflo/drupal-finder": "^1.2",
+        "drupal/core": "^8.7.0"
     },
     "minimum-stability": "dev",
     "extra": {
