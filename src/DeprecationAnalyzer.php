@@ -296,11 +296,9 @@ final class DeprecationAnalyzer {
       preg_match('/\s(\d).?$/', $twig_deprecation, $line_matches);
       $twig_deprecation = preg_replace('! in (.+)\.twig at line \d+\.!', '.', $twig_deprecation);
       $twig_deprecation .= ' See https://drupal.org/node/3071078.';
-      $result['data']['files'][$file_matches[1]]['messages'] = [
-        [
-          'message' => $twig_deprecation,
-          'line' => $line_matches[1] ?: 0,
-        ],
+      $result['data']['files'][$file_matches[1]]['messages'][] = [
+        'message' => $twig_deprecation,
+        'line' => $line_matches[1] ?: 0,
       ];
       $result['data']['totals']['errors']++;
       $result['data']['totals']['file_errors']++;
