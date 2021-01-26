@@ -276,13 +276,19 @@ final class DeprecationAnalyzer {
        $this->logger->error('PHPStan failed: %results', ['%results' => print_r($output, TRUE)]);
        $json = [
          'files' => [
-           'PHPStan failed' => 'PHP API deprecations cannot be checked. Reason: ' . print_r($output, TRUE),
-           'line' => 0,
-          ],
-          'totals' => [
-            'errors' => 1,
-            'file_errors' => 1,
-          ],
+           // Add a failure message with the nonexistent 'PHPStan failed'
+           // filename, so the error conforms to the expected format.
+           'PHPStan failed' => [
+             'messages' => [
+               'message' => 'PHP API deprecations cannot be checked. Reason: ' . print_r($output, TRUE),
+               'line' => 0,
+             ],
+           ]
+         ],
+         'totals' => [
+           'errors' => 1,
+           'file_errors' => 1,
+         ],
        ];
     }
     $result = [
@@ -396,36 +402,34 @@ final class DeprecationAnalyzer {
     $result['data']['totals']['upgrade_status_next'] = ProjectCollector::NEXT_RELAX;
 
     foreach ($result['data']['files'] as $path => &$errors) {
-      if (!empty($errors['messages'])) {
-        foreach ($errors['messages'] as &$error) {
+      foreach ($errors['messages'] as &$error) {
 
-          // Overwrite message with processed text. Save category.
-          [$message, $category] = $this->categorizeMessage($error['message'], $extension);
-          $error['message'] = $message;
-          $error['upgrade_status_category'] = $category;
+        // Overwrite message with processed text. Save category.
+        [$message, $category] = $this->categorizeMessage($error['message'], $extension);
+        $error['message'] = $message;
+        $error['upgrade_status_category'] = $category;
 
-          // If the category was 'rector' that means at least one error was
-          // identified as covered by rector, so next step should be to run
-          // rector on this project.
-          if ($category == 'rector') {
-            $result['data']['totals']['upgrade_status_next'] = ProjectCollector::NEXT_RECTOR;
-          }
-          // If the category was not rector, if the next step is still to
-          // relax, modify that to fix manually.
-          elseif ($result['data']['totals']['upgrade_status_next'] == ProjectCollector::NEXT_RELAX) {
-            $result['data']['totals']['upgrade_status_next'] = ProjectCollector::NEXT_MANUAL;
-          }
+        // If the category was 'rector' that means at least one error was
+        // identified as covered by rector, so next step should be to run
+        // rector on this project.
+        if ($category == 'rector') {
+          $result['data']['totals']['upgrade_status_next'] = ProjectCollector::NEXT_RECTOR;
+        }
+        // If the category was not rector, if the next step is still to
+        // relax, modify that to fix manually.
+        elseif ($result['data']['totals']['upgrade_status_next'] == ProjectCollector::NEXT_RELAX) {
+          $result['data']['totals']['upgrade_status_next'] = ProjectCollector::NEXT_MANUAL;
+        }
 
-          // Sum up the error based on the category it ended up in. Split the
-          // categories into two high level buckets needing attention now or
-          // later for Drupal 9 compatibility. Ignore Drupal 10 here.
-          @$result['data']['totals']['upgrade_status_category'][$category]++;
-          if (in_array($category, ['safe', 'old', 'rector'])) {
-            @$result['data']['totals']['upgrade_status_split']['error']++;
-          }
-          elseif (in_array($category, ['later', 'uncategorized'])) {
-            @$result['data']['totals']['upgrade_status_split']['warning']++;
-          }
+        // Sum up the error based on the category it ended up in. Split the
+        // categories into two high level buckets needing attention now or
+        // later for Drupal 9 compatibility. Ignore Drupal 10 here.
+        @$result['data']['totals']['upgrade_status_category'][$category]++;
+        if (in_array($category, ['safe', 'old', 'rector'])) {
+          @$result['data']['totals']['upgrade_status_split']['error']++;
+        }
+        elseif (in_array($category, ['later', 'uncategorized'])) {
+          @$result['data']['totals']['upgrade_status_split']['warning']++;
         }
       }
     }
