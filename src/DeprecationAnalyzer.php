@@ -293,8 +293,10 @@ final class DeprecationAnalyzer {
            // filename, so the error conforms to the expected format.
            'PHPStan failed' => [
              'messages' => [
-               'message' => 'PHP API deprecations cannot be checked. Reason: ' . print_r($output, TRUE),
-               'line' => 0,
+               [
+                 'message' => 'PHP API deprecations cannot be checked. Reason: ' . print_r($output, TRUE),
+                 'line' => 0,
+               ],
              ],
            ]
          ],
