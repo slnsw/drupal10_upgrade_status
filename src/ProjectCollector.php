@@ -2,7 +2,8 @@
 
 namespace Drupal\upgrade_status;
 
-use Composer\Semver\Semver;
+use Composer\Semver\VersionParser;
+use Composer\Semver\Constraint\Constraint;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ProfileExtensionList;
@@ -210,7 +211,7 @@ class ProjectCollector {
           // keep being TRUE, otherwise FALSE.
           $projects[$project]->info['upgrade_status_9_compatible'] =
             isset($extension->info['core_version_requirement']) &&
-            Semver::satisfies('9.0.0', $extension->info['core_version_requirement']);
+            self::isDrupal9CompatibleConstraint($extension->info['core_version_requirement']);
         }
         continue;
       }
@@ -252,7 +253,7 @@ class ProjectCollector {
       $extdata->info['upgrade_status_type'] = $type;
       $extdata->info['upgrade_status_9_compatible'] =
         isset($extdata->info['core_version_requirement']) &&
-        Semver::satisfies('9.0.0', $extdata->info['core_version_requirement']);
+        self::isDrupal9CompatibleConstraint($extdata->info['core_version_requirement']);
 
       // Save this as a possible project to consider.
       $projects[$key] = $extdata;
@@ -281,7 +282,7 @@ class ProjectCollector {
           // Add Drupal 9 compatibility info from the update's data.
           $latest_release = reset($project_update['releases']);
           $projects[$name]->info['upgrade_status_update_compatible'] = FALSE;
-          if (!empty($latest_release['core_compatibility']) && Semver::satisfies('9.0.0', $latest_release['core_compatibility'])) {
+          if (!empty($latest_release['core_compatibility']) && self::isDrupal9CompatibleConstraint($latest_release['core_compatibility'])) {
             $projects[$name]->info['upgrade_status_update_compatible'] = TRUE;
           }
           // Denormalize update info into the extension info for our own use.
@@ -368,7 +369,7 @@ class ProjectCollector {
             // keep being TRUE, otherwise FALSE.
             $extensions[$name_a]->info['upgrade_status_9_compatible'] =
               isset($extension_b->info['core_version_requirement']) &&
-              Semver::satisfies('9.0.0', $extension_b->info['core_version_requirement']);
+              self::isDrupal9CompatibleConstraint($extension_b->info['core_version_requirement']);
           }
 
           // Remove the subextension.
@@ -490,6 +491,25 @@ class ProjectCollector {
         ProjectCollector::SUMMARY_RELAX,
       ],
     ];
+  }
+
+  /**
+   * Checks whether the given constraints are Drupal 9 compatible.
+   *
+   * A customized version of Semver::satisfies(), since that only works for
+   * a == condition.
+   *
+   * @paran string $constraints
+   *   Composer compatible constraints from core_version_requirement or
+   *   drupal/core requirement.
+   *
+   * @return bool
+   */
+  public static function isDrupal9CompatibleConstraint(string $constraints) {
+    $version_parser = new VersionParser();
+    $provider = new Constraint('>=', $version_parser->normalize('9.0.0'));
+    $parsed_constraints = $version_parser->parseConstraints($constraints);
+    return $parsed_constraints->matches($provider);
   }
 
 }

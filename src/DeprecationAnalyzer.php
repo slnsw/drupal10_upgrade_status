@@ -2,7 +2,6 @@
 
 namespace Drupal\upgrade_status;
 
-use Composer\Semver\Semver;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
@@ -379,9 +378,9 @@ final class DeprecationAnalyzer {
           $result['data']['totals']['file_errors']++;
           $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
         }
-        elseif (!Semver::satisfies('9.0.0', $info['core_version_requirement'])) {
+        elseif (!ProjectCollector::isDrupal9CompatibleConstraint($info['core_version_requirement'])) {
           $result['data']['files'][$error_path]['messages'][] = [
-            'message' => "Value of core_version_requirement: {$info['core_version_requirement']} is not compatible with Drupal 9.0.0. See https://drupal.org/node/3070687.",
+            'message' => "Value of core_version_requirement: {$info['core_version_requirement']} is not compatible with Drupal 9. See https://drupal.org/node/3070687.",
             'line' => 0,
           ];
           $result['data']['totals']['errors']++;
@@ -411,7 +410,7 @@ final class DeprecationAnalyzer {
         $result['data']['totals']['file_errors']++;
         $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
       }
-      elseif (!empty($composer_json->require->{'drupal/core'}) && !Semver::satisfies('9.0.0', $composer_json->require->{'drupal/core'})) {
+      elseif (!empty($composer_json->require->{'drupal/core'}) && !projectCollector::isDrupal9CompatibleConstraint($composer_json->require->{'drupal/core'})) {
         $result['data']['files'][$extension->getPath() . '/composer.json']['messages'][] = [
           'message' => "The drupal/core requirement is not Drupal 9 compatible. Either remove it or update it to be compatible with Drupal 9. See https://drupal.org/node/2514612#s-drupal-9-compatibility.",
           'line' => 0,
