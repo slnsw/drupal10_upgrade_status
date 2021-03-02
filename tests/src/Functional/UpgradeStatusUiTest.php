@@ -58,12 +58,12 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $this->assertEmpty($page->find('css', 'tr.upgrade_status_test_submodules_a'));
 
     // Contrib test modules should show with results.
-    $this->assertSame('2 problems', strip_tags($page->find('css', 'tr.project-upgrade_status_test_contrib_error td.scan-result')->getHtml()));
+    $this->assertSame('5 problems', strip_tags($page->find('css', 'tr.project-upgrade_status_test_contrib_error td.scan-result')->getHtml()));
     $this->assertSame('No problems found', strip_tags($page->find('css', 'tr.project-upgrade_status_test_contrib_no_error td.scan-result')->getHtml()));
     // This contrib module has a different project name. Ensure the drupal.org link used that.
     $this->assertSession()->linkByHrefExists('https://drupal.org/project/issues/upgrade_status_test_contributed_no_error?text=Drupal+9&status=All');
 
-    // Click the first '4 problems' link. Should be the contrib project.
+    // Click the first '4 problems' link. Should be the custom project.
     $this->clickLink('4 problems');
     $this->assertText('Upgrade status test error ' . \Drupal::VERSION);
     $this->assertText('2 errors found. 2 warnings found.');

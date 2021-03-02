@@ -512,4 +512,30 @@ class ProjectCollector {
     return $parsed_constraints->matches($provider);
   }
 
+  /**
+   * Return the oldest supported minor version for the current core major.
+   *
+   * @return string
+   *   Oldest supported core version number.
+   */
+  public static function getOldestSupportedMinor(): string {
+    $major = (int) \Drupal::VERSION;
+    switch ($major) {
+      case 8:
+        return '8.9';
+      case 9:
+        return '9.0';
+    }
+  }
+
+  /**
+   * Returns current core's major version.
+   *
+   * @return int
+   *   Version converted to int.
+   */
+  public static function getDrupalCoreMajorVersion(): int {
+    return (int) \Drupal::VERSION;
+  }
+
 }

@@ -1,6 +1,6 @@
 type: module
 name: 'Upgrade Status'
-description: 'Review Drupal 9 readiness of the environment and components of the site.'
+description: 'Review Drupal major upgrade readiness of the environment and components of the site.'
 configure: upgrade_status.report
 package: Administration
 core_version_requirement: ^8 || ^9

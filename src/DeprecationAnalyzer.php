@@ -17,13 +17,6 @@ use Twig\Util\DeprecationCollector;
 final class DeprecationAnalyzer {
 
   /**
-   * The oldest supported core minor version.
-   *
-   * @var string
-   */
-  const CORE_MINOR_OLDEST_SUPPORTED = '8.8';
-
-  /**
    * Upgrade status scan result storage.
    *
    * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
@@ -447,7 +440,8 @@ final class DeprecationAnalyzer {
 
         // Sum up the error based on the category it ended up in. Split the
         // categories into two high level buckets needing attention now or
-        // later for Drupal 9 compatibility. Ignore Drupal 10 here.
+        // later for Drupal 9 compatibility. Issues in the 'ignore' category
+        // are intentionally not counted in either.
         @$result['data']['totals']['upgrade_status_category'][$category]++;
         if (in_array($category, ['safe', 'old', 'rector'])) {
           @$result['data']['totals']['upgrade_status_split']['error']++;
@@ -570,11 +564,11 @@ final class DeprecationAnalyzer {
     // 8.6.0, so use that version number. Otherwise use the number from the
     // message.
     $version = '';
-    if (preg_match('!\\\\(Web|)TestBase. Deprecated in [Dd]rupal[ :]8.8.0 !', $error)) {
+    if (preg_match('!\\\\(Web|)TestBase. Deprecated in [Dd]rupal[ :]8\.8\.0 !', $error)) {
       $version = '8.6.0';
       $error .= " Replacement available from drupal:8.6.0.";
     }
-    elseif (preg_match('!Deprecated (in|as of) [Dd]rupal[ :](8.\d)!', $error, $version_found)) {
+    elseif (preg_match('!Deprecated (in|as of) [Dd]rupal[ :](\d+\.\d)!', $error, $version_found)) {
       $version = $version_found[2];
     }
 
@@ -589,7 +583,7 @@ final class DeprecationAnalyzer {
         // If the found deprecation is older or equal to the oldest
         // supported core version, it should be old enough to update
         // either way.
-        if (version_compare($version, self::CORE_MINOR_OLDEST_SUPPORTED) <= 0) {
+        if (version_compare($version, ProjectCollector::getOldestSupportedMinor()) <= 0) {
           $category = 'old';
         }
         // If the deprecation is not old and we are dealing with a contrib
@@ -616,10 +610,12 @@ final class DeprecationAnalyzer {
       $category = 'rector';
     }
 
-    // If the deprecation is already for Drupal 10, put it in the ignore
-    // category. This overwrites any categorization before intentionally.
-    if (preg_match('!(will be|is) removed (before|from) [Dd]rupal[ :](10.\d)!', $error)) {
-      $category = 'ignore';
+    // If the deprecation is already for after the next Drupal major, put it in the
+    // ignore category. This overwrites any categorization before intentionally.
+    if (preg_match('!(will be|is) removed (before|from) [Dd]rupal[ :](\d+)\.!', $error, $version_removed)) {
+      if ($version_removed[3] > ProjectCollector::getDrupalCoreMajorVersion() + 1) {
+        $category = 'ignore';
+      }
     }
 
     return [$error, $category];
