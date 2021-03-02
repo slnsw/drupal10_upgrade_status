@@ -10,7 +10,7 @@ use Drupal\Core\Controller\ControllerBase;
 class UpgradeStatusTestContribErrorController extends ControllerBase {
 
   public function content() {
-    drupal_set_message('I am deprecated');
+    upgrade_status_test_contrib_error_function();
   }
 
 }

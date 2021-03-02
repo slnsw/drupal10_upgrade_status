@@ -93,7 +93,10 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
     $edit = [
       'manual[data][list][upgrade_status_test_error]' => TRUE,
       'relax[data][list][upgrade_status_test_no_error]' => TRUE,
-      'collaborate[data][list][upgrade_status_test_contrib_error]' => TRUE,
+      // Due to the automated core compatibility assignment of test modules,
+      // the category of this module may be different based on major Drupal
+      // version.
+      ($this->getDrupalCoreMajorVersion() < 9 ? 'collaborate' : 'relax') . '[data][list][upgrade_status_test_contrib_error]' => TRUE,
     ];
     $expected = [
       'Export selected as HTML' => ['Contributed projects', 'Custom projects'],

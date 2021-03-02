@@ -38,12 +38,24 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $this->assertCount(4, $report['data']['files']);
     $file = reset($report['data']['files']);
     $message = $file['messages'][0];
+    $this->assertEquals('fatal.php', basename(key($report['data']['files'])));
     $this->assertEquals("Syntax error, unexpected T_STRING on line 3", $message['message']);
     $this->assertEquals(3, $message['line']);
     $file = next($report['data']['files']);
+    $this->assertEquals('UpgradeStatusTestErrorController.php', basename(key($report['data']['files'])));
     $message = $file['messages'][0];
-    $this->assertEquals("Call to deprecated function menu_cache_clear_all(). Deprecated in drupal:8.6.0 and is removed from drupal:9.0.0. Use \Drupal::cache('menu')->invalidateAll() instead.", $message['message']);
+    $this->assertEquals("Call to deprecated function upgrade_status_test_contrib_error_function(). Deprecated in drupal:8.6.0 and is removed from drupal:9.0.0. Use the replacement instead.", $message['message']);
+    $this->assertEquals(13, $message['line']);
+    $file = next($report['data']['files']);
+    $this->assertEquals('ExtendingClass.php', basename(key($report['data']['files'])));
+    $message = $file['messages'][0];
+    $this->assertEquals("Class Drupal\upgrade_status_test_error\ExtendingClass extends deprecated class Drupal\upgrade_status_test_error\DeprecatedBaseClass. Deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Instead, use so and so. See https://www.drupal.org/project/upgrade_status.", $message['message']);
     $this->assertEquals(10, $message['line']);
+    $file = next($report['data']['files']);
+    $this->assertEquals('upgrade_status_test_error.info.yml', basename(key($report['data']['files'])));
+    $message = $file['messages'][0];
+    $this->assertEquals("Add core_version_requirement: ^8 || ^9 to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.", $message['message']);
+    $this->assertEquals(0, $message['line']);
 
     $report = $key_value->get('upgrade_status_test_no_error');
     $this->assertNotEmpty($report);
@@ -56,7 +68,7 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $this->assertCount(2, $report['data']['files']);
     $file = reset($report['data']['files']);
     $message = $file['messages'][0];
-    $this->assertEquals("Call to deprecated function drupal_set_message(). Deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. Use Drupal\Core\Messenger\MessengerInterface::addMessage() instead.", $message['message']);
+    $this->assertEquals("Call to deprecated function upgrade_status_test_contrib_error_function(). Deprecated in drupal:8.6.0 and is removed from drupal:9.0.0. Use the replacement instead.", $message['message']);
     $this->assertEquals(13, $message['line']);
 
     $report = $key_value->get('upgrade_status_test_twig');
@@ -64,8 +76,8 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $this->assertEquals(3, $report['data']['totals']['file_errors']);
     $this->assertCount(1, $report['data']['files']);
     $file = reset($report['data']['files']);
-    $this->assertEquals('Twig Tag "raw" is deprecated since version 1.21. Use "verbatim" instead. See https://drupal.org/node/3071078.', $file['messages'][0]['message']);
-    $this->assertEquals(3, $file['messages'][0]['line']);
+    $this->assertEquals('Twig Filter "deprecatedfilter" is deprecated. See https://drupal.org/node/3071078.', $file['messages'][0]['message']);
+    $this->assertEquals(10, $file['messages'][0]['line']);
     $this->assertEquals('Template is attaching a deprecated library. The "upgrade_status_test_library/deprecated_library" asset library is deprecated for testing.', $file['messages'][1]['message']);
     $this->assertEquals(1, $file['messages'][1]['line']);
     $this->assertEquals('Template is attaching a deprecated library. The "upgrade_status_test_twig/deprecated_library" asset library is deprecated for testing.', $file['messages'][2]['message']);
@@ -76,9 +88,9 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $this->assertEquals(5, $report['data']['totals']['file_errors']);
     $this->assertCount(3, $report['data']['files']);
     $file = reset($report['data']['files']);
-    foreach ([0 => 1, 1 => 4] as $index => $line) {
+    foreach ([0 => 2, 1 => 4] as $index => $line) {
       $message = $file['messages'][$index];
-      $this->assertEquals('Twig Tag "raw" is deprecated since version 1.21. Use "verbatim" instead. See https://drupal.org/node/3071078.', $message['message']);
+      $this->assertEquals('Twig Filter "deprecatedfilter" is deprecated. See https://drupal.org/node/3071078.', $message['message']);
       $this->assertEquals($line, $message['line']);
     }
     $file = next($report['data']['files']);

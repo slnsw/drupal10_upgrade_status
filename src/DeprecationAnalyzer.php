@@ -12,6 +12,7 @@ use Drupal\Core\Template\TwigEnvironment;
 use DrupalFinder\DrupalFinder;
 use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
+use Twig\Util\DeprecationCollector;
 
 final class DeprecationAnalyzer {
 
@@ -322,7 +323,7 @@ final class DeprecationAnalyzer {
     $twig_deprecations = $this->analyzeTwigTemplates($extension->getPath());
     foreach ($twig_deprecations as $twig_deprecation) {
       preg_match('/\s([a-zA-Z0-9\_\-\/]+.html\.twig)\s/', $twig_deprecation, $file_matches);
-      preg_match('/\s(\d).?$/', $twig_deprecation, $line_matches);
+      preg_match('/\s(\d+).?$/', $twig_deprecation, $line_matches);
       $twig_deprecation = preg_replace('! in (.+)\.twig at line \d+\.!', '.', $twig_deprecation);
       $twig_deprecation .= ' See https://drupal.org/node/3071078.';
       $result['data']['files'][$file_matches[1]]['messages'][] = [
@@ -491,7 +492,7 @@ final class DeprecationAnalyzer {
    * @return array
    */
   protected function analyzeTwigTemplates($directory) {
-    return (new \Twig_Util_DeprecationCollector($this->twigEnvironment))->collectDir($directory, '.html.twig');
+    return (new DeprecationCollector($this->twigEnvironment))->collectDir($directory, '.html.twig');
   }
 
   /**

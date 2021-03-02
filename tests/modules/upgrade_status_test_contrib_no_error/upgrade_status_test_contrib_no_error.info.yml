@@ -3,5 +3,7 @@ type: module
 description: 'Support module for upgrade status module testing.'
 package: Testing
 version: VERSION
+# Intentionally using a requirement that is slightly more specific to
+# test handling of this case.
 core_version_requirement: ^8 || ^9.1
 project: 'upgrade_status_test_contributed_no_error'
