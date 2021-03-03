@@ -347,7 +347,7 @@ final class DeprecationAnalyzer {
       $result['data']['totals']['file_errors']++;
     }
 
-    // Assume this project is Drupal 9 ready unless proven otherwise.
+    // Assume this project is ready for the next major core version unless proven otherwise.
     $result['data']['totals']['upgrade_status_split']['declared_ready'] = TRUE;
 
     $info_files = $this->getSubExtensionInfoFiles($project_dir);
@@ -372,9 +372,9 @@ final class DeprecationAnalyzer {
           $result['data']['totals']['file_errors']++;
           $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
         }
-        elseif (!ProjectCollector::isDrupal9CompatibleConstraint($info['core_version_requirement'])) {
+        elseif (!ProjectCollector::isCompatibleWithNextMajorDrupal($info['core_version_requirement'])) {
           $result['data']['files'][$error_path]['messages'][] = [
-            'message' => "Value of core_version_requirement: {$info['core_version_requirement']} is not compatible with Drupal 9. See https://drupal.org/node/3070687.",
+            'message' => "Value of core_version_requirement: {$info['core_version_requirement']} is not compatible with the next major version of Drupal core. See https://drupal.org/node/3070687.",
             'line' => 0,
           ];
           $result['data']['totals']['errors']++;
@@ -397,16 +397,16 @@ final class DeprecationAnalyzer {
       $composer_json = json_decode(file_get_contents($project_dir . '/composer.json'));
       if (empty($composer_json) || !is_object($composer_json)) {
         $result['data']['files'][$extension->getPath() . '/composer.json']['messages'][] = [
-          'message' => "Parse error in composer.json. Having a composer.json is not a requirement for Drupal 9 compatibility but if there is one, it should be valid. See https://drupal.org/node/2514612.",
+          'message' => "Parse error in composer.json. Having a composer.json is not a requirement in general, but if there is one, it should be valid. See https://drupal.org/node/2514612.",
           'line' => 0,
         ];
         $result['data']['totals']['errors']++;
         $result['data']['totals']['file_errors']++;
         $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
       }
-      elseif (!empty($composer_json->require->{'drupal/core'}) && !projectCollector::isDrupal9CompatibleConstraint($composer_json->require->{'drupal/core'})) {
+      elseif (!empty($composer_json->require->{'drupal/core'}) && !projectCollector::isCompatibleWithNextMajorDrupal($composer_json->require->{'drupal/core'})) {
         $result['data']['files'][$extension->getPath() . '/composer.json']['messages'][] = [
-          'message' => "The drupal/core requirement is not Drupal 9 compatible. Either remove it or update it to be compatible with Drupal 9. See https://drupal.org/node/2514612#s-drupal-9-compatibility.",
+          'message' => "The drupal/core requirement is not compatible with the next major version of Drupal. Either remove it or update it to be compatible. See https://drupal.org/node/2514612#s-drupal-9-compatibility.",
           'line' => 0,
         ];
         $result['data']['totals']['errors']++;
@@ -440,8 +440,8 @@ final class DeprecationAnalyzer {
 
         // Sum up the error based on the category it ended up in. Split the
         // categories into two high level buckets needing attention now or
-        // later for Drupal 9 compatibility. Issues in the 'ignore' category
-        // are intentionally not counted in either.
+        // later for compatibility with the next major version. Issues in the
+        // 'ignore' category are intentionally not counted in either.
         @$result['data']['totals']['upgrade_status_category'][$category]++;
         if (in_array($category, ['safe', 'old', 'rector'])) {
           @$result['data']['totals']['upgrade_status_split']['error']++;
@@ -452,7 +452,7 @@ final class DeprecationAnalyzer {
       }
     }
 
-    // For contributed projects, attempt to grab Drupal 9 plan information.
+    // For contributed projects, attempt to grab upgrade plan information.
     if (!empty($extension->info['project'])) {
       try {
         /** @var \Psr\Http\Message\ResponseInterface $response */
