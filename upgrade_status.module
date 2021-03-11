@@ -2,15 +2,16 @@
 
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Extension\Extension;
+use Drupal\upgrade_status\ProjectCollector;
 
 /**
  * Implements hook_help().
  */
 function upgrade_status_help($route_name, RouteMatchInterface $route_match) {
   if ($route_name == 'upgrade_status.report') {
-    $help = '<p>' . t('Analyze your site\'s readiness for the next major Drupal version. Run the report to find out if there are detectable compatibility errors with the modules and themes installed on your site.');
+    $help = '<p>' . t('Run the report to find out if there are detectable compatibility errors with the modules and themes installed on your site.');
     // @todo Link to a relevant page for the Drupal 9 to 10 process when available.
-    if ((int) \Drupal::VERSION < 9) {
+    if (ProjectCollector::getDrupalCoreMajorVersion() < 9) {
       $help .= t('<a href=":prepare">Read more about preparing your site for Drupal 9</a>.', [':prepare' => 'https://www.drupal.org/docs/9/how-to-prepare-your-drupal-7-or-8-site-for-drupal-9/prepare-a-drupal-8-site-for-drupal-9']);
     }
     $help .= '</p>';

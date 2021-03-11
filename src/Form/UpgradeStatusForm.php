@@ -1192,4 +1192,11 @@ MARKUP
     return [$error, $message, $data];
   }
 
+  /**
+   * Dynamic page title for the form to make the status target clear.
+   */
+  public function getTitle() {
+    return $this->t('Drupal @version upgrade status', ['@version' => $this->nextMajor]);
+  }
+
 }
