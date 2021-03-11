@@ -640,14 +640,6 @@ MARKUP
    *   environment requirements on a high level.
    */
   protected function buildEnvironmentChecks() {
-    if ($this->nextMajor == 10) {
-      // @todo update this as the situation develops.
-      return [
-        'status' => NULL,
-        'description' => $this->t('<a href=":environment">Drupal 10 environment requirements are still to be defined. Expect a minimum requirement of PHP 8.</a> Unfortunately the <a href=":support">dependencies of Upgrade Status do not yet support PHP 8, support is needed</a>.', [':support' => 'https://mglaman.dev/blog/drupal-check-and-phpstan-drupal-indefinite-development-hiatus', ':environment' => 'https://www.drupal.org/project/drupal/issues/3118147']),
-      ];
-    }
-
     $status = TRUE;
     $header = [
       'requirement' => ['data' => $this->t('Requirement'), 'class' => 'requirement-label'],
@@ -658,6 +650,41 @@ MARKUP
       '#header' => $header,
       '#rows' => [],
     ];
+
+    if ($this->nextMajor == 10) {
+      // @todo update this as the situation develops.
+      $build['description'] = $this->t('<a href=":environment">Drupal 10 environment requirements are still evolving</a>. Upgrades to Drupal 10 are planned to be supported from Drupal 9.3.x and Drupal 9.4.x.', [':environment' => 'https://www.drupal.org/project/drupal/issues/3118147']);
+
+      // Check PHP version.
+      $version = PHP_VERSION;
+      if (version_compare($version, '8.0.0') >= 0) {
+        $class = 'no-known-error';
+      }
+      else {
+        $class = 'known-error';
+        $status = FALSE;
+      }
+      $build['data']['#rows'][] = [
+        'class' => [$class],
+        'data' => [
+          'requirement' => [
+            'class' => 'requirement-label',
+            'data' => $this->t('PHP version should be at least 8.0.0. Before updating to PHP 8, use <code>$ composer why-not php:8</code> to check if any projects need updating for compatibility. Also check custom projects manually.'),
+          ],
+          'status' => [
+            'data' => $this->t('Version @version', ['@version' => $version]),
+            'class' => 'status-info',
+          ],
+        ]
+      ];
+
+      // Save the overall status indicator in the build array. It will be
+      // popped off later to be used in the summary table.
+      $build['status'] = $status;
+
+      return $build;
+    }
+
     $build['description'] = $this->t('<a href=":upgrade">Upgrades to Drupal 9 are supported from Drupal 8.8.x and Drupal 8.9.x</a>. It is suggested to update to the latest Drupal 8 version available. <a href=":platform">Several hosting platform requirements have been raised for Drupal 9</a>.', [':upgrade' => 'https://www.drupal.org/docs/9/how-to-prepare-your-drupal-7-or-8-site-for-drupal-9/upgrading-a-drupal-8-site-to-drupal-9', ':platform' => 'https://www.drupal.org/docs/9/how-drupal-9-is-made-and-what-is-included/environment-requirements-of-drupal-9']);
 
     // Check Drupal version. Link to update if available.
