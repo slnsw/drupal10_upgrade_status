@@ -678,6 +678,31 @@ MARKUP
         ]
       ];
 
+      // Check JSON support in database.
+      $class = 'no-known-error';
+      $requirement = $this->t('Supported.');
+      try {
+        \Drupal::database()->query('SELECT JSON_TYPE(\'1\')');
+      }
+      catch (\Exception $e) {
+        $class = 'known-error';
+        $status = FALSE;
+        $requirement = $this->t('Not supported.');
+      }
+      $build['data']['#rows'][] = [
+        'class' => [$class],
+        'data' => [
+          'requirement' => [
+            'class' => 'requirement-label',
+            'data' => $this->t('Database JSON support required'),
+          ],
+          'status' => [
+            'data' => $requirement,
+            'class' => 'status-info',
+          ],
+        ]
+      ];
+
       // Save the overall status indicator in the build array. It will be
       // popped off later to be used in the summary table.
       $build['status'] = $status;
