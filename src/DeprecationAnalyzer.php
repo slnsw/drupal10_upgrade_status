@@ -556,9 +556,9 @@ final class DeprecationAnalyzer {
    */
   protected function categorizeMessage(string $error, Extension $extension) {
     // Make the error more readable in case it has the deprecation text.
+    $error = preg_replace('!\s+!', ' ', $error);
     $error = preg_replace('!:\s+(in|as of)!', '. Deprecated \1', $error);
     $error = preg_replace('!(u|U)se \\\\Drupal!', '\1se Drupal', $error);
-    $error = str_replace("\n", ' ', $error);
 
     // TestBase and WebTestBase replacements are available at least from Drupal
     // 8.6.0, so use that version number. Otherwise use the number from the
