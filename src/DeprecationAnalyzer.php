@@ -13,6 +13,7 @@ use DrupalFinder\DrupalFinder;
 use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
 use Twig\Util\DeprecationCollector;
+use Twig\Util\TemplateDirIterator;
 
 final class DeprecationAnalyzer {
 
@@ -486,7 +487,11 @@ final class DeprecationAnalyzer {
    * @return array
    */
   protected function analyzeTwigTemplates($directory) {
-    return (new DeprecationCollector($this->twigEnvironment))->collectDir($directory, '.html.twig');
+    $iterator = new TemplateDirIterator(
+      new TwigRecursiveIterator($directory)
+    );
+    return (new DeprecationCollector($this->twigEnvironment))
+      ->collect($iterator);
   }
 
   /**
