@@ -354,7 +354,8 @@ final class DeprecationAnalyzer {
     $info_files = $this->getSubExtensionInfoFiles($project_dir);
     foreach ($info_files as $info_file) {
       try {
-        // Manually add on info file incompatibility to results. Reding
+
+        // Manually add on info file incompatibility to results. Reading
         // .info.yml files directly, not from extension discovery because that
         // is cached.
         $info = Yaml::decode(file_get_contents($info_file)) ?: [];
@@ -364,6 +365,19 @@ final class DeprecationAnalyzer {
           continue;
         }
         $error_path = str_replace(DRUPAL_ROOT . '/', '', $info_file);
+
+        // Check for missing base theme key.
+        if ($info['type'] === 'theme') {
+          if (!isset($info['base theme'])) {
+            $result['data']['files'][$error_path]['messages'][] = [
+              'message' => "The now required 'base theme' key is missing. See https://www.drupal.org/node/3066038.",
+              'line' => 0,
+            ];
+            $result['data']['totals']['errors']++;
+            $result['data']['totals']['file_errors']++;
+          }
+        }
+
         if (!isset($info['core_version_requirement'])) {
           $result['data']['files'][$error_path]['messages'][] = [
             'message' => "Add core_version_requirement: ^8 || ^9 to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.",
@@ -382,6 +396,7 @@ final class DeprecationAnalyzer {
           $result['data']['totals']['file_errors']++;
           $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
         }
+
       } catch (InvalidDataTypeException $e) {
         $result['data']['files'][$error_path]['messages'][] = [
           'message' => 'Parse error. ' . $e->getMessage(),
