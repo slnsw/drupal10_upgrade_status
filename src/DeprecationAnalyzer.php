@@ -540,7 +540,7 @@ final class DeprecationAnalyzer {
    */
   protected function createModifiedNeonFile() {
     $module_path = DRUPAL_ROOT . '/' . drupal_get_path('module', 'upgrade_status');
-    $config = file_get_contents($module_path . '/deprecation_testing.neon');
+    $config = file_get_contents($module_path . '/deprecation_testing_template.neon');
     $config = str_replace(
       'parameters:',
       "parameters:\n\ttmpDir: '" . $this->temporaryDirectory . '/phpstan' . "'\n" .
