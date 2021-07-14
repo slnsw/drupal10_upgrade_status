@@ -19,6 +19,7 @@ use Drupal\upgrade_status\DeprecationAnalyzer;
 use Drupal\upgrade_status\ProjectCollector;
 use Drupal\upgrade_status\ScanResultFormatter;
 use Drupal\upgrade_status\Util\CorrectDbServerVersion;
+use Drupal\user\Entity\Role;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\SetCookie;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -712,6 +713,35 @@ MARKUP
           ],
           'status' => [
             'data' => $requirement,
+            'class' => 'status-info',
+          ],
+        ]
+      ];
+
+      // Check user roles on the site for invalid permissions.
+      $class = 'no-known-error';
+      $requirement = [$this->t('None found.')];
+      $user_roles = Role::loadMultiple();
+      $all_permissions = array_keys(\Drupal::service('user.permissions')->getPermissions());
+      foreach ($user_roles as $role) {
+        $role_permissions = $role->getPermissions();
+        $valid_role_permissions = array_intersect($role_permissions, $all_permissions);
+        $invalid_role_permissions = array_diff($role_permissions, $valid_role_permissions);
+        if (!empty($invalid_role_permissions)) {
+          $class = 'known-error';
+          $status = FALSE;
+          $requirement = [$this->t('"@permissions" of user role: "@role".', ['@permissions' => implode('", "', $invalid_role_permissions), '@role' => $role->label()])];
+        }
+      }
+      $build['data']['#rows'][] = [
+        'class' => [$class],
+        'data' => [
+          'requirement' => [
+            'class' => 'requirement-label',
+            'data' => $this->t('Invalid permissions will trigger runtime exceptions in Drupal 10. Permissions should be defined in a permissions.yml file or a permission callback. See https://www.drupal.org/node/3193348'),
+          ],
+          'status' => [
+            'data' => join(' ', $requirement),
             'class' => 'status-info',
           ],
         ]

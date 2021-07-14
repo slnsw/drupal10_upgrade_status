@@ -3,6 +3,7 @@
 namespace Drupal\Tests\upgrade_status\Functional;
 
 use Drupal\Core\Url;
+use Drupal\user\Entity\Role;
 
 /**
  * Tests the UI before and after running scans.
@@ -114,4 +115,18 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
       $this->assertText('Syntax error, unexpected T_STRING on line 3');
     }
   }
+
+  /**
+   * Test the user interface for role checking.
+   */
+  public function testRoleChecking() {
+    if ($this->getDrupalCoreMajorVersion() == 9) {
+      $authenticated = Role::load('authenticated');
+      $authenticated->grantPermission('upgrade status invalid permission test');
+      $authenticated->save();
+      $this->drupalGet(Url::fromRoute('upgrade_status.report'));
+      $this->assertSession()->pageTextContains('"upgrade status invalid permission test" of user role: "Authenticated user".');
+    }
+  }
+
 }
