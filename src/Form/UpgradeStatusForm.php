@@ -984,6 +984,33 @@ MARKUP
       ]
     ];
 
+    // Check deprecated $config_directories.
+    $class = 'no-known-error';
+    $requirement = $this->t('Use of $config_directories in settings.php is deprecated.');
+    $label = $this->t('Not used');
+    if (!empty($GLOBALS['config_directories'])) {
+      $status = FALSE;
+      $class = 'known-error';
+      $label = $this->t('Deprecated configuration used');
+      $requirement .= ' ' . $this->t('<a href=":settings">Use $settings[\'config_sync_directory\'] instead.</a>', [':settings' => 'https://www.drupal.org/node/3018145']);
+    }
+    $build['data']['#rows'][] = [
+      'class' => $class,
+      'data' => [
+        'requirement' => [
+          'class' => 'requirement-label',
+          'data' => [
+            '#type' => 'markup',
+            '#markup' => $requirement
+          ],
+        ],
+        'status' => [
+          'data' => $label,
+          'class' => 'status-info',
+        ],
+      ]
+    ];
+
     // Save the overall status indicator in the build array. It will be
     // popped off later to be used in the summary table.
     $build['status'] = $status;
