@@ -695,7 +695,7 @@ final class DeprecationAnalyzer {
       // 0.5.2
       'Call to deprecated function entity_get_form_display(). Deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use EntityDisplayRepositoryInterface::getFormDisplay() instead.',
       'Call to deprecated function entity_get_display(). Deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use EntityDisplayRepositoryInterface::getViewDisplay() instead.',
-      'Call to deprecated const REQUEST_TIME. Deprecated in drupal:8.3.0 and is removed from drupal:10.0.0. Use Drupal::time()->getRequestTime().',
+      'Call to deprecated constant REQUEST_TIME. Deprecated in drupal:8.3.0 and is removed from drupal:10.0.0. Use Drupal::time()->getRequestTime().',
       'Call to deprecated method urlInfo() of class Drupal\Core\Entity\EntityInterface. Deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use Drupal\Core\Entity\EntityInterface::toUrl() instead.',
       'Call to deprecated function file_scan_directory(). Deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use Drupal\Core\File\FileSystemInterface::scanDirectory() instead.',
       'Call to deprecated function file_default_scheme(). Deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use Drupal::config(\'system.file\')->get(\'default_scheme\') instead.',
