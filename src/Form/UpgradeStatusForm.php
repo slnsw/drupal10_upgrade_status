@@ -760,6 +760,29 @@ MARKUP
         ]
       ];
 
+      // Check for deprecated or obsolete core extensions.
+      $class = 'no-known-error';
+      $requirement = $this->t('None installed.');
+      $deprecated_or_obsolete = $this->projectCollector->collectCoreDeprecatedAndObsoleteExtensions();
+      if (!empty($deprecated_or_obsolete)) {
+        $class = 'known-error';
+        $status = FALSE;
+        $requirement = join(', ', $deprecated_or_obsolete);
+      }
+      $build['data']['#rows'][] = [
+        'class' => [$class],
+        'data' => [
+          'requirement' => [
+            'class' => 'requirement-label',
+            'data' => $this->t('Deprecated or obsolete core extensions installed. These will be removed in the next major version.'),
+          ],
+          'status' => [
+            'data' => $requirement,
+            'class' => 'status-info',
+          ],
+        ]
+      ];
+
       // Save the overall status indicator in the build array. It will be
       // popped off later to be used in the summary table.
       $build['status'] = $status;

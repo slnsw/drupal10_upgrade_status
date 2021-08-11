@@ -397,6 +397,31 @@ final class DeprecationAnalyzer {
           $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
         }
 
+        // @todo
+        //   Change values to ExtensionLifecycle class constants once at least
+        //   Drupal 9.3 is required.
+        if (!empty($info['lifecycle'])) {
+          $link = !empty($info['lifecycle_link']) ? $info['lifecycle_link'] : 'https://www.drupal.org/node/3215042';
+          if ($info['lifecycle'] == 'deprecated') {
+            $result['data']['files'][$error_path]['messages'][] = [
+              'message' => "This extension is deprecated. Don't use it. See $link.",
+              'line' => 0,
+            ];
+            $result['data']['totals']['errors']++;
+            $result['data']['totals']['file_errors']++;
+            $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
+          }
+          elseif ($info['lifecycle'] == 'obsolete') {
+            $result['data']['files'][$error_path]['messages'][] = [
+              'message' => "This extension is obsolete. Obsolete extensions are usually uninstalled automatically when not needed anymore. You only need to do something about this if the uninstallation was unsuccesful. See $link.",
+              'line' => 0,
+            ];
+            $result['data']['totals']['errors']++;
+            $result['data']['totals']['file_errors']++;
+            $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
+          }
+        }
+
       } catch (InvalidDataTypeException $e) {
         $result['data']['files'][$error_path]['messages'][] = [
           'message' => 'Parse error. ' . $e->getMessage(),
