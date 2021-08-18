@@ -278,7 +278,7 @@ final class DeprecationAnalyzer {
 
     $output = [];
     $error_filename = $this->temporaryDirectory . '/phpstan_error_output';
-    $command = $this->binPath . '/phpstan analyse --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir . ' 2> ' . $error_filename;
+    $command = $this->binPath . '/phpstan analyse --memory-limit=-1 --error-format=json -c ' . $this->phpstanNeonPath . ' ' . $project_dir . ' 2> ' . $error_filename;
     exec($command, $output);
 
     $json = json_decode(implode('', $output), TRUE);
