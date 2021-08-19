@@ -769,7 +769,9 @@ final class DeprecationAnalyzer {
       // 0.11.2
       'Call to deprecated method assertText() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use - $this->assertSession()->responseContains() for non-HTML responses, like XML or Json. - $this->assertSession()->pageTextContains() for HTML responses. Unlike the deprecated assertText(), the passed text should be HTML decoded, exactly as a human sees it in the browser.',
       'Call to deprecated method assertEqual() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertEquals() instead.',
+      'Call to deprecated method assertEqual() of class Drupal\KernelTests\KernelTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertEquals() instead.',
       'Call to deprecated method assertIdentical() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertSame() instead.',
+      'Call to deprecated method assertIdentical() of class Drupal\KernelTests\KernelTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertSame() instead.',
       'Call to deprecated method assertResponse() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->statusCodeEquals() instead.',
       'Call to deprecated method assertRaw() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseContains() instead.',
       'Call to deprecated method assertFieldByName() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->fieldExists() or $this->assertSession()->buttonExists() or $this->assertSession()->fieldValueEquals() instead.',
@@ -780,11 +782,15 @@ final class DeprecationAnalyzer {
       'Call to deprecated method assertNoPattern() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.4.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseNotMatches() instead.',
       'Call to deprecated method assertPattern() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseMatches() instead.',
       'Call to deprecated method assertEscaped() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->assertEscaped() instead.',
-      // assertNoEscaped() rule exists but no instance in contrib.
+      'Call to deprecated method assertNoEscaped() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->assertNoEscaped() instead.',
       'Call to deprecated method assertNotEqual() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertNotEquals() instead.',
+      'Call to deprecated method assertNotEqual() of class Drupal\KernelTests\KernelTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertNotEquals() instead.',
       'Call to deprecated method assertNotIdentical() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertNotSame() instead.',
-      // assertIdenticalObject() rule exists but no instance in contrib.
+      'Call to deprecated method assertNotIdentical() of class Drupal\KernelTests\KernelTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertNotSame() instead.',
+      'Call to deprecated method assertIdenticalObject() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertEquals() instead.',
+      'Call to deprecated method assertIdenticalObject() of class Drupal\KernelTests\KernelTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertEquals() instead.',
       'Call to deprecated method assert() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertTrue() instead.',
+      'Call to deprecated method assert() of class Drupal\KernelTests\KernelTestBase. Deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertTrue() instead.',
       'Call to deprecated method assertElementNotPresent() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->elementNotExists() instead.',
       'Call to deprecated method assertElementPresent() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->elementExists() instead.',
       'Call to deprecated method assertNoText() of class Drupal\Tests\BrowserTestBase. Deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use - $this->assertSession()->responseNotContains() for non-HTML responses, like XML or Json. - $this->assertSession()->pageTextNotContains() for HTML responses. Unlike the deprecated assertNoText(), the passed text should be HTML decoded, exactly as a human sees it in the browser.',
