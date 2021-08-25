@@ -1365,6 +1365,7 @@ MARKUP
       $settings = [];
       $config = [];
       $databases = [];
+      $class_loader = require $app_root . '/autoload.php';
       require $app_root . '/' . $site_path . '/settings.php';
     }
 
