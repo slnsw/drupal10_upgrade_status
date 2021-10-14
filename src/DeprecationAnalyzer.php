@@ -8,7 +8,6 @@ use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
-use Drupal\Core\Template\TwigEnvironment;
 use DrupalFinder\DrupalFinder;
 use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
@@ -83,11 +82,11 @@ final class DeprecationAnalyzer {
   protected $fileSystem;
 
   /**
-   * The Twig environment.
+   * The Twig deprecation analyzer.
    *
-   * @var \Drupal\Core\Template\TwigEnvironment
+   * @var \Drupal\upgrade_status\TwigDeprecationAnalyzer
    */
-  protected $twigEnvironment;
+  protected $twigDeprecationAnalyzer;
 
   /**
    * The library deprecation analyzer.
@@ -135,8 +134,8 @@ final class DeprecationAnalyzer {
    *   HTTP client.
    * @param \Drupal\Core\File\FileSystemInterface $file_system
    *   File system service.
-   * @param \Drupal\Core\Template\TwigEnvironment $twig_environment
-   *   The Twig environment.
+   * @param \Drupal\upgrade_status\TwigDeprecationAnalyzer $twig_deprecation_analyzer
+   *   The Twig deprecation analyzer.
    * @param \Drupal\upgrade_status\LibraryDeprecationAnalyzer $library_deprecation_analyzer
    *   The library deprecation analyzer.
    * @param \Drupal\upgrade_status\ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer
@@ -149,7 +148,7 @@ final class DeprecationAnalyzer {
     LoggerInterface $logger,
     Client $http_client,
     FileSystemInterface $file_system,
-    TwigEnvironment $twig_environment,
+    TwigDeprecationAnalyzer $twig_deprecation_analyzer,
     LibraryDeprecationAnalyzer $library_deprecation_analyzer,
     ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer,
     TimeInterface $time
@@ -158,7 +157,7 @@ final class DeprecationAnalyzer {
     $this->logger = $logger;
     $this->httpClient = $http_client;
     $this->fileSystem = $file_system;
-    $this->twigEnvironment = $twig_environment;
+    $this->twigDeprecationAnalyzer = $twig_deprecation_analyzer;
     $this->libraryDeprecationAnalyzer = $library_deprecation_analyzer;
     $this->themeFunctionDeprecationAnalyzer = $theme_function_deprecation_analyzer;
     $this->time = $time;
@@ -353,15 +352,11 @@ final class DeprecationAnalyzer {
       'data' => $json,
     ];
 
-    $twig_deprecations = $this->analyzeTwigTemplates($extension->getPath());
+    $twig_deprecations = $this->twigDeprecationAnalyzer->analyze($extension);
     foreach ($twig_deprecations as $twig_deprecation) {
-      preg_match('/\s([a-zA-Z0-9\_\-\/]+.html\.twig)\s/', $twig_deprecation, $file_matches);
-      preg_match('/\s(\d+).?$/', $twig_deprecation, $line_matches);
-      $twig_deprecation = preg_replace('! in (.+)\.twig at line \d+\.!', '.', $twig_deprecation);
-      $twig_deprecation .= ' See https://drupal.org/node/3071078.';
-      $result['data']['files'][$file_matches[1]]['messages'][] = [
-        'message' => $twig_deprecation,
-        'line' => $line_matches[1] ?: 0,
+      $result['data']['files'][$twig_deprecation->getFile()]['messages'][] = [
+        'message' => $twig_deprecation->getMessage(),
+        'line' => $twig_deprecation->getLine(),
       ];
       $result['data']['totals']['errors']++;
       $result['data']['totals']['file_errors']++;
