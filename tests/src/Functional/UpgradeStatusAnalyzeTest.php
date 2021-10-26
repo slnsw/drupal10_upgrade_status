@@ -62,7 +62,7 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $file = next($report['data']['files']);
     $this->assertEquals('upgrade_status_test_error.info.yml', basename(key($report['data']['files'])));
     $message = $file['messages'][0];
-    $this->assertEquals("Add core_version_requirement: ^8 || ^9 to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.", $message['message']);
+    $this->assertEquals("Add core_version_requirement: ^8 || ^9 to designate that the extension is compatible with Drupal 9. See https://drupal.org/node/3070687.", $message['message']);
     $this->assertEquals(0, $message['line']);
 
     // The Drupal 9 compatible test modules are not Drupal 10 compatible.
@@ -119,7 +119,7 @@ class UpgradeStatusAnalyzeTest extends UpgradeStatusTestBase {
     $file = next($report['data']['files']);
     $this->assertEquals('upgrade_status_test_contrib_error.info.yml', basename(key($report['data']['files'])));
     $message = $file['messages'][0];
-    $this->assertEquals("Add core_version_requirement: ^8 || ^9 to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.", $message['message']);
+    $this->assertEquals("Add core_version_requirement: ^8 || ^9 to designate that the extension is compatible with Drupal 9. See https://drupal.org/node/3070687.", $message['message']);
     $this->assertEquals(0, $message['line']);
     $this->assertEquals('uncategorized', $message['upgrade_status_category']);
 

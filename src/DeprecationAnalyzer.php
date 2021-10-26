@@ -414,7 +414,7 @@ final class DeprecationAnalyzer {
 
         if (!isset($info['core_version_requirement'])) {
           $result['data']['files'][$error_path]['messages'][] = [
-            'message' => "Add core_version_requirement: ^8 || ^9 to designate that the module is compatible with Drupal 9. See https://drupal.org/node/3070687.",
+            'message' => "Add core_version_requirement: ^8 || ^9 to designate that the extension is compatible with Drupal 9. See https://drupal.org/node/3070687.",
             'line' => 0,
           ];
           $result['data']['totals']['errors']++;
