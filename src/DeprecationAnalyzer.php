@@ -180,6 +180,25 @@ final class DeprecationAnalyzer {
     $this->finder = new DrupalFinder();
     $this->finder->locateRoot(DRUPAL_ROOT);
 
+    // If a Drupal project is built with Composer scaffolding, the "name"
+    // property in composer.json MUST NOT be "drupal/drupal". If it is, the
+    // webflo/drupal-finder package will assume we are NOT in a Composer
+    // scaffolded project and assume Drupal core is in the root directory.
+    // @see https://www.drupal.org/project/upgrade_status/issues/3229725
+    if (!is_dir($this->finder->getDrupalRoot() . '/core')) {
+      $composer_json_path = dirname(DRUPAL_ROOT) . '/composer.json';
+      if (!file_exists($composer_json_path)) {
+        throw new \Exception('Could not find the composer.json file for your Drupal site, assumed: ' . $composer_json_path);
+      }
+      $composer_data = \json_decode(file_get_contents($composer_json_path), TRUE);
+      if ($composer_data['name'] === 'drupal/drupal') {
+        throw new \Exception('Change the "name" property in ' . $composer_json_path . ' from "drupal/drupal" to a custom value.');
+      }
+      else {
+        throw new \Exception('Could not detect the location of "drupal/core", please open an issue at https://www.drupal.org/project/issues/upgrade_status.');
+      }
+    }
+
     $this->vendorPath = $this->finder->getVendorDir();
     $this->binPath = $this->findBinPath();
 
