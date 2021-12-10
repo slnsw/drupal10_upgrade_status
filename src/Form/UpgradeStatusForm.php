@@ -507,7 +507,6 @@ class UpgradeStatusForm extends FormBase {
         ];
       }
       else {
-        $plan = (string) $this->projectCollector->getPlan($name);
         $option['issues'] = [
           'data' => [
             'label' => [

@@ -441,22 +441,27 @@ class ProjectCollector {
   }
 
   /**
-   * Get the Drupal 9 plan for a project, either explicitly fetched or cached.
+   * Get the Drupal 10 plan for a project, either explicitly fetched or cached.
    *
    * @param string $project_machine_name
    *   Machine name for project.
    *
    * @return NULL|string
-   *   Either NULL or the Drupal 9 plan for the project.
+   *   Either NULL or the Drupal 10 plan for the project.
    */
   public function getPlan(string $project_machine_name) {
-    // Return explicitly fetched Drupal 9 plan if available.
+    // Drupal 9 plans are discontinued, return NULL on Drupal 8.
+    if ($this->getDrupalCoreMajorVersion() < 9) {
+      return NULL;
+    }
+
+    // Return explicitly fetched Drupal 10 plan if available.
     $result = $this->getResults($project_machine_name);
     if (!empty($result) && !empty($result['plans'])) {
       return $result['plans'];
     }
 
-    // Read our shipped snapshot of Drupal 9 plans to find this one.
+    // Read our shipped snapshot of Drupal 10 plans to find this one.
     $file = fopen(drupal_get_path('module', 'upgrade_status') . '/project_plans.csv', 'r');
     while ($line = fgetcsv($file, 0, ";")) {
       if ($line[0] == $project_machine_name) {
