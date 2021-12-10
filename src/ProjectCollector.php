@@ -55,6 +55,13 @@ class ProjectCollector {
   protected $configFactory;
 
   /**
+   * The current installation profile.
+   *
+   * @var string
+   */
+  private $installProfile;
+
+  /**
    * Update not checked for a project.
    */
   const UPDATE_NOT_CHECKED = 0;
@@ -147,19 +154,23 @@ class ProjectCollector {
    *   The expirable key/value storage.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
+   * @param string $install_profile
+   *   The current installation profile.
    */
   public function __construct(
     ModuleExtensionList $module_extension_list,
     ThemeExtensionList $theme_extension_list,
     ProfileExtensionList $profile_extension_list,
     KeyValueExpirableFactory $key_value_expirable,
-    ConfigFactoryInterface $config_factory
+    ConfigFactoryInterface $config_factory,
+    $install_profile
   ) {
     $this->moduleExtensionList = $module_extension_list;
     $this->themeExtensionList = $theme_extension_list;
     $this->profileExtensionList = $profile_extension_list;
     $this->availableUpdates = $key_value_expirable->get('update_available_releases');
     $this->configFactory = $config_factory;
+    $this->installProfile = $install_profile;
   }
 
   /**
@@ -307,8 +318,9 @@ class ProjectCollector {
         // If the project was contrib and already Drupal 9 compatible, relax.
         $extension->info['upgrade_status_next'] = self::NEXT_RELAX;
       }
-      elseif (empty($extension->status)) {
-        // Uninstalled modules should be removed.
+      elseif (empty($extension->status) && ($name != $this->installProfile)) {
+        // Uninstalled extensions should be removed. Except if this is the
+        // profile. See https://www.drupal.org/project/drupal/issues/1170362
         $extension->info['upgrade_status_next'] = self::NEXT_REMOVE;
       }
       elseif (isset($extension->info['upgrade_status_update']) && $extension->info['upgrade_status_update'] == self::UPDATE_AVAILABLE) {
