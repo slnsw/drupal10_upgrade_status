@@ -348,7 +348,7 @@ class UpgradeStatusForm extends FormBase {
           'label' => [
             '#type' => 'html_tag',
             '#tag' => 'label',
-            '#value' => $extension->info['name'],
+            '#value' => $extension->info['name'] . ' (' . $extension->getName() . ')',
             '#attributes' => [
               'for' => 'edit-' . $next_step . '-data-list-' . str_replace('_', '-', $name),
             ],
