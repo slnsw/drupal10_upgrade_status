@@ -356,11 +356,34 @@ class UpgradeStatusForm extends FormBase {
         ],
         'class' => 'project-label',
       ];
+      $type = '';
+      if ($extension->info['upgrade_status_type'] == ProjectCollector::TYPE_CUSTOM) {
+        if ($extension->getType() == 'module') {
+          $type = $this->t('Custom module');
+        }
+        elseif ($extension->getType() == 'theme') {
+          $type = $this->t('Custom theme');
+        }
+        elseif ($extension->getType() == 'profile') {
+          $type = $this->t('Custom profile');
+        }
+      }
+      else {
+        if ($extension->getType() == 'module') {
+          $type = $this->t('Contributed module');
+        }
+        elseif ($extension->getType() == 'theme') {
+          $type = $this->t('Contributed theme');
+        }
+        elseif ($extension->getType() == 'profile') {
+          $type = $this->t('Contributed profile');
+        }
+      }
       $option['type'] = [
         'data' => [
           'label' => [
             '#type' => 'markup',
-            '#markup' => $extension->info['upgrade_status_type'] == ProjectCollector::TYPE_CUSTOM ? $this->t('Custom') : $this->t('Contributed'),
+            '#markup' => $type,
           ],
         ]
       ];
