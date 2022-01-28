@@ -822,7 +822,7 @@ MARKUP
         if (!empty($invalid_role_permissions)) {
           $class = 'known-error';
           $status = FALSE;
-          $requirement = [$this->t('"@permissions" of user role: "@role".', ['@permissions' => implode('", "', $invalid_role_permissions), '@role' => $role->label()])];
+          $requirement = [$this->t('Permissions of user role: "@role":', ['@role' => $role->label()]) . '<ul><li>' . implode('</li><li>', $invalid_role_permissions) . '</li></ul>'];
         }
       }
       $build['data']['#rows'][] = [
@@ -833,7 +833,9 @@ MARKUP
             'data' => $this->t('Invalid permissions will trigger runtime exceptions in Drupal 10. Permissions should be defined in a permissions.yml file or a permission callback. See https://www.drupal.org/node/3193348'),
           ],
           'status' => [
-            'data' => join(' ', $requirement),
+            'data' => [
+              '#markup' => join(' ', $requirement),
+            ],
             'class' => 'status-info',
           ],
         ]
