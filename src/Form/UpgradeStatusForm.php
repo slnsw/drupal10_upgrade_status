@@ -858,7 +858,9 @@ MARKUP
             'data' => $this->t('Deprecated or obsolete core extensions installed. These will be removed in the next major version.'),
           ],
           'status' => [
-            'data' => $requirement,
+            'data' => [
+              '#markup' => $requirement,
+            ],
             'class' => 'status-info',
           ],
         ]

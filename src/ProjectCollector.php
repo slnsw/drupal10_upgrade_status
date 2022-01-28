@@ -364,7 +364,13 @@ class ProjectCollector {
     /** @var \Drupal\Core\Extension\Extension $extension */
     foreach ($extensions as $key => $extension) {
       if ($extension->origin === 'core' && !empty($extension->info['lifecycle']) && in_array($extension->info['lifecycle'], ['deprecated', 'obsolete'])) {
-        $deprecated_or_obsolete[$key] = $extension->info['name'];
+        $prefix = '';
+        $suffix = '';
+        if (isset($extension->info['lifecycle_link'])) {
+          $prefix = '<a href="' . $extension->info['lifecycle_link'] . '">';
+          $suffix = ' (' . $this->t('read more') . ')</a>';
+        }
+        $deprecated_or_obsolete[$key] = $prefix . $extension->info['name'] . $suffix;
       }
     }
     return $deprecated_or_obsolete;
