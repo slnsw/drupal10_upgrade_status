@@ -1,7 +1,6 @@
 name: 'Upgrade status test theme'
 type: theme
 description: 'Theme for testing deprecations in themes'
-version: VERSION
 base theme: false
 core_version_requirement: ^8 || ^9
 libraries-override:

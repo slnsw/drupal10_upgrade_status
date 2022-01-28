@@ -2,6 +2,5 @@ name: 'Upgrade status test error'
 type: module
 description: 'Support module for upgrade status module testing.'
 package: Testing
-version: VERSION
 dependencies:
   -drupal:upgrade_status_contrib_error

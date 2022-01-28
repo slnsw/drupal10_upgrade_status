@@ -2,5 +2,4 @@ name: 'Upgrade status test Twig'
 type: module
 description: 'Support module for upgrade status module testing.'
 package: Testing
-version: VERSION
 core_version_requirement: ^8 || ^9
