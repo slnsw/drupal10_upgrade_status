@@ -832,7 +832,7 @@ MARKUP
         'data' => [
           'requirement' => [
             'class' => 'requirement-label',
-            'data' => $this->t('Invalid permissions will trigger runtime exceptions in Drupal 10. Permissions should be defined in a permissions.yml file or a permission callback. See https://www.drupal.org/node/3193348'),
+            'data' => $this->t('<a href=":url">Invalid permissions will trigger runtime exceptions in Drupal 10.</a> Permissions should be defined in a permissions.yml file or a permission callback.', [':url' => 'https://www.drupal.org/node/3193348']),
           ],
           'status' => [
             'data' => join(' ', $requirement),
