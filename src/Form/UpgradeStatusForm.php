@@ -814,7 +814,7 @@ MARKUP
 
       // Check user roles on the site for invalid permissions.
       $class = 'no-known-error';
-      $requirement = [$this->t('None found.')];
+      $requirement = [];
       $user_roles = Role::loadMultiple();
       $all_permissions = array_keys(\Drupal::service('user.permissions')->getPermissions());
       foreach ($user_roles as $role) {
@@ -824,7 +824,11 @@ MARKUP
         if (!empty($invalid_role_permissions)) {
           $class = 'known-error';
           $status = FALSE;
-          $requirement = [$this->t('Permissions of user role: "@role":', ['@role' => $role->label()]) . '<ul><li>' . implode('</li><li>', $invalid_role_permissions) . '</li></ul>'];
+          $requirement[] = [
+            '#theme' => 'item_list',
+            '#prefix' => $this->t('Permissions of user role: "@role":', ['@role' => $role->label()]),
+            '#items' => $invalid_role_permissions,
+          ];
         }
       }
       $build['data']['#rows'][] = [
@@ -836,7 +840,9 @@ MARKUP
           ],
           'status' => [
             'data' => [
-              '#markup' => join(' ', $requirement),
+              '#theme' => 'item_list',
+              '#items' => $requirement,
+              '#empty' => $this->t('None found.'),
             ],
             'class' => 'status-info',
           ],
