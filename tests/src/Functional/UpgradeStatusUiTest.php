@@ -125,7 +125,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
       $authenticated->grantPermission('upgrade status invalid permission test');
       $authenticated->save();
       $this->drupalGet(Url::fromRoute('upgrade_status.report'));
-      $this->assertSession()->pageTextContains('"upgrade status invalid permission test" of user role: "Authenticated user".');
+      $this->assertSession()->pageTextContains('Permissions of user role: "Authenticated user":upgrade status invalid permission test');
     }
   }
 
