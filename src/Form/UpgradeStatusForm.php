@@ -749,11 +749,11 @@ MARKUP
       ];
 
       // Check database version.
-      $type = $this->database->databaseType();
+      $database_type = $this->database->databaseType();
       $version = $this->database->version();
       $addendum = '';
-      if ($type == 'pgsql') {
-        $type = 'PostgreSQL';
+      if ($database_type == 'pgsql') {
+        $database_type_full_name = 'PostgreSQL';
         $requirement = $this->t('When using PostgreSQL, minimum version is 12 <a href=":trgm">with the pg_trgm extension</a> created.', [':trgm' => 'https://www.postgresql.org/docs/10/pgtrgm.html']);
         $has_trgm = $this->database->query("SELECT installed_version FROM pg_available_extensions WHERE name = 'pg_trgm'")->fetchField();
         if (version_compare($version, '12') >= 0 && $has_trgm) {
@@ -778,7 +778,7 @@ MARKUP
               ],
             ],
             'status' => [
-              'data' => trim($type . ' ' . $version . ' ' . $addendum),
+              'data' => trim($database_type_full_name . ' ' . $version . ' ' . $addendum),
               'class' => 'status-info',
             ],
           ]
@@ -791,7 +791,7 @@ MARKUP
       try {
         // A hasJson() method was added to Connection from Drupal 9.4.0
         // but we cannot rely on being on Drupal 9.4.x+
-        $this->database->query($type == 'pgsql' ? 'SELECT JSON_TYPEOF(\'1\')' : 'SELECT JSON_TYPE(\'1\')');
+        $this->database->query($database_type == 'pgsql' ? 'SELECT JSON_TYPEOF(\'1\')' : 'SELECT JSON_TYPE(\'1\')');
       }
       catch (\Exception $e) {
         $class = 'known-error';
@@ -956,7 +956,7 @@ MARKUP
     ];
 
     // Check database version.
-    $type = $this->database->databaseType();
+    $database_type = $this->database->databaseType();
     $version = $this->database->version();
 
     // If running on Drupal 8, the mysql driver might
@@ -969,14 +969,14 @@ MARKUP
     // MariaDB databases report as MySQL. Detect MariaDB separately based on code from
     // https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Database%21Driver%21mysql%21Connection.php/function/Connection%3A%3AgetMariaDbVersionMatch/9.0.x
     // See also https://www.drupal.org/node/3119156 for test values.
-    if ($type == 'mysql') {
+    if ($database_type == 'mysql') {
       // MariaDB may prefix its version string with '5.5.5-', which should be
       // ignored.
       // @see https://github.com/MariaDB/server/blob/f6633bf058802ad7da8196d01fd19d75c53f7274/include/mysql_com.h#L42.
       $regex = '/^(?:5\\.5\\.5-)?(\\d+\\.\\d+\\.\\d+.*-mariadb.*)/i';
       preg_match($regex, $version, $matches);
       if (!empty($matches[1])) {
-        $type = 'MariaDB';
+        $database_type_full_name = 'MariaDB';
         $version = $matches[1];
         $requirement = $this->t('When using MariaDB, minimum version is 10.3.7');
         if (version_compare($version, '10.3.7') >= 0) {
@@ -993,7 +993,7 @@ MARKUP
         }
       }
       else {
-        $type = 'MySQL or Percona Server';
+        $database_type_full_name = 'MySQL or Percona Server';
         $requirement = $this->t('When using MySQL/Percona, minimum version is 5.7.8');
         if (version_compare($version, '5.7.8') >= 0) {
           $class = 'no-known-error';
@@ -1009,8 +1009,8 @@ MARKUP
         }
       }
     }
-    elseif ($type == 'pgsql') {
-      $type = 'PostgreSQL';
+    elseif ($database_type == 'pgsql') {
+      $database_type_full_name = 'PostgreSQL';
       $requirement = $this->t('When using PostgreSQL, minimum version is 10 <a href=":trgm">with the pg_trgm extension</a> (The extension is not checked here).', [':trgm' => 'https://www.postgresql.org/docs/10/pgtrgm.html']);
       if (version_compare($version, '10') >= 0) {
         $class = 'no-known-error';
@@ -1020,8 +1020,8 @@ MARKUP
         $class = 'known-error';
       }
     }
-    elseif ($type == 'sqlite') {
-      $type = 'SQLite';
+    elseif ($database_type == 'sqlite') {
+      $database_type_full_name = 'SQLite';
       $requirement = $this->t('When using SQLite, minimum version is 3.26');
       if (version_compare($version, '3.26') >= 0) {
         $class = 'no-known-error';
@@ -1043,7 +1043,7 @@ MARKUP
           ],
         ],
         'status' => [
-          'data' => $type . ' ' . $version,
+          'data' => $database_type_full_name . ' ' . $version,
           'class' => 'status-info',
         ],
       ]
