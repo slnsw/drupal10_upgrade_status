@@ -726,7 +726,7 @@ MARKUP
       // Check PHP version.
       $version = PHP_VERSION;
       // The value of MINIMUM_PHP in Drupal 10.
-      $minimum_php = '8.0.2';
+      $minimum_php = '8.1.0';
       if (version_compare($version, $minimum_php) >= 0) {
         $class = 'no-known-error';
       }
