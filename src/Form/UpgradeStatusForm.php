@@ -720,8 +720,58 @@ MARKUP
     ];
 
     if ($this->nextMajor == 10) {
-      // @todo update this as the situation develops.
-      $build['description'] = $this->t('<a href=":environment">Drupal 10 environment requirements are still evolving</a>. Upgrades to Drupal 10 are planned to be supported from Drupal 9.3.x and Drupal 9.4.x.', [':environment' => 'https://www.drupal.org/project/drupal/issues/3118147']);
+      $build['description'] = $this->t('Upgrades to Drupal 10 are supported from Drupal 9.3.x and Drupal 9.4.x. It is suggested to update to the latest Drupal 9 version available. <a href=":platform">Several hosting platform requirements have been raised for Drupal 10</a>.', [':platform' => 'https://www.drupal.org/node/3228686']);
+
+      // Check Drupal version. Link to update if available.
+      $core_version_info = [
+        '#type' => 'markup',
+        '#markup' => $this->t('Version @version.', ['@version' => \Drupal::VERSION]),
+      ];
+      $has_core_update = FALSE;
+      $core_update_info = $this->releaseStore->get('drupal');
+      if (isset($core_update_info['releases']) && is_array($core_update_info['releases'])) {
+        // Find the latest release that are higher than our current and is not beta/alpha/rc.
+        foreach ($core_update_info['releases'] as $version => $release) {
+          $major_version = explode('.', $version)[0];
+          if ((version_compare($version, \Drupal::VERSION) > 0) && empty($release['version_extra']) && $major_version === '9') {
+            $link = $core_update_info['link'] . '/releases/' . $version;
+            $core_version_info = [
+              '#type' => 'link',
+              '#title' => version_compare(\Drupal::VERSION, '9.3.0') >= 0 ?
+                $this->t('Version @current allows to upgrade but @new is available.', ['@current' => \Drupal::VERSION, '@new' => $version]) :
+                $this->t('Version @current does not allow to upgrade and @new is available.', ['@current' => \Drupal::VERSION, '@new' => $version]),
+              '#url' => Url::fromUri($link),
+            ];
+            $has_core_update = TRUE;
+            break;
+          }
+        }
+      }
+      if (version_compare(\Drupal::VERSION, '9.3.0') >= 0) {
+        if (!$has_core_update) {
+          $class = 'no-known-error';
+        }
+        else {
+          $class = 'known-warning';
+        }
+      }
+      else {
+        $status = FALSE;
+        $class = 'known-error';
+      }
+      $build['data']['#rows'][] = [
+        'class' => $class,
+        'data' => [
+          'requirement' => [
+            'class' => 'requirement-label',
+            'data' => $this->t('Drupal core should be at least 9.3.x'),
+          ],
+          'status' => [
+            'data' => $core_version_info,
+            'class' => 'status-info',
+          ],
+        ]
+      ];
 
       // Check PHP version.
       $version = PHP_VERSION;
@@ -886,7 +936,7 @@ MARKUP
     // Check Drupal version. Link to update if available.
     $core_version_info = [
       '#type' => 'markup',
-      '#markup' => $this->t('Version @version and up to date.', ['@version' => \Drupal::VERSION]),
+      '#markup' => $this->t('Version @version.', ['@version' => \Drupal::VERSION]),
     ];
     $has_core_update = FALSE;
     $core_update_info = $this->releaseStore->get('drupal');
@@ -898,7 +948,9 @@ MARKUP
           $link = $core_update_info['link'] . '/releases/' . $version;
           $core_version_info = [
             '#type' => 'link',
-            '#title' => $this->t('Version @current allows to upgrade but @new is available.', ['@current' => \Drupal::VERSION, '@new' => $version]),
+            '#title' => version_compare(\Drupal::VERSION, '8.8.0') >= 0 ?
+              $this->t('Version @current allows to upgrade but @new is available.', ['@current' => \Drupal::VERSION, '@new' => $version]) :
+              $this->t('Version @current does not allow to upgrade and @new is available.', ['@current' => \Drupal::VERSION, '@new' => $version]),
             '#url' => Url::fromUri($link),
           ];
           $has_core_update = TRUE;
