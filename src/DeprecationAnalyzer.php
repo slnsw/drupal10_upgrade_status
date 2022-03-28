@@ -103,6 +103,13 @@ final class DeprecationAnalyzer {
   protected $themeFunctionDeprecationAnalyzer;
 
   /**
+   * The route deprecation analyzer.
+   *
+   * @var \Drupal\upgrade_status\RouteDeprecationAnalyzer
+   */
+  protected $routeDeprecationAnalyzer;
+
+  /**
    * The time service.
    *
    * @var \Drupal\Component\Datetime\TimeInterface
@@ -140,6 +147,8 @@ final class DeprecationAnalyzer {
    *   The library deprecation analyzer.
    * @param \Drupal\upgrade_status\ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer
    *   The theme function deprecation analyzer.
+   * @param \Drupal\upgrade_status\RouteDeprecationAnalyzer $route_deprecation_analyzer
+   *   The route deprecation analyzer.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
    */
@@ -151,6 +160,7 @@ final class DeprecationAnalyzer {
     TwigDeprecationAnalyzer $twig_deprecation_analyzer,
     LibraryDeprecationAnalyzer $library_deprecation_analyzer,
     ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer,
+    RouteDeprecationAnalyzer $route_deprecation_analyzer,
     TimeInterface $time
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
@@ -160,6 +170,7 @@ final class DeprecationAnalyzer {
     $this->twigDeprecationAnalyzer = $twig_deprecation_analyzer;
     $this->libraryDeprecationAnalyzer = $library_deprecation_analyzer;
     $this->themeFunctionDeprecationAnalyzer = $theme_function_deprecation_analyzer;
+    $this->routeDeprecationAnalyzer = $route_deprecation_analyzer;
     $this->time = $time;
   }
 
@@ -371,31 +382,17 @@ final class DeprecationAnalyzer {
       'data' => $json,
     ];
 
-    $twig_deprecations = $this->twigDeprecationAnalyzer->analyze($extension);
-    foreach ($twig_deprecations as $twig_deprecation) {
-      $result['data']['files'][$twig_deprecation->getFile()]['messages'][] = [
-        'message' => $twig_deprecation->getMessage(),
-        'line' => $twig_deprecation->getLine(),
-      ];
-      $result['data']['totals']['errors']++;
-      $result['data']['totals']['file_errors']++;
-    }
-
-    $deprecation_messages = $this->libraryDeprecationAnalyzer->analyze($extension);
-    foreach ($deprecation_messages as $deprecation_message) {
-      $result['data']['files'][$deprecation_message->getFile()]['messages'][] = [
-        'message' => $deprecation_message->getMessage(),
-        'line' => $deprecation_message->getLine(),
-      ];
-      $result['data']['totals']['errors']++;
-      $result['data']['totals']['file_errors']++;
-    }
-
-    $theme_function_deprecations = $this->themeFunctionDeprecationAnalyzer->analyze($extension);
-    foreach ($theme_function_deprecations as $deprecation_message) {
-      $result['data']['files'][$deprecation_message->getFile()]['messages'][] = [
-        'message' => $deprecation_message->getMessage(),
-        'line' => $deprecation_message->getLine(),
+    // Run further deprecation analyzers and collect results.
+    $more_deprecations = array_merge(
+      $this->twigDeprecationAnalyzer->analyze($extension),
+      $this->libraryDeprecationAnalyzer->analyze($extension),
+      $this->themeFunctionDeprecationAnalyzer->analyze($extension),
+      (projectCollector::getDrupalCoreMajorVersion() > 8) ? $this->routeDeprecationAnalyzer->analyze($extension) : []
+    );
+    foreach ($more_deprecations as $one_deprecation) {
+      $result['data']['files'][$one_deprecation->getFile()]['messages'][] = [
+        'message' => $one_deprecation->getMessage(),
+        'line' => $one_deprecation->getLine(),
       ];
       $result['data']['totals']['errors']++;
       $result['data']['totals']['file_errors']++;
