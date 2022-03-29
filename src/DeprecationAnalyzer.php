@@ -3,8 +3,6 @@
 namespace Drupal\upgrade_status;
 
 use Drupal\Component\Datetime\TimeInterface;
-use Drupal\Component\Serialization\Yaml;
-use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
@@ -110,6 +108,13 @@ final class DeprecationAnalyzer {
   protected $routeDeprecationAnalyzer;
 
   /**
+   * The extension metadata deprecation analyzer.
+   *
+   * @var \Drupal\upgrade_status\ExtensionMetadataDeprecationAnalyzer
+   */
+  protected $extensionMetadataDeprecationAnalyzer;
+
+  /**
    * The time service.
    *
    * @var \Drupal\Component\Datetime\TimeInterface
@@ -149,6 +154,8 @@ final class DeprecationAnalyzer {
    *   The theme function deprecation analyzer.
    * @param \Drupal\upgrade_status\RouteDeprecationAnalyzer $route_deprecation_analyzer
    *   The route deprecation analyzer.
+   * @param \Drupal\upgrade_status\ExtensionMetadataDeprecationAnalyzer $extension_metadata_analyzer
+   *   The extension metadata analyzer.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
    */
@@ -161,6 +168,7 @@ final class DeprecationAnalyzer {
     LibraryDeprecationAnalyzer $library_deprecation_analyzer,
     ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer,
     RouteDeprecationAnalyzer $route_deprecation_analyzer,
+    ExtensionMetadataDeprecationAnalyzer $extension_metadata_analyzer,
     TimeInterface $time
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
@@ -171,6 +179,7 @@ final class DeprecationAnalyzer {
     $this->libraryDeprecationAnalyzer = $library_deprecation_analyzer;
     $this->themeFunctionDeprecationAnalyzer = $theme_function_deprecation_analyzer;
     $this->routeDeprecationAnalyzer = $route_deprecation_analyzer;
+    $this->extensionMetadataDeprecationAnalyzer = $extension_metadata_analyzer;
     $this->time = $time;
   }
 
@@ -382,12 +391,16 @@ final class DeprecationAnalyzer {
       'data' => $json,
     ];
 
+    $medataDeprecations = $this->extensionMetadataDeprecationAnalyzer->analyze($extension);
+    $result['data']['totals']['upgrade_status_split']['declared_ready'] = empty($medataDeprecations);
+
     // Run further deprecation analyzers and collect results.
     $more_deprecations = array_merge(
       $this->twigDeprecationAnalyzer->analyze($extension),
       $this->libraryDeprecationAnalyzer->analyze($extension),
       $this->themeFunctionDeprecationAnalyzer->analyze($extension),
-      (projectCollector::getDrupalCoreMajorVersion() > 8) ? $this->routeDeprecationAnalyzer->analyze($extension) : []
+      (projectCollector::getDrupalCoreMajorVersion() > 8) ? $this->routeDeprecationAnalyzer->analyze($extension) : [],
+      $medataDeprecations,
     );
     foreach ($more_deprecations as $one_deprecation) {
       $result['data']['files'][$one_deprecation->getFile()]['messages'][] = [
@@ -396,127 +409,6 @@ final class DeprecationAnalyzer {
       ];
       $result['data']['totals']['errors']++;
       $result['data']['totals']['file_errors']++;
-    }
-
-    // Assume this project is ready for the next major core version unless proven otherwise.
-    $result['data']['totals']['upgrade_status_split']['declared_ready'] = TRUE;
-
-    $info_files = $this->getSubExtensionInfoFiles($project_dir);
-    foreach ($info_files as $info_file) {
-      try {
-
-        // Manually add on info file incompatibility to results. Reading
-        // .info.yml files directly, not from extension discovery because that
-        // is cached.
-        $info = Yaml::decode(file_get_contents($info_file)) ?: [];
-        if (!empty($info['package']) && $info['package'] == 'Testing' && !strpos($info_file, '/upgrade_status_test')) {
-          // If this info file was for a testing project other than our own
-          // testing projects, ignore it.
-          continue;
-        }
-        $error_path = str_replace(DRUPAL_ROOT . '/', '', $info_file);
-
-        // Check for missing base theme key.
-        if ($info['type'] === 'theme') {
-          if (!isset($info['base theme'])) {
-            $result['data']['files'][$error_path]['messages'][] = [
-              'message' => "The now required 'base theme' key is missing. See https://www.drupal.org/node/3066038.",
-              'line' => 0,
-            ];
-            $result['data']['totals']['errors']++;
-            $result['data']['totals']['file_errors']++;
-          }
-        }
-
-        if (!isset($info['core_version_requirement'])) {
-          $result['data']['files'][$error_path]['messages'][] = [
-            'message' => "Add core_version_requirement: ^8 || ^9 to designate that the extension is compatible with Drupal 9. See https://drupal.org/node/3070687.",
-            'line' => 0,
-          ];
-          $result['data']['totals']['errors']++;
-          $result['data']['totals']['file_errors']++;
-          $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
-        }
-        elseif (!ProjectCollector::isCompatibleWithNextMajorDrupal($info['core_version_requirement'])) {
-          $result['data']['files'][$error_path]['messages'][] = [
-            'message' => "Value of core_version_requirement: {$info['core_version_requirement']} is not compatible with the next major version of Drupal core. See https://drupal.org/node/3070687.",
-            'line' => 0,
-          ];
-          $result['data']['totals']['errors']++;
-          $result['data']['totals']['file_errors']++;
-          $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
-        }
-
-        // @todo
-        //   Change values to ExtensionLifecycle class constants once at least
-        //   Drupal 9.3 is required.
-        if (!empty($info['lifecycle'])) {
-          $link = !empty($info['lifecycle_link']) ? $info['lifecycle_link'] : 'https://www.drupal.org/node/3215042';
-          if ($info['lifecycle'] == 'deprecated') {
-            $result['data']['files'][$error_path]['messages'][] = [
-              'message' => "This extension is deprecated. Don't use it. See $link.",
-              'line' => 0,
-            ];
-            $result['data']['totals']['errors']++;
-            $result['data']['totals']['file_errors']++;
-            $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
-          }
-          elseif ($info['lifecycle'] == 'obsolete') {
-            $result['data']['files'][$error_path]['messages'][] = [
-              'message' => "This extension is obsolete. Obsolete extensions are usually uninstalled automatically when not needed anymore. You only need to do something about this if the uninstallation was unsuccesful. See $link.",
-              'line' => 0,
-            ];
-            $result['data']['totals']['errors']++;
-            $result['data']['totals']['file_errors']++;
-            $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
-          }
-        }
-
-      } catch (InvalidDataTypeException $e) {
-        $result['data']['files'][$error_path]['messages'][] = [
-          'message' => 'Parse error. ' . $e->getMessage(),
-          'line' => 0,
-        ];
-        $result['data']['totals']['errors']++;
-        $result['data']['totals']['file_errors']++;
-        $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
-      }
-
-      // No need to check info files for PHP 8 compatibility information because
-      // they can only define minimal PHP versions not maximum or excluded PHP
-      // versions.
-    }
-
-    // Manually add on composer.json file incompatibility to results.
-    if (file_exists($project_dir . '/composer.json')) {
-      $composer_json = json_decode(file_get_contents($project_dir . '/composer.json'));
-      if (empty($composer_json) || !is_object($composer_json)) {
-        $result['data']['files'][$extension->getPath() . '/composer.json']['messages'][] = [
-          'message' => "Parse error in composer.json. Having a composer.json is not a requirement in general, but if there is one, it should be valid. See https://drupal.org/node/2514612.",
-          'line' => 0,
-        ];
-        $result['data']['totals']['errors']++;
-        $result['data']['totals']['file_errors']++;
-        $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
-      }
-      elseif (!empty($composer_json->require->{'drupal/core'}) && !projectCollector::isCompatibleWithNextMajorDrupal($composer_json->require->{'drupal/core'})) {
-        $result['data']['files'][$extension->getPath() . '/composer.json']['messages'][] = [
-          'message' => "The drupal/core requirement is not compatible with the next major version of Drupal. Either remove it or update it to be compatible. See https://drupal.org/node/2514612#s-drupal-9-compatibility.",
-          'line' => 0,
-        ];
-        $result['data']['totals']['errors']++;
-        $result['data']['totals']['file_errors']++;
-        $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
-      }
-      elseif ((projectCollector::getDrupalCoreMajorVersion() > 8) && !empty($composer_json->require->{'php'}) && !projectCollector::isCompatibleWithPHP8($composer_json->require->{'php'})) {
-        $result['data']['files'][$extension->getPath() . '/composer.json']['messages'][] = [
-          'message' => "The PHP requirement is not compatible with PHP 8. Once the codebase is actually compatible, either remove this limitation or update it to be compatible.",
-          'line' => 0,
-        ];
-        $result['data']['totals']['errors']++;
-        $result['data']['totals']['file_errors']++;
-        $result['data']['totals']['upgrade_status_split']['declared_ready'] = FALSE;
-      }
     }
 
     // Assume next step is to relax (there were no errors found).
@@ -887,31 +779,6 @@ final class DeprecationAnalyzer {
     return
       in_array($string, $rector_covered) ||
       strpos($string, 'Call to deprecated method l() of class Drupal') === 0;
-  }
-
-  /**
-   * Finds all .info.yml files for non-test extensions under a path.
-   *
-   * @param string $path
-   *   Base path to find all info.yml files in.
-   *
-   * @return array
-   *   A list of paths to .info.yml files found under the base path.
-   */
-  private function getSubExtensionInfoFiles(string $path) {
-    $files = [];
-    foreach(glob($path . '/*.info.yml') as $file) {
-      // Make sure the filename matches rules for an extension. There may be
-      // info.yml files in shipped configuration which would have more parts.
-      $parts = explode('.', basename($file));
-      if (count($parts) == 3) {
-        $files[] = $file;
-      }
-    }
-    foreach (glob($path . '/*', GLOB_ONLYDIR|GLOB_NOSORT) as $dir) {
-      $files = array_merge($files, $this->getSubExtensionInfoFiles($dir));
-    }
-    return $files;
   }
 
 }
