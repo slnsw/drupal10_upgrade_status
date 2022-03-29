@@ -11,8 +11,6 @@ use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
-use Twig\Util\DeprecationCollector;
-use Twig\Util\TemplateDirIterator;
 
 final class DeprecationAnalyzer {
 
@@ -391,8 +389,8 @@ final class DeprecationAnalyzer {
       'data' => $json,
     ];
 
-    $medataDeprecations = $this->extensionMetadataDeprecationAnalyzer->analyze($extension);
-    $result['data']['totals']['upgrade_status_split']['declared_ready'] = empty($medataDeprecations);
+    $metadataDeprecations = $this->extensionMetadataDeprecationAnalyzer->analyze($extension);
+    $result['data']['totals']['upgrade_status_split']['declared_ready'] = empty($metadataDeprecations);
 
     // Run further deprecation analyzers and collect results.
     $more_deprecations = array_merge(
@@ -400,7 +398,7 @@ final class DeprecationAnalyzer {
       $this->libraryDeprecationAnalyzer->analyze($extension),
       $this->themeFunctionDeprecationAnalyzer->analyze($extension),
       (projectCollector::getDrupalCoreMajorVersion() > 8) ? $this->routeDeprecationAnalyzer->analyze($extension) : [],
-      $medataDeprecations,
+      $metadataDeprecations,
     );
     foreach ($more_deprecations as $one_deprecation) {
       $result['data']['files'][$one_deprecation->getFile()]['messages'][] = [
@@ -471,22 +469,6 @@ final class DeprecationAnalyzer {
 
     // Store the analysis results in our storage bin.
     $this->scanResultStorage->set($extension->getName(), $result);
-  }
-
-  /**
-   * Analyzes twig templates for calls of deprecated code.
-   *
-   * @param $directory
-   *   The directory which Twig templates should be analyzed.
-   *
-   * @return array
-   */
-  protected function analyzeTwigTemplates($directory) {
-    $iterator = new TemplateDirIterator(
-      new TwigRecursiveIterator($directory)
-    );
-    return (new DeprecationCollector($this->twigEnvironment))
-      ->collect($iterator);
   }
 
   /**
