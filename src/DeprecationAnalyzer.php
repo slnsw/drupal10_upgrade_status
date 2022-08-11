@@ -517,6 +517,14 @@ final class DeprecationAnalyzer {
         throw new \Exception('Vendor source files were not found. You may need to configure a vendor-dir in composer.json. See https://getcomposer.org/doc/06-config.md#vendor-dir. Missing ' . $extension_neon . ' and ' . $rules_neon . '.');
       }
       $config .= "\nincludes:\n\t- '" . $extension_neon . "'\n\t- '" . $rules_neon . "'\n";
+
+      // phpstan-drupal 1.1.16 introduced a new rules.neon file, include it if
+      // it exists. phpstan-drupal 1.1.4 and earlier are the only versions that
+      // still support PHP 7.3 and earlier, and this file does not exist there.
+      $drupal_rules_neon = $this->vendorPath . '/mglaman/phpstan-drupal/rules.neon';
+      if (file_exists($drupal_rules_neon)) {
+        $config .= "\t- '" . $drupal_rules_neon . "'\n";
+      }
     }
 
     $success = file_put_contents($this->phpstanNeonPath, $config);
