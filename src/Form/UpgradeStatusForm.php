@@ -720,7 +720,7 @@ MARKUP
     ];
 
     if ($this->nextMajor == 10) {
-      $build['description'] = $this->t('Upgrades to Drupal 10 are supported from Drupal 9.3.x and Drupal 9.4.x. It is suggested to update to the latest Drupal 9 version available. <a href=":platform">Several hosting platform requirements have been raised for Drupal 10</a>.', [':platform' => 'https://www.drupal.org/node/3228686']);
+      $build['description'] = $this->t('Upgrades to Drupal 10 are supported from Drupal 9.4.x and Drupal 9.5.x. It is suggested to update to the latest Drupal 9 version available. <a href=":platform">Several hosting platform requirements have been raised for Drupal 10</a>.', [':platform' => 'https://www.drupal.org/node/3228686']);
 
       // Check Drupal version. Link to update if available.
       $core_version_info = [
@@ -737,7 +737,7 @@ MARKUP
             $link = $core_update_info['link'] . '/releases/' . $version;
             $core_version_info = [
               '#type' => 'link',
-              '#title' => version_compare(\Drupal::VERSION, '9.3.0') >= 0 ?
+              '#title' => version_compare(\Drupal::VERSION, '9.4.0') >= 0 ?
                 $this->t('Version @current allows to upgrade but @new is available.', ['@current' => \Drupal::VERSION, '@new' => $version]) :
                 $this->t('Version @current does not allow to upgrade and @new is available.', ['@current' => \Drupal::VERSION, '@new' => $version]),
               '#url' => Url::fromUri($link),
@@ -747,7 +747,7 @@ MARKUP
           }
         }
       }
-      if (version_compare(\Drupal::VERSION, '9.3.0') >= 0) {
+      if (version_compare(\Drupal::VERSION, '9.4.0') >= 0) {
         if (!$has_core_update) {
           $class = 'no-known-error';
         }
@@ -764,7 +764,7 @@ MARKUP
         'data' => [
           'requirement' => [
             'class' => 'requirement-label',
-            'data' => $this->t('Drupal core should be at least 9.3.x'),
+            'data' => $this->t('Drupal core should be at least 9.4.x'),
           ],
           'status' => [
             'data' => $core_version_info,
@@ -789,7 +789,7 @@ MARKUP
         'data' => [
           'requirement' => [
             'class' => 'requirement-label',
-            'data' => $this->t('PHP version should be at least @minimum_php. Before updating to PHP 8, use <code>$ composer why-not php:8</code> to check if any projects need updating for compatibility. Also check custom projects manually.', ['@minimum_php' => $minimum_php]),
+            'data' => $this->t('PHP version should be at least @minimum_php. Before updating to PHP 8, use <code>$ composer why-not php:8.1</code> to check if any projects need updating for compatibility. Also check custom projects manually.', ['@minimum_php' => $minimum_php]),
           ],
           'status' => [
             'data' => $this->t('Version @version', ['@version' => $version]),
