@@ -20,7 +20,7 @@ use Drupal\upgrade_status\CookieJar;
 use Drupal\upgrade_status\DeprecationAnalyzer;
 use Drupal\upgrade_status\ProjectCollector;
 use Drupal\upgrade_status\ScanResultFormatter;
-use Drupal\upgrade_status\Util\CorrectDbServerVersion;
+use Drupal\upgrade_status\Util\DatabaseServerMetadataExtractor;
 use Drupal\user\Entity\Role;
 use GuzzleHttp\Cookie\SetCookie;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -1007,58 +1007,40 @@ MARKUP
       ]
     ];
 
-    // Check database version.
-    $database_type = $this->database->databaseType();
-    $version = $this->database->version();
+    $database_server_metadata_extractor = new DatabaseServerMetadataExtractor($this->database);
+    $database_type = $database_server_metadata_extractor->getType();
+    $version = $database_server_metadata_extractor->getVersion();
 
-    // If running on Drupal 8, the mysql driver might
-    // mis-report the database version.
-    if ($this->nextMajor == 9) {
-      $versionFixer = new CorrectDbServerVersion($this->database);
-      $version = $versionFixer->getCorrectedDbServerVersion($version);
-    }
-
-    // MariaDB databases report as MySQL. Detect MariaDB separately based on code from
-    // https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Database%21Driver%21mysql%21Connection.php/function/Connection%3A%3AgetMariaDbVersionMatch/9.0.x
-    // See also https://www.drupal.org/node/3119156 for test values.
     if ($database_type == 'mysql') {
-      // MariaDB may prefix its version string with '5.5.5-', which should be
-      // ignored.
-      // @see https://github.com/MariaDB/server/blob/f6633bf058802ad7da8196d01fd19d75c53f7274/include/mysql_com.h#L42.
-      $regex = '/^(?:5\\.5\\.5-)?(\\d+\\.\\d+\\.\\d+.*-mariadb.*)/i';
-      preg_match($regex, $version, $matches);
-      if (!empty($matches[1])) {
-        $database_type_full_name = 'MariaDB';
-        $version = $matches[1];
-        $requirement = $this->t('When using MariaDB, minimum version is 10.3.7');
-        if (version_compare($version, '10.3.7') >= 0) {
-          $class = 'no-known-error';
-        }
-        elseif (version_compare($version, '10.1.0') >= 0) {
-          $class = 'known-warning';
-          $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
-        }
-        else {
-          $status = FALSE;
-          $class = 'known-error';
-          $requirement .= ' ' . $this->t('Once updated to at least 10.1, you can also <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
-        }
+      $database_type_full_name = 'MySQL or Percona Server';
+      $requirement = $this->t('When using MySQL/Percona, minimum version is 5.7.8');
+      if (version_compare($version, '5.7.8') >= 0) {
+        $class = 'no-known-error';
+      }
+      elseif (version_compare($version, '5.6.0') >= 0) {
+        $class = 'known-warning';
+        $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
       }
       else {
-        $database_type_full_name = 'MySQL or Percona Server';
-        $requirement = $this->t('When using MySQL/Percona, minimum version is 5.7.8');
-        if (version_compare($version, '5.7.8') >= 0) {
-          $class = 'no-known-error';
-        }
-        elseif (version_compare($version, '5.6.0') >= 0) {
-          $class = 'known-warning';
-          $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
-        }
-        else {
-          $status = FALSE;
-          $class = 'known-error';
-          $requirement .= ' ' . $this->t('Once updated to at least 5.6, you can also <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
-        }
+        $status = FALSE;
+        $class = 'known-error';
+        $requirement .= ' ' . $this->t('Once updated to at least 5.6, you can also <a href=":driver">install the MySQL 5.6 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
+      }
+    }
+    elseif ($database_type == 'mariadb') {
+      $database_type_full_name = 'MariaDB';
+      $requirement = $this->t('When using MariaDB, minimum version is 10.3.7');
+      if (version_compare($version, '10.3.7') >= 0) {
+        $class = 'no-known-error';
+      }
+      elseif (version_compare($version, '10.1.0') >= 0) {
+        $class = 'known-warning';
+        $requirement .= ' ' . $this->t('Alternatively, <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
+      }
+      else {
+        $status = FALSE;
+        $class = 'known-error';
+        $requirement .= ' ' . $this->t('Once updated to at least 10.1, you can also <a href=":driver">install the MariaDB 10.1 driver for Drupal 9</a> for now.', [':driver' => 'https://www.drupal.org/project/mysql56']);
       }
     }
     elseif ($database_type == 'pgsql') {
