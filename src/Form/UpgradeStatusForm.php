@@ -839,9 +839,11 @@ MARKUP
       $class = 'no-known-error';
       $requirement = $this->t('Supported.');
       try {
-        // A hasJson() method was added to Connection from Drupal 9.4.0
-        // but we cannot rely on being on Drupal 9.4.x+
-        $this->database->query($database_type == 'pgsql' ? 'SELECT JSON_TYPEOF(\'1\')' : 'SELECT JSON_TYPE(\'1\')');
+        if (!method_exists($this->database, 'hasJson') || !$this->database->hasJson()) {
+          // A hasJson() method was added to Connection from Drupal 9.4.0
+          // but we cannot rely on being on Drupal 9.4.x+
+          $this->database->query($database_type == 'pgsql' ? 'SELECT JSON_TYPEOF(\'1\')' : 'SELECT JSON_TYPE(\'1\')');
+        }
       }
       catch (\Exception $e) {
         $class = 'known-error';
