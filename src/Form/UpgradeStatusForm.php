@@ -789,7 +789,7 @@ MARKUP
         'data' => [
           'requirement' => [
             'class' => 'requirement-label',
-            'data' => $this->t('PHP version should be at least @minimum_php. Before updating to PHP 8, use <code>$ composer why-not php:8.1</code> to check if any projects need updating for compatibility. Also check custom projects manually.', ['@minimum_php' => $minimum_php]),
+            'data' => $this->t('PHP version should be at least @minimum_php. Before updating to PHP 8, use <code>$ composer why-not php 8.1</code> to check if any projects need updating for compatibility. Also check custom projects manually.', ['@minimum_php' => $minimum_php]),
           ],
           'status' => [
             'data' => $this->t('Version @version', ['@version' => $version]),
