@@ -411,7 +411,7 @@ final class DeprecationAnalyzer {
       $this->twigDeprecationAnalyzer->analyze($extension),
       $this->libraryDeprecationAnalyzer->analyze($extension),
       $this->themeFunctionDeprecationAnalyzer->analyze($extension),
-      $metadataDeprecations,
+      $metadataDeprecations
     );
     if (projectCollector::getDrupalCoreMajorVersion() > 8) {
       $more_deprecations = array_merge($more_deprecations,
