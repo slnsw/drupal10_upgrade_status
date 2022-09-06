@@ -113,6 +113,13 @@ final class DeprecationAnalyzer {
   protected $extensionMetadataDeprecationAnalyzer;
 
   /**
+   * The CSS deprecation analyzer.
+   *
+   * @var \Drupal\upgrade_status\CSSDeprecationAnalyzer
+   */
+  protected $CSSDeprecationAnalyzer;
+
+  /**
    * The time service.
    *
    * @var \Drupal\Component\Datetime\TimeInterface
@@ -154,6 +161,8 @@ final class DeprecationAnalyzer {
    *   The route deprecation analyzer.
    * @param \Drupal\upgrade_status\ExtensionMetadataDeprecationAnalyzer $extension_metadata_analyzer
    *   The extension metadata analyzer.
+   * @param \Drupal\upgrade_status\CSSDeprecationAnalyzer $css_deprecation_analyzer
+   *   The CSS deprecation analyzer.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
    */
@@ -167,6 +176,7 @@ final class DeprecationAnalyzer {
     ThemeFunctionDeprecationAnalyzer $theme_function_deprecation_analyzer,
     RouteDeprecationAnalyzer $route_deprecation_analyzer,
     ExtensionMetadataDeprecationAnalyzer $extension_metadata_analyzer,
+    CSSDeprecationAnalyzer $css_deprecation_analyzer,
     TimeInterface $time
   ) {
     $this->scanResultStorage = $key_value_factory->get('upgrade_status_scan_results');
@@ -178,6 +188,7 @@ final class DeprecationAnalyzer {
     $this->themeFunctionDeprecationAnalyzer = $theme_function_deprecation_analyzer;
     $this->routeDeprecationAnalyzer = $route_deprecation_analyzer;
     $this->extensionMetadataDeprecationAnalyzer = $extension_metadata_analyzer;
+    $this->CSSDeprecationAnalyzer = $css_deprecation_analyzer;
     $this->time = $time;
   }
 
@@ -397,9 +408,15 @@ final class DeprecationAnalyzer {
       $this->twigDeprecationAnalyzer->analyze($extension),
       $this->libraryDeprecationAnalyzer->analyze($extension),
       $this->themeFunctionDeprecationAnalyzer->analyze($extension),
-      (projectCollector::getDrupalCoreMajorVersion() > 8) ? $this->routeDeprecationAnalyzer->analyze($extension) : [],
       $metadataDeprecations,
     );
+    if (projectCollector::getDrupalCoreMajorVersion() > 8) {
+      $more_deprecations = array_merge($more_deprecations,
+        $this->routeDeprecationAnalyzer->analyze($extension),
+        $this->CSSDeprecationAnalyzer->analyze($extension)
+      );
+    }
+
     foreach ($more_deprecations as $one_deprecation) {
       $result['data']['files'][$one_deprecation->getFile()]['messages'][] = [
         'message' => $one_deprecation->getMessage(),
