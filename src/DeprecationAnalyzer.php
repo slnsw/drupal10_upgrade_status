@@ -334,11 +334,13 @@ final class DeprecationAnalyzer {
    *
    * @param \Drupal\Core\Extension\Extension $extension
    *   The extension to analyze.
+   * @param array $options
+   *   Options for the analysis.
    *
    * @return null
    *   Errors are logged to the logger, data is stored to keyvalue storage.
    */
-  public function analyze(Extension $extension) {
+  public function analyze(Extension $extension, array $options = []) {
     try {
       $this->initEnvironment();
     }
@@ -354,14 +356,15 @@ final class DeprecationAnalyzer {
     $project_dir = DRUPAL_ROOT . '/' . $extension->getPath();
     $this->logger->notice('Processing %path.', ['%path' => $project_dir]);
 
+    $memory_limit = $options['phpstan-memory-limit'] ?? '1500M';
     $command = [
       $this->phpPath,
       $this->binPath . '/phpstan',
       'analyse',
-      '--memory-limit=-1',
+      '--memory-limit=' . $memory_limit,
       '--error-format=json',
       '--configuration=' . $this->phpstanNeonPath,
-      $project_dir,
+      $project_dir
     ];
 
     $process = new Process($command, DRUPAL_ROOT, NULL, NULL, NULL);
