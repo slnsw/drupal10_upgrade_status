@@ -707,6 +707,12 @@ MARKUP
    *   environment requirements on a high level.
    */
   protected function buildEnvironmentChecks() {
+    if ($this->nextMajor == 11) {
+      return [
+        'description' => $this->t('<a href=":platform">Drupal 11 environment requirements are still to be defined</a>.', [':platform' => 'https://www.drupal.org/project/drupal/issues/3214954']),
+      ];
+    }
+
     $status = TRUE;
     $header = [
       'requirement' => ['data' => $this->t('Requirement'), 'class' => 'requirement-label'],
