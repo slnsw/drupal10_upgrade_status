@@ -481,7 +481,7 @@ class ProjectCollector {
     }
 
     // Read our shipped snapshot of Drupal 10 plans to find this one.
-    $file = fopen(drupal_get_path('module', 'upgrade_status') . '/project_plans.csv', 'r');
+    $file = fopen(\Drupal::service('extension.list.module')->getPath('upgrade_status') . '/project_plans.csv', 'r');
     while ($line = fgetcsv($file, 0, ";")) {
       if ($line[0] == $project_machine_name) {
         fclose($file);

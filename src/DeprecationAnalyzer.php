@@ -521,7 +521,7 @@ final class DeprecationAnalyzer {
    *   If the PHPStan configuration file cannot be written.
    */
   protected function createModifiedNeonFile() {
-    $module_path = DRUPAL_ROOT . '/' . drupal_get_path('module', 'upgrade_status');
+    $module_path = DRUPAL_ROOT . '/' . \Drupal::service('extension.list.module')->getPath('upgrade_status');
     $config = file_get_contents($module_path . '/deprecation_testing_template.neon');
     $config = str_replace(
       'parameters:',

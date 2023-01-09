@@ -36,7 +36,7 @@ abstract class UpgradeStatusTestBase extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $this->container->get('theme_installer')->install(['upgrade_status_test_theme']);
@@ -62,7 +62,8 @@ abstract class UpgradeStatusTestBase extends BrowserTestBase {
       ($this->getDrupalCoreMajorVersion() < 9 ? 'relax' : 'collaborate') . '[data][list][upgrade_status]' => TRUE,
       ($this->getDrupalCoreMajorVersion() < 9 ? 'relax' : 'collaborate') . '[data][list][upgrade_status_test_contrib_9_compatible]' => TRUE,
     ];
-    $this->drupalPostForm('admin/reports/upgrade-status', $edit, 'Scan selected');
+    $this->drupalGet('admin/reports/upgrade-status');
+    $this->submitForm($edit, 'Scan selected');
   }
 
   /**

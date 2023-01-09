@@ -15,7 +15,7 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->drupalLogin($this->drupalCreateUser(['administer software updates']));
   }
@@ -68,28 +68,28 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
 
     // Check UI of results for the custom project.
     $this->drupalGet('/admin/reports/upgrade-status/project/upgrade_status_test_error');
-    $this->assertText('Upgrade status test error');
-    $this->assertText('2 errors found. ' . $this->getDrupalCoreMajorVersion() < 9 ? '3' : '5' . ' warnings found.');
-    $this->assertText('Syntax error, unexpected T_STRING on line 3');
+    $this->assertSession()->pageTextContains('Upgrade status test error');
+    $this->assertSession()->pageTextContains('2 errors found. ' . $this->getDrupalCoreMajorVersion() < 9 ? '3' : '5' . ' warnings found.');
+    $this->assertSession()->pageTextContains('Syntax error, unexpected T_STRING on line 3');
 
     // Go forward to the export page and assert that still contains the results
     // as well as an export specific title.
     $this->clickLink('Export as HTML');
-    $this->assertText('Upgrade Status report');
-    $this->assertText('Upgrade status test error');
-    $this->assertText('Custom projects');
-    $this->assertNoText('Contributed projects');
-    $this->assertText('2 errors found. ' . $this->getDrupalCoreMajorVersion() < 9 ? '3' : '5' . ' warnings found.');
-    $this->assertText('Syntax error, unexpected T_STRING on line 3');
+    $this->assertSession()->pageTextContains('Upgrade Status report');
+    $this->assertSession()->pageTextContains('Upgrade status test error');
+    $this->assertSession()->pageTextContains('Custom projects');
+    $this->assertSession()->pageTextNotContains('Contributed projects');
+    $this->assertSession()->pageTextContains('2 errors found. ' . $this->getDrupalCoreMajorVersion() < 9 ? '3' : '5' . ' warnings found.');
+    $this->assertSession()->pageTextContains('Syntax error, unexpected T_STRING on line 3');
 
     // Go back to the results page and click over to exporting in single ASCII.
     $this->drupalGet('/admin/reports/upgrade-status/project/upgrade_status_test_error');
     $this->clickLink('Export as text');
-    $this->assertText('Upgrade status test error');
-    $this->assertText('CUSTOM PROJECTS');
-    $this->assertNoText('CONTRIBUTED PROJECTS');
-    $this->assertText('2 errors found. ' . $this->getDrupalCoreMajorVersion() < 9 ? '3' : '5' . ' warnings found.');
-    $this->assertText('Syntax error, unexpected T_STRING on line 3');
+    $this->assertSession()->pageTextContains('Upgrade status test error');
+    $this->assertSession()->pageTextContains('CUSTOM PROJECTS');
+    $this->assertSession()->pageTextNotContains('CONTRIBUTED PROJECTS');
+    $this->assertSession()->pageTextContains('2 errors found. ' . $this->getDrupalCoreMajorVersion() < 9 ? '3' : '5' . ' warnings found.');
+    $this->assertSession()->pageTextContains('Syntax error, unexpected T_STRING on line 3');
 
     // Run partial export of multiple projects.
     $edit = [
@@ -102,16 +102,17 @@ class UpgradeStatusUiTest extends UpgradeStatusTestBase {
       'Export selected as text' => ['CONTRIBUTED PROJECTS', 'CUSTOM PROJECTS'],
     ];
     foreach ($expected as $button => $assert) {
-      $this->drupalPostForm('admin/reports/upgrade-status', $edit, $button);
-      $this->assertText($assert[0]);
-      $this->assertText($assert[1]);
-      $this->assertText('Upgrade status test contrib error');
-      $this->assertText('Upgrade status test 9 compatible');
-      $this->assertText('Upgrade status test error');
-      $this->assertNoText('Upgrade status test root module');
-      $this->assertNoText('Upgrade status test contrib 9 compatbile');
-      $this->assertText('2 errors found. ' . $this->getDrupalCoreMajorVersion() < 9 ? '3' : '5' . ' warnings found.');
-      $this->assertText('Syntax error, unexpected T_STRING on line 3');
+      $this->drupalGet('admin/reports/upgrade-status');
+      $this->submitForm($edit, $button);
+      $this->assertSession()->pageTextContains($assert[0]);
+      $this->assertSession()->pageTextContains($assert[1]);
+      $this->assertSession()->pageTextContains('Upgrade status test contrib error');
+      $this->assertSession()->pageTextContains('Upgrade status test 9 compatible');
+      $this->assertSession()->pageTextContains('Upgrade status test error');
+      $this->assertSession()->pageTextNotContains('Upgrade status test root module');
+      $this->assertSession()->pageTextNotContains('Upgrade status test contrib 9 compatbile');
+      $this->assertSession()->pageTextContains('2 errors found. ' . $this->getDrupalCoreMajorVersion() < 9 ? '3' : '5' . ' warnings found.');
+      $this->assertSession()->pageTextContains('Syntax error, unexpected T_STRING on line 3');
     }
   }
 
